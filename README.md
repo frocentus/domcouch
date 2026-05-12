@@ -14,6 +14,8 @@
 │  domino-couchbase-lib       │
 │  com.domcouch.api.*         │
 │  (Session → DB → Doc → View)│
+│  com.domcouch.formula.*     │
+│  (Lexer → Parser → Eval)    │
 └──────────┬──────────────────┘
            │ Couchbase Java SDK
 ┌──────────▼──────────────────┐
@@ -35,10 +37,11 @@ docker compose up -d
 Wait ~60s for the Couchbase cluster to initialize. Check the web console at
 http://localhost:8091 (user: `Administrator`, password: `password`).
 
-### 2. Build the project
+### 2. Build & test
 
 ```bash
 mvn clean package -DskipTests
+mvn test -pl domino-couchbase-lib   # 264 tests
 ```
 
 ### 3. Run the Spring Boot app
@@ -49,6 +52,46 @@ mvn -pl springboot-demo spring-boot:run
 
 On first start, the app generates **10,000 fake persons** (20 attributes each)
 and creates 7 N1QL-backed views.
+
+## Key Features
+
+### Domino API Emulation
+
+- **Session** — connect to cluster, open databases (bucket-per-DB or scope-per-DB)
+- **Database** — createDocument, getDocumentByUNID, getView, createView, FTSearch, search
+- **Document** — getFirstItem, replaceItemValue, save, remove, copyToDatabase, hierarchy
+- **View** — N1QL-backed: getAllEntries, getAllEntriesByKey, FTSearch, getEntryCount
+- **Item** — multi-type: TEXT, NUMBERS, DATETIMES, AUTHORS, READERS, RICHTEXT
+- **DateTime** — getLocalTime, toJavaDate, timeDifference, adjustDay
+
+### Document-Level Security
+
+Reader and Author fields with Domino-compatible semantics:
+- **Reader fields**: documents invisible to unauthorized users (all read paths filtered)
+- **Author fields**: `save()` and `remove()` enforce edit permissions (`NotesException 4010`)
+- Centralized `canRead()` check shared by Document and View implementations
+
+### Formula Engine
+
+Full Lexer → Parser → Evaluator pipeline supporting Domino's formula language:
+- **25+ @Functions**: `@Trim`, `@UpperCase`, `@If`, `@Do`, `@Return`, `@Elements`, etc.
+- **Query translation**: `toN1ql()` — selection formulas → N1QL WHERE clauses
+- **Computed evaluation**: `evaluate()` — computed fields against document contexts
+- **Compiled caching**: `compileFormula()` → 16× speedup for batch processing
+- **264 unit tests** with 97 real-world Domino formula examples
+
+```java
+// Compile once
+CompiledFormula fullName = translator.compile("FirstName + \" \" + LastName");
+
+// Evaluate against 10,000 documents — no re-parsing
+for (Document doc : documents) {
+    DocumentFormulaContext ctx = new DocumentFormulaContext(doc);
+    String name = (String) translator.evaluate(fullName, ctx);
+}
+```
+
+Full language spec: `docs/formula-language-architecture.md`
 
 ## REST Endpoints
 
@@ -72,79 +115,34 @@ and creates 7 N1QL-backed views.
 | `ByCity`        | Geographic lookup    |
 | `HighEarners`   | Salary > $100K       |
 
-### Example Queries
-
-```bash
-# Find by last name
-curl "http://localhost:8080/api/persons/view/ByLastName?key=Smith"
-
-# Full-text search
-curl "http://localhost:8080/api/persons/search?q=Engineer"
-
-# Get database stats
-curl "http://localhost:8080/api/persons/info"
-```
-
-## Person Attributes (20 fields)
-
-| #   | Field         | Type   |
-| --- | ------------- | ------ |
-| 1   | FirstName     | Text   |
-| 2   | LastName      | Text   |
-| 3   | Email         | Text   |
-| 4   | Phone         | Text   |
-| 5   | Street        | Text   |
-| 6   | City          | Text   |
-| 7   | State         | Text   |
-| 8   | ZipCode       | Text   |
-| 9   | Country       | Text   |
-| 10  | DateOfBirth   | Date   |
-| 11  | Gender        | Text   |
-| 12  | Occupation    | Text   |
-| 13  | Company       | Text   |
-| 14  | Department    | Text   |
-| 15  | EmployeeId    | Text   |
-| 16  | Salary        | Number |
-| 17  | HireDate      | Date   |
-| 18  | ManagerName   | Text   |
-| 19  | SSN           | Text   |
-| 20  | MaritalStatus | Text   |
-
-## Domino API Coverage
-
-The library emulates the core `lotus.domino` data-layer API:
-
-- **Session** — connect to cluster, open databases
-- **Database** — createDocument, getDocumentByUNID, getView, createView, FTSearch, search
-- **Document** — getFirstItem, replaceItemValue, save, remove, getUniversalID, hasItem
-- **View** — getAllEntries, getAllEntriesByKey, getEntryByKey, FTSearch, getEntryCount
-- **ViewEntry** — getColumnValues, getDocument, getUniversalID
-- **ViewEntryCollection** — getFirstEntry, getNextEntry, getNthEntry, iterator
-- **Item** — getValueString, getValueInt, getValueDouble, getValueDateTime
-- **DateTime** — getLocalTime, toJavaDate, timeDifference, adjustDay
-- **NotesException** — Domino-style error codes
-
 ## Project Layout
 
 ```
 domcouch/
-├── docker-compose.yml
-├── pom.xml                          (parent Maven POM)
-├── domino-couchbase-lib/            (API + Couchbase impl)
-│   └── src/main/java/com/domcouch/
-│       ├── api/                     (Interfaces: Session, Database, Document, View, ...)
-│       └── impl/                    (CouchbaseSession, CouchbaseDatabase, ...)
-└── springboot-demo/                 (REST app + data generator)
+├── AGENTS.md                         (Architecture decisions + conventions)
+├── README.md
+├── pom.xml                           (parent Maven POM, Spring Boot 3.4.3)
+├── docker-compose.yml                (Couchbase 7.x)
+├── docs/
+│   ├── api-coverage.md               (Domino API compatibility matrix)
+│   └── formula-language-architecture.md  (Complete formula language spec)
+├── domino-couchbase-lib/
+│   ├── pom.xml
+│   └── src/
+│       ├── main/java/com/domcouch/
+│       │   ├── api/                  (Interfaces — the Domino contract)
+│       │   ├── impl/                 (Couchbase-backed implementations)
+│       │   └── formula/              (Formula engine: Lexer, Parser, Evaluator)
+│       └── test/java/com/domcouch/
+│           └── formula/              (264 unit tests)
+└── springboot-demo/                  (REST app + data generator)
     └── src/main/java/com/domcouch/demo/
-        ├── DomcouchDemoApplication.java
-        ├── DatabaseInitializer.java
-        ├── config/
-        │   └── DomcouchConfig.java
-        ├── controller/
-        │   └── PersonController.java
-        ├── model/
-        │   └── Person.java
-        └── service/
-            ├── DataGeneratorService.java
-            └── DominoDatabaseService.java
 ```
+
+## Documentation
+
+| Document | Purpose |
+|----------|---------|
+| `AGENTS.md` | Architecture decisions, security model, code conventions, decision log |
+| `docs/api-coverage.md` | Domino API compatibility matrix + domcouch extensions |
+| `docs/formula-language-architecture.md` | Complete formula language grammar, AST design, @Function catalog |

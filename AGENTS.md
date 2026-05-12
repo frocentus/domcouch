@@ -2,7 +2,7 @@
 
 > **Project**: HCL Domino 14.5 Java API emulation on Couchbase  
 > **Version**: 0.1.0-SNAPSHOT  
-> **Last updated**: 2026-05-11
+> **Last updated**: 2026-05-12
 
 ---
 
@@ -73,14 +73,39 @@ The two-arg form requires a pre-existing bucket.
 | `READERS`   | 4     | Domino Readers field (read control) |
 | `RICHTEXT`  | 5     | Rich text / MIME (not yet impl.)    |
 
-### 2.4 Formula Translator
+### 2.4 Formula Engine
 
-Domino `@Functions` in selection formulas are translated to N1QL at query time
-(see `CouchbaseDatabase.translateFormula()`). The translator handles `SELECT`,
-`& | !` operators, `@Contains`, `@Begins`, `@Today`, `@UserName`, `@If`, and more.
+The formula engine is a complete Lexer → Parser → Evaluator pipeline
+in `com.domcouch.formula`. It supports two modes:
 
-**Limitation**: Complex `@Matches` regex patterns and multi-pass `@Transform`
-formulas are not supported. See `docs/api-coverage.md` for the full matrix.
+| Mode | Entry point | Use case |
+|------|------------|----------|
+| **Query translation** | `FormulaTranslator.toN1ql()` | Selection formulas → N1QL WHERE |
+| **Computed evaluation** | `FormulaTranslator.evaluate()` | Computed fields against documents |
+
+**Key classes**:
+
+| Class | Role |
+|-------|------|
+| `Lexer` | Tokenizes formula strings (54 test cases) |
+| `Parser` | Pratt-style recursive descent → AST (39 test cases) |
+| `Evaluator` | Tree-walks AST against `FormulaContext` (57 test cases) |
+| `CompiledFormula` | Pre-parsed AST — evaluate without re-parsing |
+| `DocumentFormulaContext` | Bridges formula engine with `Document` API |
+
+**Compiled caching**: Formulas can be compiled once and evaluated against
+many documents, achieving ~16× speedup by skipping Lexer+Parser stages.
+See `CouchbaseDatabase.compileFormula()` / `evaluateCached()`.
+
+**@Functions supported** (Phase 1): 25+ functions including string ops
+(`@Trim`, `@UpperCase`, `@Left`, `@Right`, `@Repeat`), type conversion
+(`@Text`, `@TextToNumber`), type checking (`@IsNumber`, `@IsText`,
+`@IsAvailable`), list ops (`@Elements`, `@IsMember`), control flow
+(`@If`, `@Do`, `@Return`), boolean (`@True`, `@False`, `@All`),
+and side-effects (`@DeleteField`). `@Command` / `@PostedCommand` are
+no-ops (matching Domino's `NoExternalApps=1`).
+
+Full language specification: `docs/formula-language-architecture.md`.
 
 ---
 
@@ -193,26 +218,25 @@ domcouch/
 ├── domino-couchbase-lib/
 │   └── src/main/java/com/domcouch/
 │       ├── api/                       (Interfaces — the Domino contract)
-│       │   ├── Session.java
-│       │   ├── Database.java
-│       │   ├── Document.java
-│       │   ├── DocumentCollection.java
-│       │   ├── Item.java
-│       │   ├── View.java
-│       │   ├── ViewEntry.java
-│       │   ├── ViewEntryCollection.java
-│       │   ├── DateTime.java
-│       │   └── NotesException.java
-│       └── impl/                      (Couchbase-backed implementations)
-│           ├── CouchbaseSession.java
-│           ├── CouchbaseDatabase.java
-│           ├── CouchbaseDocument.java
-│           ├── CouchbaseDocumentCollection.java
-│           ├── CouchbaseItem.java
-│           ├── CouchbaseView.java
-│           ├── CouchbaseViewEntry.java
-│           ├── CouchbaseViewEntryCollection.java
-│           └── CouchbaseDateTime.java
+│       │   └── ...
+│       ├── impl/                      (Couchbase-backed implementations)
+│       │   ├── CouchbaseSession.java
+│       │   ├── CouchbaseDatabase.java
+│       │   ├── CouchbaseDocument.java
+│       │   ├── CouchbaseItem.java
+│       │   ├── CouchbaseView.java
+│       │   ├── DocumentFormulaContext.java
+│       │   └── ...
+│       └── formula/                   (Formula engine)
+│           ├── Token.java, TokenType.java
+│           ├── Lexer.java
+│           ├── Expr.java
+│           ├── Parser.java
+│           ├── FormulaContext.java
+│           ├── Evaluator.java
+│           ├── CompiledFormula.java
+│           ├── FormulaTranslator.java
+│           └── FormulaParseException.java
 └── springboot-demo/                   (Demo REST app + data generator)
     └── src/main/java/com/domcouch/demo/
         ├── config/                    (Spring beans: Session, Database)
@@ -238,6 +262,11 @@ domcouch/
   - `4002`: FTSearch failed
   - `4003`: search failed
   - `4010`: no author access (security)
+  - `4500`: Feature not applicable in Couchbase
+  - `4501`: Formula parse error — unclosed string
+  - `4502`: Formula parse error — unexpected character
+  - `4503`: Formula parse error — @ without function name
+- Use `FormulaParseException` (extends `RuntimeException`) for parse errors
 - Wrap Couchbase SDK exceptions; don't leak them through the API
 
 ### 5.4 Thread Safety
@@ -273,7 +302,23 @@ mvn -pl springboot-demo spring-boot:run
 | GET    | `/api/persons/search?q=...`        | Full-text search   |
 | POST   | `/api/persons/admin/reinitialize`  | Reset + repopulate |
 
-### 6.3 Data Generation
+### 6.3 Test Suite
+
+```bash
+mvn test -pl domino-couchbase-lib
+```
+
+| Test class | Tests | Coverage |
+|-----------|-------|----------|
+| `LexerTest` | 54 | All token types, escapes, numbers, brackets, comments |
+| `ParserTest` | 39 | Precedence, operators, FIELD/DEFAULT/ENVIRONMENT, @Functions |
+| `EvaluatorTest` | 57 | Arithmetic, comparison, coercion, 25+ @Functions, assignment |
+| `FormulaExamplesTest` | 97 | Real Domino spec examples — all formula categories |
+| `CachedEvaluationTest` | 8 | Compile-once, evaluate-many; verified against Java values |
+| `PerformanceComparisonTest` | 9 | Throughput, cached vs uncached, pipeline breakdown |
+| **Total** | **264** | |
+
+### 6.4 Data Generation
 
 On first startup, `DatabaseInitializer` generates 10,000 fake persons with 20
 attributes each. Views are created automatically. Re-initialization clears all
@@ -294,8 +339,11 @@ documents and regenerates.
 | 2026-05-11 | `FTSearch` uses parameterized N1QL queries (`$q`)                   | Eliminates N1QL injection; user input never concatenated      |
 | 2026-05-11 | `getCollectionPath()` extracted; shared by DB + View                | Single source of truth for backtick-escaped path              |
 | 2026-05-11 | Reader check in `getDocumentByUNID` BEFORE deserialization          | Avoids full doc construction cost if user can't read          |
-| 2026-05-11 | Formula translator trusts developer-controlled input                | `search()` formulas are NOT for end-user input; `FTSearch` is |
-| 2026-05-11 | Database = bucket (per-.nsf isolation) for single-arg `getDatabase` | True isolation, testable `copyToDatabase` across buckets      |
+| 2026-05-12 | Formula engine: Lexer → Parser → Evaluator pipeline        | Full Domino formula language support; 264 tests            |
+| 2026-05-12 | Compiled formula caching with `compileFormula()`            | 16× speedup for batch document processing                   |
+| 2026-05-12 | `DocumentFormulaContext` bridges formula engine with Document | Computed fields evaluated directly against domcouch Documents |
+| 2026-05-12 | `@Command` / `@PostedCommand` treated as no-ops             | Matches Domino `NoExternalApps=1`; formulas with UI commands still evaluate |
+| 2026-05-12 | Moved `FormulaTranslator` to `com.domcouch.formula` package | Clean separation from impl; single facade for both modes    |
 
 ---
 
@@ -331,6 +379,8 @@ documents and regenerates.
 - [ ] Push reader filtering to N1QL for better performance on large datasets
 - [ ] Implement `RichTextItem` with Couchbase binary attachments
 - [ ] Add database-level ACL (`getACL()` / `grantAccess()` / `revokeAccess()`)
-- [ ] Complete `@UserRoles` and `@Author` formula support
-- [ ] Add proper unit tests for the library
+- [ ] Phase 2 @Functions: `@Matches`, `@Replace`, `@While`, `@Adjust`, `@Prompt`
+- [ ] Multi-locale date parsing in time-date constants
+- [ ] Permuted operators (`*+`, `*=`, etc.) and full list broadcasting semantics
+- [ ] `@DbLookup` / `@DbColumn` cross-database access
 - [ ] Password hashing / encryption for sensitive fields (SSN)
