@@ -283,6 +283,12 @@ public class Evaluator {
         return null;
     }
 
+    /** Parse a date string to LocalDate, returning null on failure. */
+    private static java.time.LocalDate parseDate(String s) {
+        java.time.ZonedDateTime zdt = parseDateToZoned(s);
+        return zdt != null ? zdt.toLocalDate() : null;
+    }
+
     static boolean isFalsy(Object val) { return !isTruthy(val); }
 
     /** Check if a string represents a valid number. */
@@ -438,6 +444,25 @@ public class Evaluator {
         functions.put("ASIN", (ev, args, ctx) -> map1(ev, args, ctx, Math::asin));
         functions.put("ATAN", (ev, args, ctx) -> map1(ev, args, ctx, Math::atan));
         functions.put("ATAN2", (ev, args, ctx) -> map2(ev, args, ctx, Math::atan2));
+
+        // Calendar functions
+        functions.put("BUSINESSDAYS", (ev, args, ctx) -> {
+            Object starts = ev.eval(args.get(0), ctx);
+            Object ends = ev.eval(args.get(1), ctx);
+            List<Object> startList = toList(starts);
+            List<Object> endList = toList(ends);
+            int size = Math.max(startList.size(), endList.size());
+            List<Object> result = new ArrayList<>();
+            for (int i = 0; i < size; i++) {
+                java.time.LocalDate s = parseDate(toString(startList.get(Math.min(i, startList.size() - 1))));
+                java.time.LocalDate e = parseDate(toString(endList.get(Math.min(i, endList.size() - 1))));
+                if (s == null || e == null || e.isBefore(s)) { result.add(-1.0); continue; }
+                long days = 0;
+                for (java.time.LocalDate d = s; !d.isAfter(e); d = d.plusDays(1)) days++;
+                result.add((double) days);
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
 
         // String functions
         functions.put("ASCII", (ev, args, ctx) -> {
