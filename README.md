@@ -41,7 +41,7 @@ http://localhost:8091 (user: `Administrator`, password: `password`).
 
 ```bash
 mvn clean package -DskipTests
-mvn test -pl domino-couchbase-lib   # 264 tests
+mvn test -pl domino-couchbase-lib   # 308 tests
 ```
 
 ### 3. Run the Spring Boot app
@@ -74,7 +74,8 @@ Reader and Author fields with Domino-compatible semantics:
 ### Formula Engine
 
 Full Lexer → Parser → Evaluator pipeline supporting Domino's formula language:
-- **25+ @Functions**: `@Trim`, `@UpperCase`, `@If`, `@Do`, `@Return`, `@Elements`, etc.
+- **35 @Functions**: all verified against official Domino spec. String ops, type conversion, type checking, list ops, control flow, date extraction, boolean, security, and side-effects.
+  See `docs/function-catalog.md` for the complete matrix.
 - **Query translation**: `toN1ql()` — selection formulas → N1QL WHERE clauses
 - **Computed evaluation**: `evaluate()` — computed fields against document contexts
 - **Compiled caching**: `compileFormula()` → 16× speedup for batch processing

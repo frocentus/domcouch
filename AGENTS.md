@@ -2,7 +2,7 @@
 
 > **Project**: HCL Domino 14.5 Java API emulation on Couchbase  
 > **Version**: 0.1.0-SNAPSHOT  
-> **Last updated**: 2026-05-12
+> **Last updated**: 2026-05-13
 
 ---
 
@@ -97,13 +97,13 @@ in `com.domcouch.formula`. It supports two modes:
 many documents, achieving ~16× speedup by skipping Lexer+Parser stages.
 See `CouchbaseDatabase.compileFormula()` / `evaluateCached()`.
 
-**@Functions supported** (Phase 1): 25+ functions including string ops
-(`@Trim`, `@UpperCase`, `@Left`, `@Right`, `@Repeat`), type conversion
-(`@Text`, `@TextToNumber`), type checking (`@IsNumber`, `@IsText`,
-`@IsAvailable`), list ops (`@Elements`, `@IsMember`), control flow
-(`@If`, `@Do`, `@Return`), boolean (`@True`, `@False`, `@All`),
-and side-effects (`@DeleteField`). `@Command` / `@PostedCommand` are
-no-ops (matching Domino's `NoExternalApps=1`).
+**@Functions supported** (Phase 1): 35 functions — all verified against
+official Domino specifications. Includes string ops, type conversion,
+type checking, list ops, control flow, date extraction, boolean constants,
+and side-effects. `@Command` / `@PostedCommand` are no-ops.
+
+Phase 2 (16 functions remaining): `@Explode`, `@Implode`, `@Prompt`,
+`@DbLookup`, `@DbColumn`, `@MailSend`, `@Adjust`, `@SetDocField`, and others.
 
 Full language specification: `docs/formula-language-architecture.md`.
 
@@ -316,7 +316,7 @@ mvn test -pl domino-couchbase-lib
 | `FormulaExamplesTest` | 97 | Real Domino spec examples — all formula categories |
 | `CachedEvaluationTest` | 8 | Compile-once, evaluate-many; verified against Java values |
 | `PerformanceComparisonTest` | 9 | Throughput, cached vs uncached, pipeline breakdown |
-| **Total** | **264** | |
+| **Total** | **264** → **308** | |
 
 ### 6.4 Data Generation
 
@@ -343,7 +343,7 @@ documents and regenerates.
 | 2026-05-12 | Compiled formula caching with `compileFormula()`            | 16× speedup for batch document processing                   |
 | 2026-05-12 | `DocumentFormulaContext` bridges formula engine with Document | Computed fields evaluated directly against domcouch Documents |
 | 2026-05-12 | `@Command` / `@PostedCommand` treated as no-ops             | Matches Domino `NoExternalApps=1`; formulas with UI commands still evaluate |
-| 2026-05-12 | Moved `FormulaTranslator` to `com.domcouch.formula` package | Clean separation from impl; single facade for both modes    |
+| 2026-05-13 | 35 @Functions verified against official Domino spec | 308 tests; function-catalog.md with per-function verification status |
 
 ---
 
