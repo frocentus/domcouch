@@ -288,15 +288,6 @@ public class Evaluator {
         return List.of(val);
     }
 
-    /** Map a numeric function over a value or list, returning scalar for single results. */
-    @SuppressWarnings("unchecked")
-    private static Object mapNumberList(Evaluator ev, List<Expr> args,
-                                         java.util.function.DoubleUnaryOperator fn) {
-        Object val = ev.eval(args.get(0), ev.tempScope != null ? (FormulaContext) (n -> ev.tempScope.get(n)) : null);
-        // Need to re-evaluate properly — just inline for now
-        return null; // placeholder
-    }
-
     /** Check if any pair (a,b) from two values (or lists) matches the predicate. */
     private static boolean anyPairMatch(Object a, Object b,
                                          java.util.function.BiPredicate<String, String> pred) {
