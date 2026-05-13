@@ -938,6 +938,13 @@ public class Evaluator {
             }
             return 1.0;
         });
+        functions.put("DOWHILE", (ev, args, ctx) -> {
+            // Last arg is condition, rest are statements
+            do {
+                for (int i = 0; i < args.size() - 1; i++) ev.eval(args.get(i), ctx);
+            } while (isTruthy(ev.eval(args.get(args.size() - 1), ctx)));
+            return 1.0;
+        });
 
         // ---- Phase 2: Variable/field manipulation ----
         functions.put("SET", (ev, args, ctx) -> {
