@@ -822,6 +822,7 @@ public class Evaluator {
         // Security
         functions.put("USERNAME", (ev, args, ctx) -> currentUserName);
         functions.put("DOCFIELDS", (ev, args, ctx) -> ctx.getFieldNames());
+        functions.put("DOCLENGTH", (ev, args, ctx) -> 0.0); // requires Couchbase document metadata
 
         // Boolean constants
         functions.put("ALL", (ev, args, ctx) -> 1.0);
