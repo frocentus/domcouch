@@ -577,8 +577,15 @@ public class Evaluator {
         functions.put("ISNOTMEMBER", (ev, args, ctx) -> {
             Object val = ev.eval(args.get(0), ctx);
             Object list = ev.eval(args.get(1), ctx);
-            if (list instanceof List l) return boolToNum(!l.contains(val));
-            return boolToNum(!toString(val).equals(toString(list)));
+            List<Object> list2 = toList(list);
+            if (val instanceof List<?> l1) {
+                // Both lists: NO element of l1 may be in list2
+                for (Object elem : l1) {
+                    if (list2.contains(elem)) return 0.0;
+                }
+                return l1.isEmpty() ? 1.0 : 1.0;
+            }
+            return boolToNum(!list2.contains(val));
         });
 
         // Control flow

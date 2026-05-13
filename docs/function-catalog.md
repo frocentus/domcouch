@@ -397,7 +397,7 @@ Returns True if `value` is NOT an element of `list`.
 |---------|--------|
 | `@IsNotMember("x"; "a" : "b" : "c")` | `1` |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @Replace  *(Phase 2)*
 ```
