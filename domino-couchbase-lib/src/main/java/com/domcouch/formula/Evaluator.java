@@ -533,8 +533,17 @@ public class Evaluator {
             }
             return 0.0;
         });
-        functions.put("ISTEXT", (ev, args, ctx) ->
-                boolToNum(ev.eval(args.get(0), ctx) instanceof String));
+        functions.put("ISTEXT", (ev, args, ctx) -> {
+            Object v = ev.eval(args.get(0), ctx);
+            if (v instanceof String) return 1.0;
+            if (v instanceof List<?> list) {
+                for (Object elem : list) {
+                    if (!(elem instanceof String)) return 0.0;
+                }
+                return list.isEmpty() ? 0.0 : 1.0;
+            }
+            return 0.0;
+        });
 
         // Existence
         functions.put("ISAVAILABLE", (ev, args, ctx) -> {

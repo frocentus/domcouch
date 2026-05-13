@@ -346,7 +346,7 @@ Returns True if the value is a string.
 | `@IsText("hello")` | `1` |
 | `@IsText(42)` | `0` |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @IsAvailable
 ```
