@@ -433,7 +433,7 @@ Evaluates `condition`. If truthy, evaluates and returns `trueValue`; otherwise `
 | `@If(Salary > 100000; "High"; "Standard")` | `"Standard"` (if Salary = 95000) |
 | `@If(1; "yes"; "no")` | `"yes"` |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @Do
 ```

@@ -603,8 +603,17 @@ public class Evaluator {
 
         // Control flow
         functions.put("IF", (ev, args, ctx) -> {
-            boolean cond = isTruthy(ev.eval(args.get(0), ctx));
-            return ev.eval(args.get(cond ? 1 : 2), ctx);
+            // @If(cond1; action1; cond2; action2; ...; else)
+            int n = args.size();
+            if (n == 0) return "";
+            if (n == 1) { ev.eval(args.get(0), ctx); return ""; } // cond only, no action
+            for (int i = 0; i + 1 < n; i += 2) {
+                boolean cond = isTruthy(ev.eval(args.get(i), ctx));
+                if (cond) return ev.eval(args.get(i + 1), ctx);
+            }
+            // No condition matched — return else_action (last arg) if odd count
+            if (n % 2 == 1) return ev.eval(args.get(n - 1), ctx);
+            return "";
         });
         functions.put("DO", (ev, args, ctx) -> {
             Object last = "";
