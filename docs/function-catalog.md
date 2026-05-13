@@ -124,20 +124,24 @@ Status: ✅ 📋
 
 ### @Repeat
 ```
-@Repeat(string; count)
+@Repeat(string; count; maxChars)
 ```
-Repeats the string `count` times.
+Repeats the string `count` times. Optional third argument truncates to `maxChars`.
+List-aware.
+
 | Arg | Type | Description |
 |-----|------|-------------|
-| 1 | String | String to repeat |
+| 1 | Text or text list | String to repeat |
 | 2 | Number | Repeat count |
+| 3 | Number (optional) | Max characters to return |
 
 | Example | Result |
 |---------|--------|
-| `@Repeat("X"; 5)` | `"XXXXX"` |
-| `@Repeat(" "; 8)` | `"        "` |
+| `@Repeat("Hello"; 3)` | `"HelloHelloHello"` |
+| `@Repeat("Bye"; 2; 5)` | `"ByeBy"` (truncated) |
+| `@Repeat("Hello" : "Bye"; 3)` | `["HelloHelloHello", "ByeByeBye"]` (list) |
 
-Status: ✅ ⚠
+Status: ✅ 📋 ⚠
 
 ### @Contains  *(Phase 2)*
 ```
@@ -259,8 +263,26 @@ Status: ✅ 📋
 ```
 @Matches(string; pattern)
 ```
-Pattern matching with wildcards. Not yet implemented.
-Status: ❌
+Tests a string against a wildcard pattern. Case-insensitive for simple
+characters; case-sensitive for `{...}` character classes. List-aware.
+
+**Phase 1 wildcards**: `?` (single char), `*` (any string), `{ABC}` / `{A-F}` (character class).
+**Phase 2**: `!` (NOT), `|` (OR), `&` (AND), `+` (one-or-more) — not yet.
+
+| Arg | Type | Description |
+|-----|------|-------------|
+| 1 | Text or text list | String to test |
+| 2 | Text or text list | Wildcard pattern |
+
+| Example | Result |
+|---------|--------|
+| `@Matches("abc"; "a?c")` | `1` (? = any single char) |
+| `@Matches("Vermont"; "*mont*")` | `1` (* = any string) |
+| `@Matches("AB"; "{A-C}{A-C}")` | `1` (character class) |
+| `@Matches("abc"; "ABC")` | `1` (case-insensitive) |
+| `@Matches("one":"two":"three"; "three":"four":"five")` | `1` (list: any match) |
+
+Status: ✅ 📋
 
 ---
 
