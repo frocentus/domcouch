@@ -416,6 +416,23 @@ public class Evaluator {
         });
 
         // String functions
+        functions.put("ASCII", (ev, args, ctx) -> {
+            Object val = ev.eval(args.get(0), ctx);
+            boolean allInRange = args.size() > 1;
+            List<Object> sources = toList(val);
+            List<Object> result = new ArrayList<>();
+            for (Object src : sources) {
+                String s = toString(src);
+                StringBuilder sb = new StringBuilder();
+                for (char c : s.toCharArray()) {
+                    sb.append(c >= 32 && c <= 127 ? c : '?');
+                }
+                String converted = sb.toString();
+                if (allInRange && converted.indexOf('?') >= 0) converted = "";
+                result.add(converted);
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
         functions.put("TRIM", (ev, args, ctx) -> {
             Object val = ev.eval(args.get(0), ctx);
             List<Object> sources = toList(val);
