@@ -526,7 +526,7 @@ Extracts the month (1–12) from a date string. Supports ISO and US formats.
 | `@Month("2024-01-15")` | `1` |
 | `@Month("11/30/2000 02:39:55 PM")` | `11` |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @Day  *(Phase 2)*
 ```
@@ -537,7 +537,7 @@ Extracts the day of month (1–31).
 |---------|--------|
 | `@Day("2024-01-15")` | `15` |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @Year  *(Phase 2)*
 ```
