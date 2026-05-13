@@ -495,7 +495,31 @@ public class Evaluator {
             }
             return result.size() == 1 ? result.get(0) : result;
         });
-        functions.put("TEXTTONUMBER", (ev, args, ctx) -> toNumber(ev.eval(args.get(0), ctx)));
+        functions.put("TEXTTONUMBER", (ev, args, ctx) -> {
+            Object val = ev.eval(args.get(0), ctx);
+            List<Object> sources = toList(val);
+            List<Object> result = new ArrayList<>();
+            for (Object src : sources) {
+                String s = toString(src).trim();
+                if (s.isEmpty()) { result.add(0.0); continue; }
+                // Extract leading numeric portion: "12ABC" → 12, "ABC12" → 0
+                double d = 0.0;
+                try {
+                    // Try full parse first
+                    d = Double.parseDouble(s);
+                } catch (NumberFormatException e) {
+                    // Find leading numeric prefix
+                    int end = 0;
+                    if (end < s.length() && (s.charAt(end) == '+' || s.charAt(end) == '-')) end++;
+                    while (end < s.length() && (Character.isDigit(s.charAt(end)) || s.charAt(end) == '.')) end++;
+                    if (end > 0 && (s.charAt(0) == '-' || s.charAt(0) == '+' || Character.isDigit(s.charAt(0)))) {
+                        try { d = Double.parseDouble(s.substring(0, end)); } catch (NumberFormatException e2) {}
+                    }
+                }
+                result.add(d);
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
 
         // Type checking
         functions.put("ISNUMBER", (ev, args, ctx) -> {

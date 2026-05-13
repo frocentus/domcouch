@@ -318,7 +318,7 @@ Parses a string to a number (returns `0` on parse failure).
 | `@TextToNumber("42")` | `42` |
 | `@TextToNumber("abc")` | `0` |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ---
 

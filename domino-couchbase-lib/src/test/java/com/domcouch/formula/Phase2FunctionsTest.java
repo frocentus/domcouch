@@ -443,4 +443,24 @@ class Phase2FunctionsTest {
             assertEquals(List.of("8.00E+02", "-6.00E+02"), result);
         }
     }
+
+    // ================================================================
+    // @TextToNumber (leading numeric extraction + list support)
+    // ================================================================
+
+    @Nested @DisplayName("@TextToNumber")
+    class TextToNumberTests {
+        @Test @DisplayName("simple integer")
+        void simple() { assertEquals(123.0, eval("@TextToNumber(\"123\")")); }
+        @Test @DisplayName("leading numeric: 12ABC → 12")
+        void leadingNumeric() { assertEquals(12.0, eval("@TextToNumber(\"12ABC\")")); }
+        @Test @DisplayName("non-numeric start: ABC12 → 0")
+        void nonNumericStart() { assertEquals(0.0, eval("@TextToNumber(\"ABC12\")")); }
+        @Test @DisplayName("list support")
+        void listSupport() {
+            assertEquals(List.of(123.0, 456.0), eval("@TextToNumber(\"123\" : \"456\")"));
+        }
+        @Test @DisplayName("negative number")
+        void negative() { assertEquals(-42.0, eval("@TextToNumber(\"-42\")")); }
+    }
 }
