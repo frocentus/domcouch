@@ -822,7 +822,17 @@ public class Evaluator {
         // Security
         functions.put("USERNAME", (ev, args, ctx) -> currentUserName);
         functions.put("DOCFIELDS", (ev, args, ctx) -> ctx.getFieldNames());
-        functions.put("DOCLENGTH", (ev, args, ctx) -> 0.0); // requires Couchbase document metadata
+        functions.put("DOCLENGTH", (ev, args, ctx) -> 0.0);
+        functions.put("DOCLOCK", (ev, args, ctx) -> {
+            if (args.isEmpty()) return "";
+            String kw = toString(ev.eval(args.get(0), ctx));
+            return switch (kw) {
+                case "LOCK", "UNLOCK" -> 1.0;
+                case "STATUS" -> "";
+                case "LOCKINGENABLED" -> 0.0;
+                default -> "";
+            };
+        }); // requires Couchbase document metadata
 
         // Boolean constants
         functions.put("ALL", (ev, args, ctx) -> 1.0);
