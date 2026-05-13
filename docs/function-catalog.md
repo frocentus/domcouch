@@ -445,7 +445,7 @@ Evaluates all expressions in order. Returns the value of the **last** expression
 | `@Do("a"; "b"; "c")` | `"c"` |
 | `@Do(sum := 1 + 2; sum * 2)` | `6` |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @Return
 ```
