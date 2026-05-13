@@ -519,6 +519,19 @@ public class Evaluator {
             }
             return result.size() == 1 ? result.get(0) : result;
         });
+        functions.put("EXPLODE", (ev, args, ctx) -> {
+            String s = toString(ev.eval(args.get(0), ctx));
+            String sep = args.size() > 1 ? toString(ev.eval(args.get(1), ctx)) : " ,;";
+            if (sep.isEmpty()) sep = " ,;";
+            // Build regex character class from separators
+            StringBuilder regex = new StringBuilder("[");
+            for (char c : sep.toCharArray()) regex.append("\\").append(c);
+            regex.append("]+");
+            String[] parts = s.split(regex.toString());
+            java.util.List<Object> result = new java.util.ArrayList<>();
+            for (String p : parts) if (!p.isEmpty()) result.add(p);
+            return result.isEmpty() ? "" : result.size() == 1 ? result.get(0) : result;
+        });
         functions.put("TRIM", (ev, args, ctx) -> {
             Object val = ev.eval(args.get(0), ctx);
             List<Object> sources = toList(val);
