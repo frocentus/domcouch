@@ -864,6 +864,11 @@ public class Evaluator {
             }
         });
 
+        functions.put("EVAL", (ev, args, ctx) -> {
+            String formula = toString(ev.eval(args.get(0), ctx));
+            return ev.evalExpr(formula, ctx);
+        });
+
         // Command no-ops
         FunctionHandler noop = (ev, args, ctx) -> "";
         functions.put("COMMAND", noop);
