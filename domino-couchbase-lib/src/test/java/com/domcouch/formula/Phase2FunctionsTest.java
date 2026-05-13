@@ -463,4 +463,22 @@ class Phase2FunctionsTest {
         @Test @DisplayName("negative number")
         void negative() { assertEquals(-42.0, eval("@TextToNumber(\"-42\")")); }
     }
+
+    // ================================================================
+    // @IsNumber (spec-correct: strings are NOT numbers)
+    // ================================================================
+
+    @Nested @DisplayName("@IsNumber")
+    class IsNumberTests {
+        @Test @DisplayName("actual number returns true")
+        void number() { assertEquals(1.0, eval("@IsNumber(123)")); }
+        @Test @DisplayName("string returns false")
+        void stringNotNumber() { assertEquals(0.0, eval("@IsNumber(\"123\")")); }
+        @Test @DisplayName("date returns false")
+        void dateNotNumber() { assertEquals(0.0, eval("@IsNumber(@Created)")); }
+        @Test @DisplayName("number list returns true")
+        void numberList() { assertEquals(1.0, eval("@IsNumber(-345 : 2.78 : 997 : .7)")); }
+        @Test @DisplayName("mixed list returns false")
+        void mixedList() { assertEquals(0.0, eval("@IsNumber(1 : \"two\")")); }
+    }
 }

@@ -334,7 +334,7 @@ Returns True if the value is a number or a numeric string.
 | `@IsNumber(42)` | `1` |
 | `@IsNumber("hello")` | `0` |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @IsText
 ```

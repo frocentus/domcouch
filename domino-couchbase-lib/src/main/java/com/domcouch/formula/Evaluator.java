@@ -525,8 +525,11 @@ public class Evaluator {
         functions.put("ISNUMBER", (ev, args, ctx) -> {
             Object v = ev.eval(args.get(0), ctx);
             if (v instanceof Number) return 1.0;
-            if (v instanceof String s && !s.isEmpty()) {
-                try { Double.parseDouble(s); return 1.0; } catch (NumberFormatException e) {}
+            if (v instanceof List<?> list) {
+                for (Object elem : list) {
+                    if (!(elem instanceof Number)) return 0.0;
+                }
+                return list.isEmpty() ? 0.0 : 1.0;
             }
             return 0.0;
         });
