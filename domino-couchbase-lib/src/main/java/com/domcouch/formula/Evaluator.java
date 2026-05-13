@@ -19,6 +19,9 @@ public class Evaluator {
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter
             .ofPattern("MM/dd/yyyy hh:mm:ss a").withZone(ZoneId.systemDefault());
 
+    /** Sentinel value for @Error / @IsError. */
+    static final Object ERROR_VALUE = new Object();
+
     /** Create an Evaluator with the default user ("Anonymous") and built-in functions. */
     public Evaluator() {
         this("Anonymous");
@@ -841,8 +844,13 @@ public class Evaluator {
         functions.put("FALSE", (ev, args, ctx) -> 0.0);
 
         // Side-effects
-        functions.put("DELETEFIELD", (ev, args, ctx) -> new Expr.DeleteField( // target from FIELD statement
+        functions.put("DELETEFIELD", (ev, args, ctx) -> new Expr.DeleteField(
                 args.isEmpty() ? new Expr.Variable("") : args.get(0)));
+
+        // Error handling
+        functions.put("ERROR", (ev, args, ctx) -> ERROR_VALUE);
+        functions.put("ISERROR", (ev, args, ctx) ->
+                boolToNum(ev.eval(args.get(0), ctx) == ERROR_VALUE));
 
         // Formula validation
         functions.put("CHECKFORMULASYNTAX", (ev, args, ctx) -> {
