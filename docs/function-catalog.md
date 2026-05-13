@@ -500,21 +500,21 @@ Status: ✅ 📋
 @Created
 ```
 Returns the document's creation timestamp (from `FormulaContext.resolve("CREATED")`).
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @Now
 ```
 @Now
 ```
 Returns the current date and time as a formatted string.
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @Today
 ```
 @Today
 ```
 Returns the current date as a formatted string.
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @Month  *(Phase 2)*
 ```
