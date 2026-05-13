@@ -718,13 +718,10 @@ public class Evaluator {
 
         // ---- Phase 2: Control flow ----
         functions.put("WHILE", (ev, args, ctx) -> {
-            // @While(condition; body; increment)
-            Object last = "";
             while (isTruthy(ev.eval(args.get(0), ctx))) {
-                last = ev.eval(args.get(1), ctx);  // body
-                if (args.size() > 2) ev.eval(args.get(2), ctx);  // increment
+                for (int i = 1; i < args.size(); i++) ev.eval(args.get(i), ctx);
             }
-            return last;
+            return 1.0;
         });
 
         // ---- Phase 2: Variable/field manipulation ----
