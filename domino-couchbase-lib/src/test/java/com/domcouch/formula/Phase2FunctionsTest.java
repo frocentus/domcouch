@@ -295,4 +295,27 @@ class Phase2FunctionsTest {
         @Test @DisplayName("list: all empty returns empty string")
         void listAllEmpty() { assertEquals("", eval("@Trim(\"   \" : \"\" : \"  \")")); }
     }
+
+    // ================================================================
+    // @UpperCase / @LowerCase (list support)
+    // ================================================================
+
+    @Nested @DisplayName("@UpperCase / @LowerCase")
+    class CaseTests {
+        @Test @DisplayName("single string")
+        void singleString() { assertEquals("ROBERT T. SMITH", eval("@UpperCase(\"Robert T. Smith\")")); }
+        @Test @DisplayName("list support")
+        void listSupport() {
+            assertEquals(List.of("ROBERT", "SMITH"), eval("@UpperCase(\"Robert\" : \"Smith\")"));
+        }
+        @Test @DisplayName("field value")
+        void fieldValue() {
+            vars.put("STATE", "ma");
+            assertEquals("MA", eval("@UpperCase(State)"));
+        }
+        @Test @DisplayName("@LowerCase is also list-aware")
+        void lowerCaseList() {
+            assertEquals(List.of("robert", "smith"), eval("@LowerCase(\"ROBERT\" : \"SMITH\")"));
+        }
+    }
 }

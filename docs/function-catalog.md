@@ -67,7 +67,7 @@ Converts to lowercase.
 |---------|--------|
 | `@LowerCase("HELLO")` | `"hello"` |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @Length
 ```
