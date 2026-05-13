@@ -302,7 +302,7 @@ Converts any value to a string (numbers lose decimal if whole).
 | `@Text(42)` | `"42"` |
 | `@Text(@Created)` | `"11/30/2000 02:39:55 PM"` |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @TextToNumber
 ```
