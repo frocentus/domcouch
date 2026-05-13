@@ -493,6 +493,19 @@ public class Evaluator {
             }
             return result.size() == 1 ? result.get(0) : result;
         });
+        functions.put("COMPARE", (ev, args, ctx) -> {
+            List<Object> list1 = toList(ev.eval(args.get(0), ctx));
+            List<Object> list2 = toList(ev.eval(args.get(1), ctx));
+            int size = Math.max(list1.size(), list2.size());
+            List<Object> result = new ArrayList<>();
+            for (int i = 0; i < size; i++) {
+                String s1 = toString(list1.get(Math.min(i, list1.size() - 1)));
+                String s2 = toString(list2.get(Math.min(i, list2.size() - 1)));
+                int cmp = s1.compareTo(s2);
+                result.add(cmp < 0 ? -1.0 : cmp > 0 ? 1.0 : 0.0);
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
         functions.put("TRIM", (ev, args, ctx) -> {
             Object val = ev.eval(args.get(0), ctx);
             List<Object> sources = toList(val);
