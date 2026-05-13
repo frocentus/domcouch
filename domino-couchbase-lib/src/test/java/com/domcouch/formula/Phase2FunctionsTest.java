@@ -805,4 +805,22 @@ class Phase2FunctionsTest {
         @Test @DisplayName("one business day")
         void oneDay() { assertTrue(((Double) eval("@BusinessDays([06/30/95]; [07/01/95])")) >= 0); }
     }
+
+    // ================================================================
+    // @Success / @Failure (input validation) — spec examples
+    // ================================================================
+    @Nested @DisplayName("@Success/@Failure")
+    class ValidationTests {
+        @Test @DisplayName("@Success returns 1")
+        void success() { assertEquals(1.0, eval("@Success")); }
+        @Test @DisplayName("@Failure returns error message string")
+        void failure() {
+            assertEquals("Invalid", eval("@Failure(\"Invalid\")"));
+        }
+        @Test @DisplayName("@Failure with @If (spec example)")
+        void specExample() {
+            assertEquals("Area codes have only 3 digits",
+                    eval("@If(1234<1000; @Success; @Failure(\"Area codes have only 3 digits\"))"));
+        }
+    }
 }

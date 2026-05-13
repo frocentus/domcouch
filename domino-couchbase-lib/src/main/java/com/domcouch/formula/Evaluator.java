@@ -855,6 +855,11 @@ public class Evaluator {
         functions.put("ALL", (ev, args, ctx) -> 1.0);
         functions.put("TRUE", (ev, args, ctx) -> 1.0);
         functions.put("FALSE", (ev, args, ctx) -> 0.0);
+        functions.put("SUCCESS", (ev, args, ctx) -> 1.0);
+
+        // Validation
+        functions.put("FAILURE", (ev, args, ctx) ->
+                args.isEmpty() ? "" : toString(ev.eval(args.get(0), ctx)));
 
         // Side-effects
         functions.put("DELETEFIELD", (ev, args, ctx) -> new Expr.DeleteField(
