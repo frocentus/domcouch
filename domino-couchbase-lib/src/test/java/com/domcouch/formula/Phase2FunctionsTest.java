@@ -424,4 +424,23 @@ class Phase2FunctionsTest {
             assertEquals(0.0, eval("@Matches(\"one\" : \"two\" : \"three\"; \"four\" : \"five\" : \"six\")"));
         }
     }
+
+    // ================================================================
+    // @Text (format strings)
+    // ================================================================
+
+    @Nested @DisplayName("@Text")
+    class TextTests {
+        @Test @DisplayName("simple conversion")
+        void simple() { assertEquals("123.45", eval("@Text(123.45)")); }
+        @Test @DisplayName("currency format")
+        void currency() { assertEquals("$800.00", eval("@Text(800; \"C,2\")")); }
+        @Test @DisplayName("scientific format")
+        void scientific() { assertEquals("8.00E+02", eval("@Text(800; \"S\")")); }
+        @Test @DisplayName("list with format")
+        void listFormat() {
+            Object result = eval("@Text(800 : (-600); \"S\")");
+            assertEquals(List.of("8.00E+02", "-6.00E+02"), result);
+        }
+    }
 }

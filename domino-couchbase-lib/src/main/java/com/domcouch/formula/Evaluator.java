@@ -354,6 +354,29 @@ public class Evaluator {
         return java.util.regex.Pattern.compile(regex.toString(), java.util.regex.Pattern.CASE_INSENSITIVE);
     }
 
+    /** Format a number according to a Domino format string (always US locale). */
+    private static String formatNumber(double value, String format) {
+        java.util.Locale us = java.util.Locale.US;
+        String upper = format.toUpperCase();
+        int decimals = 2;
+        if (upper.matches(".*[0-9]+")) {
+            try { decimals = Integer.parseInt(upper.replaceAll("[^0-9]", "")); } catch (Exception e) {}
+        }
+        if (upper.contains("S")) return String.format(us, "%." + decimals + "E", value);
+        if (upper.contains("C")) return "$" + String.format(us, "%." + decimals + "f", value);
+        if (upper.contains("%")) return String.format(us, "%." + decimals + "f", value * 100) + "%";
+        String result = String.format(us, "%." + decimals + "f", value);
+        if (upper.contains(",")) {
+            String[] parts = result.split("\\.");
+            String intPart = String.format(us, "%,d", (long) Math.abs(value));
+            if (value < 0) intPart = "-" + intPart;
+            result = parts.length > 1 ? intPart + "." + parts[1] : intPart;
+        }
+        if (upper.contains("(") && upper.contains(")") && value < 0)
+            result = "(" + result.substring(1) + ")";
+        return result;
+    }
+
     // ---- Built-in function registration ----
 
     private void registerBuiltins() {
@@ -458,7 +481,20 @@ public class Evaluator {
         });
 
         // Conversion
-        functions.put("TEXT", (ev, args, ctx) -> toString(ev.eval(args.get(0), ctx)));
+        functions.put("TEXT", (ev, args, ctx) -> {
+            Object val = ev.eval(args.get(0), ctx);
+            String format = args.size() > 1 ? toString(ev.eval(args.get(1), ctx)) : null;
+            List<Object> sources = toList(val);
+            List<Object> result = new ArrayList<>();
+            for (Object src : sources) {
+                if (src instanceof Number n && format != null && !format.isEmpty()) {
+                    result.add(formatNumber(n.doubleValue(), format));
+                } else {
+                    result.add(toString(src));
+                }
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
         functions.put("TEXTTONUMBER", (ev, args, ctx) -> toNumber(ev.eval(args.get(0), ctx)));
 
         // Type checking
