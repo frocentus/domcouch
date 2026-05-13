@@ -396,4 +396,32 @@ class Phase2FunctionsTest {
             assertEquals(List.of("HelloHelloHello", "ByeByeBye"), eval("@Repeat(\"Hello\" : \"Bye\"; 3)"));
         }
     }
+
+    // ================================================================
+    // @Matches (pattern matching)
+    // ================================================================
+
+    @Nested @DisplayName("@Matches")
+    class MatchesTests {
+        @Test @DisplayName("? matches any single char")
+        void questionMark() { assertEquals(1.0, eval("@Matches(\"abc\"; \"a?c\")")); }
+        @Test @DisplayName("? does not match wrong length")
+        void questionMarkFail() { assertEquals(0.0, eval("@Matches(\"A big test\"; \"a?test\")")); }
+        @Test @DisplayName("multiple ? wildcards")
+        void multipleQuestions() { assertEquals(1.0, eval("@Matches(\"A big test\"; \"a?????test\")")); }
+        @Test @DisplayName("* matches any string")
+        void starWildcard() { assertEquals(1.0, eval("@Matches(\"Vermont\"; \"*mont*\")")); }
+        @Test @DisplayName("{ABC} character class")
+        void charClass() { assertEquals(1.0, eval("@Matches(\"AB\"; \"{A-C}{A-C}\")")); }
+        @Test @DisplayName("case-insensitive simple chars")
+        void caseInsensitive() { assertEquals(1.0, eval("@Matches(\"abc\"; \"ABC\")")); }
+        @Test @DisplayName("list: any match returns true")
+        void listMatch() {
+            assertEquals(1.0, eval("@Matches(\"one\" : \"two\" : \"three\"; \"three\" : \"four\": \"five\")"));
+        }
+        @Test @DisplayName("list: no match returns false")
+        void listNoMatch() {
+            assertEquals(0.0, eval("@Matches(\"one\" : \"two\" : \"three\"; \"four\" : \"five\" : \"six\")"));
+        }
+    }
 }

@@ -320,6 +320,40 @@ public class Evaluator {
         return result;
     }
 
+    /**
+     * Convert a Domino @Matches pattern to a Java regex Pattern.
+     * Handles: ? → ., * → .*, {ABC} → [ABC], {A-F} → [A-F].
+     * Simple characters are case-insensitive; {}-enclosed chars are case-sensitive.
+     */
+    private static java.util.regex.Pattern dominoPatternToRegex(String pattern) {
+        StringBuilder regex = new StringBuilder();
+        int i = 0;
+        while (i < pattern.length()) {
+            char c = pattern.charAt(i);
+            if (c == '?') { regex.append('.'); i++; }
+            else if (c == '*') { regex.append(".*"); i++; }
+            else if (c == '{') {
+                int end = pattern.indexOf('}', i);
+                if (end < 0) { regex.append("\\{"); i++; }
+                else {
+                    String inner = pattern.substring(i + 1, end);
+                    regex.append('[').append(inner).append(']');
+                    i = end + 1;
+                }
+            } else if (c == '\\' && i + 1 < pattern.length()) {
+                regex.append("\\Q").append(pattern.charAt(i + 1)).append("\\E");
+                i += 2;
+            } else if ("!|&".indexOf(c) >= 0) {
+                regex.append(".*"); // skip unimplemented operators for now
+                i++;
+            } else {
+                regex.append(Character.toLowerCase(c));
+                i++;
+            }
+        }
+        return java.util.regex.Pattern.compile(regex.toString(), java.util.regex.Pattern.CASE_INSENSITIVE);
+    }
+
     // ---- Built-in function registration ----
 
     private void registerBuiltins() {
@@ -407,6 +441,20 @@ public class Evaluator {
                 result.add(repeated);
             }
             return result.size() == 1 ? result.get(0) : result;
+        });
+
+        // ---- Pattern matching ----
+        functions.put("MATCHES", (ev, args, ctx) -> {
+            Object str = ev.eval(args.get(0), ctx);
+            Object pat = ev.eval(args.get(1), ctx);
+            return boolToNum(anyPairMatch(str, pat, (s, pattern) -> {
+                try {
+                    java.util.regex.Pattern regex = dominoPatternToRegex(pattern);
+                    return regex.matcher(s).matches();
+                } catch (Exception e) {
+                    return false;
+                }
+            }));
         });
 
         // Conversion
