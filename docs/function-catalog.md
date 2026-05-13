@@ -21,6 +21,24 @@
 
 ## String Functions
 
+### @Abs  *(Phase 2)
+```
+@Abs(number)
+```
+Returns the absolute (unsigned) value of a number. List-aware.
+
+| Arg | Type | Description |
+|-----|------|-------------|
+| 1 | Number or number list | Any number |
+
+| Example | Result |
+|---------|--------|
+| `@Abs(-2.16)` | `2.16` |
+| `@Abs(2.15 : (-2.16))` | `[2.15, 2.16]` |
+
+Status: ✅ 📋
+
+
 ### @Trim
 ```
 @Trim(string)

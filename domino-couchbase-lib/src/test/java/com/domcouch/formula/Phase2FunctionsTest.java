@@ -524,4 +524,22 @@ class Phase2FunctionsTest {
             assertEquals(List.of("A", "B", "C"), result);
         }
     }
+
+    // ================================================================
+    // @Abs
+    // ================================================================
+
+    @Nested @DisplayName("@Abs")
+    class AbsTests {
+        @Test @DisplayName("negative number")
+        void negative() { assertEquals(2.16, eval("@Abs(-2.16)")); }
+        @Test @DisplayName("positive number")
+        void positive() { assertEquals(2.16, eval("@Abs(2.16)")); }
+        @Test @DisplayName("list")
+        void list() {
+            assertEquals(List.of(2.15, 2.16), eval("@Abs(2.15 : (-2.16))"));
+        }
+        @Test @DisplayName("field value")
+        void field() { vars.put("NET", -5.0); assertEquals(5.0, eval("@Abs(Net)")); }
+    }
 }

@@ -380,6 +380,15 @@ public class Evaluator {
     // ---- Built-in function registration ----
 
     private void registerBuiltins() {
+        // Math functions
+        functions.put("ABS", (ev, args, ctx) -> {
+            Object val = ev.eval(args.get(0), ctx);
+            List<Object> sources = toList(val);
+            List<Object> result = new ArrayList<>();
+            for (Object src : sources) result.add(Math.abs(toNumber(src)));
+            return result.size() == 1 ? result.get(0) : result;
+        });
+
         // String functions
         functions.put("TRIM", (ev, args, ctx) -> {
             Object val = ev.eval(args.get(0), ctx);
