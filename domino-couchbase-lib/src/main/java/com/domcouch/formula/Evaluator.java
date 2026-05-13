@@ -444,6 +444,16 @@ public class Evaluator {
         functions.put("ASIN", (ev, args, ctx) -> map1(ev, args, ctx, Math::asin));
         functions.put("ATAN", (ev, args, ctx) -> map1(ev, args, ctx, Math::atan));
         functions.put("ATAN2", (ev, args, ctx) -> map2(ev, args, ctx, Math::atan2));
+        functions.put("COS", (ev, args, ctx) -> map1(ev, args, ctx, Math::cos));
+        functions.put("SIN", (ev, args, ctx) -> map1(ev, args, ctx, Math::sin));
+        functions.put("TAN", (ev, args, ctx) -> map1(ev, args, ctx, Math::tan));
+        functions.put("EXP", (ev, args, ctx) -> map1(ev, args, ctx, Math::exp));
+        functions.put("LOG", (ev, args, ctx) -> map1(ev, args, ctx, Math::log));
+        functions.put("SQRT", (ev, args, ctx) -> map1(ev, args, ctx, Math::sqrt));
+        functions.put("PI", (ev, args, ctx) -> Math.PI);
+        functions.put("POWER", (ev, args, ctx) -> map2(ev, args, ctx, Math::pow));
+        functions.put("INTEGER", (ev, args, ctx) -> map1(ev, args, ctx, v -> (double) (long) v));
+        functions.put("ROUND", (ev, args, ctx) -> map1(ev, args, ctx, v -> (double) Math.round(v)));
 
         // Calendar functions
         functions.put("BUSINESSDAYS", (ev, args, ctx) -> {
