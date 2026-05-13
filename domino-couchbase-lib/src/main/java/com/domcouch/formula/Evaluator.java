@@ -778,6 +778,18 @@ public class Evaluator {
         functions.put("DELETEFIELD", (ev, args, ctx) -> new Expr.DeleteField( // target from FIELD statement
                 args.isEmpty() ? new Expr.Variable("") : args.get(0)));
 
+        // Formula validation
+        functions.put("CHECKFORMULASYNTAX", (ev, args, ctx) -> {
+            String formula = toString(ev.eval(args.get(0), ctx));
+            try {
+                Lexer.tokenize(formula);
+                new Parser(Lexer.tokenize(formula)).parse();
+                return "1";
+            } catch (FormulaParseException e) {
+                return List.of(e.getMessage(), "1", String.valueOf(e.position + 1), "1", String.valueOf(e.position + 1), "1", formula);
+            }
+        });
+
         // Command no-ops
         FunctionHandler noop = (ev, args, ctx) -> "";
         functions.put("COMMAND", noop);
