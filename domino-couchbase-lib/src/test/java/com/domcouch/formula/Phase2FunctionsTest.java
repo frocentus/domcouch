@@ -561,4 +561,27 @@ class Phase2FunctionsTest {
             assertTrue(result.contains("03/20") || result.contains("3/20"));
         }
     }
+
+    // ================================================================
+    // @Explode
+    // ================================================================
+    @Nested @DisplayName("@Explode")
+    class ExplodeTests {
+        @Test @DisplayName("comma-separated")
+        void commaSeparated() {
+            assertEquals(List.of("a", "b", "c"), eval("@Explode(\"a,b,c\")"));
+        }
+        @Test @DisplayName("default separators space-comma-semicolon")
+        void defaultSeparators() {
+            assertEquals(List.of("Weekly", "Status", "Report"), eval("@Explode(\"Weekly Status Report\")"));
+        }
+        @Test @DisplayName("custom separator")
+        void customSep() {
+            assertEquals(List.of("Please send resume ", " references"), eval("@Explode(\"Please send resume & references\"; \"&\")"));
+        }
+        @Test @DisplayName("single element")
+        void singleElement() {
+            assertEquals("hello", eval("@Explode(\"hello\")"));
+        }
+    }
 }
