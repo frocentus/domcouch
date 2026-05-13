@@ -481,4 +481,29 @@ class Phase2FunctionsTest {
         @Test @DisplayName("mixed list returns false")
         void mixedList() { assertEquals(0.0, eval("@IsNumber(1 : \"two\")")); }
     }
+
+    // ================================================================
+    // @IsMember (both-lists = subset check)
+    // ================================================================
+
+    @Nested @DisplayName("@IsMember")
+    class IsMemberTests {
+        @Test @DisplayName("single value in list")
+        void singleInList() {
+            assertEquals(1.0, eval("@IsMember(\"computer\"; \"printer\" : \"computer\" : \"monitor\")"));
+        }
+        @Test @DisplayName("both lists: ALL of first must be in second")
+        void bothListsSubset() {
+            assertEquals(0.0, eval("@IsMember(\"computer\" : \"Notes\"; \"Notes\" : \"printer\" : \"monitor\")"));
+        }
+        @Test @DisplayName("single value is subset")
+        void singleSubset() {
+            assertEquals(1.0, eval("@IsMember(\"Fred\"; \"Barney\" : \"Wilma\" : \"Fred\")"));
+        }
+        @Test @DisplayName("field reference")
+        void fieldRef() {
+            vars.put("DEPARTMENT", List.of("R&D", "Sales"));
+            assertEquals(1.0, eval("@IsMember(\"R&D\"; Department)"));
+        }
+    }
 }

@@ -386,7 +386,7 @@ Returns True if `value` is an element of `list`.
 | `@IsMember("b"; "a" : "b" : "c")` | `1` |
 | `@IsMember("x"; "a" : "b" : "c")` | `0` |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @IsNotMember
 ```
