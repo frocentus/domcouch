@@ -558,7 +558,8 @@ public class Evaluator {
         functions.put("ELEMENTS", (ev, args, ctx) -> {
             Object val = ev.eval(args.get(0), ctx);
             if (val instanceof List l) return (double) l.size();
-            return 1.0; // scalar = 1 element
+            if (val == null || (val instanceof String s && s.isEmpty())) return 0.0;
+            return 1.0;
         });
         functions.put("ISMEMBER", (ev, args, ctx) -> {
             Object val = ev.eval(args.get(0), ctx);

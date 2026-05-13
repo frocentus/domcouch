@@ -374,7 +374,7 @@ Returns the number of elements in a list. Scalars count as 1.
 | `@Elements("a" : "b" : "c")` | `3` |
 | `@Elements("hello")` | `1` |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @IsMember
 ```
