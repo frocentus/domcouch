@@ -478,7 +478,7 @@ Assigns a value to a temporary variable by name (string). Returns the value.
 |---------|--------|
 | `@Set("x"; 42); x` | `42` |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @SetField  *(Phase 2)*
 ```
