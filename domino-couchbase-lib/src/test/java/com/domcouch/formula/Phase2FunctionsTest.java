@@ -302,20 +302,24 @@ class Phase2FunctionsTest {
 
     @Nested @DisplayName("@UpperCase / @LowerCase")
     class CaseTests {
-        @Test @DisplayName("single string")
-        void singleString() { assertEquals("ROBERT T. SMITH", eval("@UpperCase(\"Robert T. Smith\")")); }
-        @Test @DisplayName("list support")
-        void listSupport() {
+        @Test @DisplayName("@UpperCase single string")
+        void upperSingle() { assertEquals("ROBERT T. SMITH", eval("@UpperCase(\"Robert T. Smith\")")); }
+        @Test @DisplayName("@UpperCase list")
+        void upperList() {
             assertEquals(List.of("ROBERT", "SMITH"), eval("@UpperCase(\"Robert\" : \"Smith\")"));
         }
-        @Test @DisplayName("field value")
-        void fieldValue() {
-            vars.put("STATE", "ma");
-            assertEquals("MA", eval("@UpperCase(State)"));
+        @Test @DisplayName("@UpperCase field")
+        void upperField() { vars.put("STATE", "ma"); assertEquals("MA", eval("@UpperCase(State)")); }
+        @Test @DisplayName("@LowerCase single string")
+        void lowerSingle() { assertEquals("juan mendoza", eval("@LowerCase(\"Juan Mendoza\")")); }
+        @Test @DisplayName("@LowerCase list")
+        void lowerList() {
+            assertEquals(List.of("juan", "mendoza"), eval("@LowerCase(\"Juan\" : \"Mendoza\")"));
         }
-        @Test @DisplayName("@LowerCase is also list-aware")
-        void lowerCaseList() {
-            assertEquals(List.of("robert", "smith"), eval("@LowerCase(\"ROBERT\" : \"SMITH\")"));
+        @Test @DisplayName("@LowerCase field")
+        void lowerField() {
+            vars.put("FURNITURE", "ARM CHAIR");
+            assertEquals("arm chair", eval("@LowerCase(Furniture)"));
         }
     }
 }
