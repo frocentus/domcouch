@@ -344,7 +344,13 @@ public class Evaluator {
             for (Object src : sources) result.add(toString(src).toLowerCase());
             return result.size() == 1 ? result.get(0) : result;
         });
-        functions.put("LENGTH", (ev, args, ctx) -> (double) toString(ev.eval(args.get(0), ctx)).length());
+        functions.put("LENGTH", (ev, args, ctx) -> {
+            Object val = ev.eval(args.get(0), ctx);
+            List<Object> sources = toList(val);
+            List<Object> result = new ArrayList<>();
+            for (Object src : sources) result.add((double) toString(src).length());
+            return result.size() == 1 ? result.get(0) : result;
+        });
         functions.put("LEFT", (ev, args, ctx) -> {
             String s = toString(ev.eval(args.get(0), ctx));
             int n = (int) toNumber(ev.eval(args.get(1), ctx));

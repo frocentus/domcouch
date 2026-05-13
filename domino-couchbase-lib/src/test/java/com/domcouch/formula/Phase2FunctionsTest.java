@@ -322,4 +322,22 @@ class Phase2FunctionsTest {
             assertEquals("arm chair", eval("@LowerCase(Furniture)"));
         }
     }
+
+    // ================================================================
+    // @Length (list support)
+    // ================================================================
+
+    @Nested @DisplayName("@Length")
+    class LengthTests {
+        @Test @DisplayName("single string")
+        void singleString() {
+            assertEquals(45.0, eval("@Length(\"The boy crossed the wide, but gentle, stream.\")"));
+        }
+        @Test @DisplayName("empty string returns 0")
+        void emptyString() { assertEquals(0.0, eval("@Length(\"\")")); }
+        @Test @DisplayName("list returns number list")
+        void listReturnsNumberList() {
+            assertEquals(List.of(0.0, 5.0, 3.0), eval("@Length(\"\" : \"abcde\" : \"xyz\")"));
+        }
+    }
 }
