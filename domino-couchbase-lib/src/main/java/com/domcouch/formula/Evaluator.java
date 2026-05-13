@@ -696,6 +696,11 @@ public class Evaluator {
             if (val == null || (val instanceof String s && s.isEmpty())) return 0.0;
             return 1.0;
         });
+        functions.put("COUNT", (ev, args, ctx) -> {
+            Object val = ev.eval(args.get(0), ctx);
+            if (val instanceof List l) return l.isEmpty() ? 1.0 : (double) l.size();
+            return 1.0; // scalar or null → 1
+        });
         functions.put("ISMEMBER", (ev, args, ctx) -> {
             Object val = ev.eval(args.get(0), ctx);
             Object list = ev.eval(args.get(1), ctx);
