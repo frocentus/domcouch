@@ -635,6 +635,8 @@ public class Evaluator {
 
         // Date/time
         functions.put("CREATED", (ev, args, ctx) -> ctx.resolve("CREATED"));
+        functions.put("MODIFIED", (ev, args, ctx) -> ctx.resolve("MODIFIED"));
+        functions.put("ACCESSED", (ev, args, ctx) -> ctx.resolve("ACCESSED"));
         functions.put("NOW", (ev, args, ctx) -> DT_FMT.format(Instant.now()));
         functions.put("TODAY", (ev, args, ctx) -> DT_FMT.format(Instant.now()));
 
