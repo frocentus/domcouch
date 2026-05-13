@@ -489,7 +489,7 @@ Writes a value to a document field by name (string). Returns the value.
 |---------|--------|
 | `@SetField("Status"; "Done")` | `"Done"` (and writes to document) |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ---
 
