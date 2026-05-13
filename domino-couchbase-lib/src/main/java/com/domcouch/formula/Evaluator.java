@@ -482,6 +482,17 @@ public class Evaluator {
             }
             return result.size() == 1 ? result.get(0) : result;
         });
+        functions.put("CHAR", (ev, args, ctx) -> {
+            Object val = ev.eval(args.get(0), ctx);
+            List<Object> sources = toList(val);
+            List<Object> result = new ArrayList<>();
+            java.nio.charset.Charset cp850 = java.nio.charset.Charset.forName("Cp850");
+            for (Object src : sources) {
+                int code = (int) toNumber(src) & 0xFF;
+                result.add(new String(new byte[]{(byte) code}, cp850));
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
         functions.put("TRIM", (ev, args, ctx) -> {
             Object val = ev.eval(args.get(0), ctx);
             List<Object> sources = toList(val);
