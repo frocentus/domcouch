@@ -576,6 +576,23 @@ Status: ✅ 📋
 Adjusts a date by the given increments. Not yet implemented.
 Status: 🟡 📋 (missing DST, pair-wise list)
 
+### @BusinessDays  *(Phase 2)*
+```
+@BusinessDays(startDates; endDates; daysToExclude; datesToExclude)
+```
+Returns the number of business days in one or more date ranges.
+Pair-wise list operation on startDates/endDates.
+
+**Implemented**: Basic day counting with date parsing.
+**Missing**: `daysToExclude` (weekday exclusion 1=Sun..7=Sat) and
+`datesToExclude` (specific date exclusions).
+
+| Example | Result |
+|---------|--------|
+| `@BusinessDays([01/01/2001]; [12/31/2001])` | `365` (total days) |
+
+Status: 🟡 📋 (missing exclusion params)
+
 ### @TimeZoneToText  *(Phase 2)*
 Status: ❌
 
