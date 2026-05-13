@@ -674,7 +674,6 @@ Status: 🚫 No-op
 | Function | Priority | Notes |
 |----------|----------|-------|
 | `@Abstract` | Medium | Rich text → plain text |
-| `@Adjust` | Medium | Date arithmetic |
 | `@Author` | Low | Author access check |
 | `@DbColumn` | High | Cross-database column lookup |
 | `@DbCommand` | High | Cross-database command |
