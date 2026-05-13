@@ -395,9 +395,18 @@ public class Evaluator {
             return result.size() == 1 ? result.get(0) : result;
         });
         functions.put("REPEAT", (ev, args, ctx) -> {
-            String s = toString(ev.eval(args.get(0), ctx));
+            Object val = ev.eval(args.get(0), ctx);
             int n = (int) toNumber(ev.eval(args.get(1), ctx));
-            return s.repeat(Math.max(0, n));
+            int maxChars = args.size() > 2 ? (int) toNumber(ev.eval(args.get(2), ctx)) : Integer.MAX_VALUE;
+            List<Object> sources = toList(val);
+            List<Object> result = new ArrayList<>();
+            for (Object src : sources) {
+                String s = toString(src);
+                String repeated = s.repeat(Math.max(0, n));
+                if (repeated.length() > maxChars) repeated = repeated.substring(0, maxChars);
+                result.add(repeated);
+            }
+            return result.size() == 1 ? result.get(0) : result;
         });
 
         // Conversion

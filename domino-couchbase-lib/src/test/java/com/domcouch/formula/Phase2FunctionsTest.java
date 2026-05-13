@@ -380,4 +380,20 @@ class Phase2FunctionsTest {
             assertEquals(List.of("ard", "ace"), eval("@Right(\"Lennard\" : \"Wallace\"; 3)"));
         }
     }
+
+    // ================================================================
+    // @Repeat (third arg + list support)
+    // ================================================================
+
+    @Nested @DisplayName("@Repeat")
+    class RepeatTests {
+        @Test @DisplayName("basic repeat")
+        void basic() { assertEquals("HelloHelloHello", eval("@Repeat(\"Hello\"; 3)")); }
+        @Test @DisplayName("with max chars truncation")
+        void maxChars() { assertEquals("ByeBy", eval("@Repeat(\"Bye\"; 2; 5)")); }
+        @Test @DisplayName("list support")
+        void listSupport() {
+            assertEquals(List.of("HelloHelloHello", "ByeByeBye"), eval("@Repeat(\"Hello\" : \"Bye\"; 3)"));
+        }
+    }
 }
