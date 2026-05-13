@@ -548,7 +548,7 @@ Extracts the 4-digit year.
 |---------|--------|
 | `@Year("2024-01-15")` | `2024` |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @Adjust  *(Phase 2)*
 ```
@@ -572,7 +572,7 @@ Status: ❌
 @True
 ```
 Returns `1` (Domino boolean True).
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @False
 ```
