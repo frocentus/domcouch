@@ -25,7 +25,8 @@
 ```
 @Trim(string)
 ```
-Removes leading and trailing whitespace.
+Removes leading, trailing, and redundant spaces. Collapses consecutive spaces.
+If parameter is a list, each element is trimmed and empty elements are removed.
 | Arg | Type | Description |
 |-----|------|-------------|
 | 1 | String | Input string |
@@ -35,7 +36,7 @@ Removes leading and trailing whitespace.
 | `@Trim("  hello  ")` | `"hello"` |
 | `@Trim(Subject)` | Subject field, trimmed |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @UpperCase
 ```
@@ -618,16 +619,12 @@ Status: 🚫 No-op
 
 ---
 
+
 ## Summary
 
-| Category | ✅ | 🟡 | ❌ | 🚫 |
-|----------|----|-----|-----|-----|
-| String | 11 | 0 | 1 | 0 |
-| Type Conversion | 2 | 0 | 0 | 0 |
-| Type Checking | 3 | 0 | 0 | 0 |
 | Category | ✅ | 📋 | ⚠ | ❌ | 🚫 |
 |----------|----|-----|-----|-----|-----|
-| String | 11 | 5 | 6 | 1 | 0 |
+| String | 11 | 6 | 5 | 1 | 0 |
 | Type Conversion | 2 | 0 | 2 | 0 | 0 |
 | Type Checking | 3 | 0 | 3 | 0 | 0 |
 | List | 3 | 0 | 3 | 1 | 0 |
@@ -637,135 +634,7 @@ Status: 🚫 No-op
 | Security | 1 | 0 | 1 | 2 | 0 |
 | Side-Effecting | 1 | 0 | 1 | 0 | 2 |
 | Cross-DB | 0 | 0 | 0 | 3 | 0 |
-| **Total** | **35** | **5** | **30** | **10** | **2** |
+| **Total** | **35** | **6** | **29** | **10** | **2** |
 
-📋 = 5 verified against official Domino spec  
-⚠ = 30 need spec verification
-| Category | ✅ | 📋 | ⚠ | ❌ | 🚫 |
-|----------|----|-----|-----|-----|-----|
-| String | 11 | 5 | 6 | 1 | 0 |
-| Type Conversion | 2 | 0 | 2 | 0 | 0 |
-| Type Checking | 3 | 0 | 3 | 0 | 0 |
-| List | 3 | 0 | 3 | 1 | 0 |
-| Control Flow | 5 | 0 | 5 | 0 | 0 |
-| Date / Time | 6 | 0 | 6 | 3 | 0 |
-| Boolean | 3 | 0 | 3 | 0 | 0 |
-| Security | 1 | 0 | 1 | 2 | 0 |
-| Side-Effecting | 1 | 0 | 1 | 0 | 2 |
-| Cross-DB | 0 | 0 | 0 | 3 | 0 |
-| **Total** | **35** | **5** | **30** | **10** | **2** |
-
-📋 = 5 verified against official Domino spec  
-⚠ = 30 need spec verification
-| Category | ✅ | 📋 | ⚠ | ❌ | 🚫 |
-|----------|----|-----|-----|-----|-----|
-| String | 11 | 5 | 6 | 1 | 0 |
-| Type Conversion | 2 | 0 | 2 | 0 | 0 |
-| Type Checking | 3 | 0 | 3 | 0 | 0 |
-| List | 3 | 0 | 3 | 1 | 0 |
-| Control Flow | 5 | 0 | 5 | 0 | 0 |
-| Date / Time | 6 | 0 | 6 | 3 | 0 |
-| Boolean | 3 | 0 | 3 | 0 | 0 |
-| Security | 1 | 0 | 1 | 2 | 0 |
-| Side-Effecting | 1 | 0 | 1 | 0 | 2 |
-| Cross-DB | 0 | 0 | 0 | 3 | 0 |
-| **Total** | **35** | **5** | **30** | **10** | **2** |
-
-📋 = 5 verified against official Domino spec  
-⚠ = 30 need spec verification
-| Category | ✅ | 📋 | ⚠ | ❌ | 🚫 |
-|----------|----|-----|-----|-----|-----|
-| String | 11 | 5 | 6 | 1 | 0 |
-| Type Conversion | 2 | 0 | 2 | 0 | 0 |
-| Type Checking | 3 | 0 | 3 | 0 | 0 |
-| List | 3 | 0 | 3 | 1 | 0 |
-| Control Flow | 5 | 0 | 5 | 0 | 0 |
-| Date / Time | 6 | 0 | 6 | 3 | 0 |
-| Boolean | 3 | 0 | 3 | 0 | 0 |
-| Security | 1 | 0 | 1 | 2 | 0 |
-| Side-Effecting | 1 | 0 | 1 | 0 | 2 |
-| Cross-DB | 0 | 0 | 0 | 3 | 0 |
-| **Total** | **35** | **5** | **30** | **10** | **2** |
-
-📋 = 5 verified against official Domino spec  
-⚠ = 30 need spec verification
-| Category | ✅ | 📋 | ⚠ | ❌ | 🚫 |
-|----------|----|-----|-----|-----|-----|
-| String | 11 | 5 | 6 | 1 | 0 |
-| Type Conversion | 2 | 0 | 2 | 0 | 0 |
-| Type Checking | 3 | 0 | 3 | 0 | 0 |
-| List | 3 | 0 | 3 | 1 | 0 |
-| Control Flow | 5 | 0 | 5 | 0 | 0 |
-| Date / Time | 6 | 0 | 6 | 3 | 0 |
-| Boolean | 3 | 0 | 3 | 0 | 0 |
-| Security | 1 | 0 | 1 | 2 | 0 |
-| Side-Effecting | 1 | 0 | 1 | 0 | 2 |
-| Cross-DB | 0 | 0 | 0 | 3 | 0 |
-| **Total** | **35** | **5** | **30** | **10** | **2** |
-
-📋 = 5 verified against official Domino spec  
-⚠ = 30 need spec verification
-| Category | ✅ | 📋 | ⚠ | ❌ | 🚫 |
-|----------|----|-----|-----|-----|-----|
-| String | 11 | 5 | 6 | 1 | 0 |
-| Type Conversion | 2 | 0 | 2 | 0 | 0 |
-| Type Checking | 3 | 0 | 3 | 0 | 0 |
-| List | 3 | 0 | 3 | 1 | 0 |
-| Control Flow | 5 | 0 | 5 | 0 | 0 |
-| Date / Time | 6 | 0 | 6 | 3 | 0 |
-| Boolean | 3 | 0 | 3 | 0 | 0 |
-| Security | 1 | 0 | 1 | 2 | 0 |
-| Side-Effecting | 1 | 0 | 1 | 0 | 2 |
-| Cross-DB | 0 | 0 | 0 | 3 | 0 |
-| **Total** | **35** | **5** | **30** | **10** | **2** |
-
-📋 = 5 verified against official Domino spec  
-⚠ = 30 need spec verification
-| Category | ✅ | 📋 | ⚠ | ❌ | 🚫 |
-|----------|----|-----|-----|-----|-----|
-| String | 11 | 5 | 6 | 1 | 0 |
-| Type Conversion | 2 | 0 | 2 | 0 | 0 |
-| Type Checking | 3 | 0 | 3 | 0 | 0 |
-| List | 3 | 0 | 3 | 1 | 0 |
-| Control Flow | 5 | 0 | 5 | 0 | 0 |
-| Date / Time | 6 | 0 | 6 | 3 | 0 |
-| Boolean | 3 | 0 | 3 | 0 | 0 |
-| Security | 1 | 0 | 1 | 2 | 0 |
-| Side-Effecting | 1 | 0 | 1 | 0 | 2 |
-| Cross-DB | 0 | 0 | 0 | 3 | 0 |
-| **Total** | **35** | **5** | **30** | **10** | **2** |
-
-📋 = 5 verified against official Domino spec  
-⚠ = 30 need spec verification
-| Category | ✅ | 📋 | ⚠ | ❌ | 🚫 |
-|----------|----|-----|-----|-----|-----|
-| String | 11 | 5 | 6 | 1 | 0 |
-| Type Conversion | 2 | 0 | 2 | 0 | 0 |
-| Type Checking | 3 | 0 | 3 | 0 | 0 |
-| List | 3 | 0 | 3 | 1 | 0 |
-| Control Flow | 5 | 0 | 5 | 0 | 0 |
-| Date / Time | 6 | 0 | 6 | 3 | 0 |
-| Boolean | 3 | 0 | 3 | 0 | 0 |
-| Security | 1 | 0 | 1 | 2 | 0 |
-| Side-Effecting | 1 | 0 | 1 | 0 | 2 |
-| Cross-DB | 0 | 0 | 0 | 3 | 0 |
-| **Total** | **35** | **5** | **30** | **10** | **2** |
-
-📋 = 5 verified against official Domino spec  
-⚠ = 30 need spec verification
-| Category | ✅ | 📋 | ⚠ | ❌ | 🚫 |
-|----------|----|-----|-----|-----|-----|
-| String | 11 | 5 | 6 | 1 | 0 |
-| Type Conversion | 2 | 0 | 2 | 0 | 0 |
-| Type Checking | 3 | 0 | 3 | 0 | 0 |
-| List | 3 | 0 | 3 | 1 | 0 |
-| Control Flow | 5 | 0 | 5 | 0 | 0 |
-| Date / Time | 6 | 0 | 6 | 3 | 0 |
-| Boolean | 3 | 0 | 3 | 0 | 0 |
-| Security | 1 | 0 | 1 | 2 | 0 |
-| Side-Effecting | 1 | 0 | 1 | 0 | 2 |
-| Cross-DB | 0 | 0 | 0 | 3 | 0 |
-| **Total** | **35** | **5** | **30** | **10** | **2** |
-
-📋 = 5 verified against official Domino spec  
-⚠ = 30 need spec verification
+📋 6 verified against official Domino spec  
+⚠ 29 need spec verification
