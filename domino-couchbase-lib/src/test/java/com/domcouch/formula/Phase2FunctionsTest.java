@@ -360,4 +360,24 @@ class Phase2FunctionsTest {
             assertEquals(List.of("L", "W"), eval("@Left(\"Lennard\" : \"Wallace\"; 1)"));
         }
     }
+
+    // ================================================================
+    // @Right (substring overload + list support)
+    // ================================================================
+
+    @Nested @DisplayName("@Right")
+    class RightTests {
+        @Test @DisplayName("numeric: rightmost N characters")
+        void numericArg() { assertEquals("ace", eval("@Right(\"Lennard Wallace\"; 3)")); }
+        @Test @DisplayName("substring: returns characters right of substring")
+        void substringArg() { assertEquals("Wallace", eval("@Right(\"Lennard Wallace\"; \" \")")); }
+        @Test @DisplayName("substring not found returns empty")
+        void substringNotFound() { assertEquals("", eval("@Right(\"hello\"; \"xyz\")")); }
+        @Test @DisplayName("negative returns whole string")
+        void negativeArg() { assertEquals("hello", eval("@Right(\"hello\"; -1)")); }
+        @Test @DisplayName("list support")
+        void listSupport() {
+            assertEquals(List.of("ard", "ace"), eval("@Right(\"Lennard\" : \"Wallace\"; 3)"));
+        }
+    }
 }
