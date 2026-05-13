@@ -103,19 +103,24 @@ Status: ✅ ⚠
 
 ### @Right
 ```
-@Right(string; numberOfChars)
+@Right(string; numberOfChars)  or  @Right(string; subString)
 ```
-Returns the rightmost characters.
+Returns rightmost N characters, or characters right of a substring.
+Negative N → whole string. List-aware.
+
 | Arg | Type | Description |
 |-----|------|-------------|
-| 1 | String | Input string |
-| 2 | Number | Character count |
+| 1 | Text or text list | String to search |
+| 2 | Number or Text | Character count, or substring |
 
 | Example | Result |
 |---------|--------|
-| `@Right("hello"; 2)` | `"lo"` |
+| `@Right("Lennard Wallace"; 3)` | `"ace"` |
+| `@Right("Lennard Wallace"; " ")` | `"Wallace"` (right of space) |
+| `@Right("Lennard" : "Wallace"; 3)` | `["ard", "ace"]` (list) |
+| `@Right("hello"; -1)` | `"hello"` (negative → full) |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @Repeat
 ```
