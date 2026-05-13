@@ -8,7 +8,7 @@ package com.domcouch.formula;
  */
 public interface FormulaContext {
 
-    /** Resolve a variable name (case-insensitive — names are upper-cased by the Lexer). */
+    /** Resolve a variable name. Returns null if the field does not exist; returns "" for empty fields. */
     Object resolve(String name);
 
     /** Write a value to a document field. Default: throws. */
