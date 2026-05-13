@@ -576,10 +576,10 @@ Adjusts a date by the given increments. Not yet implemented.
 Status: ✅ 📋
 
 ### @TimeZoneToText  *(Phase 2)*
-Status: ✅ 📋
+Status: ❌
 
 ### @TextToTimeInZone  *(Phase 2)*
-Status: ✅ 📋
+Status: ❌
 
 ---
 
