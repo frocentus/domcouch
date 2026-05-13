@@ -584,4 +584,225 @@ class Phase2FunctionsTest {
             assertEquals("hello", eval("@Explode(\"hello\")"));
         }
     }
+
+    // ================================================================
+    // @Compare
+    // ================================================================
+    @Nested @DisplayName("@Compare")
+    class CompareTests {
+        @Test @DisplayName("equal strings")
+        void equalStrings() { assertEquals(0.0, eval("@Compare(\"abc\"; \"abc\")")); }
+        @Test @DisplayName("less than")
+        void lessThan() { assertEquals(-1.0, eval("@Compare(\"a\"; \"b\")")); }
+        @Test @DisplayName("greater than")
+        void greaterThan() { assertEquals(1.0, eval("@Compare(\"b\"; \"a\")")); }
+    }
+
+    // ================================================================
+    // @Count
+    // ================================================================
+    @Nested @DisplayName("@Count")
+    class CountTests {
+        @Test @DisplayName("list count")
+        void listCount() { assertEquals(3.0, eval("@Count(\"a\":\"b\":\"c\")")); }
+        @Test @DisplayName("scalar returns 1")
+        void scalar() { assertEquals(1.0, eval("@Count(\"hello\")")); }
+        @Test @DisplayName("null returns 1")
+        void nullStr() { assertEquals(1.0, eval("@Count(\"\")")); }
+    }
+
+    // ================================================================
+    // @Date
+    // ================================================================
+    @Nested @DisplayName("@Date")
+    class DateTests {
+        @Test @DisplayName("year month day constructor")
+        void ymd() { assertTrue(((String)eval("@Date(1995; 6; 23)")).contains("1995")); }
+        @Test @DisplayName("full constructor")
+        void full() { assertTrue(((String)eval("@Date(1993; 1; 20; 8; 58; 12)")).contains("08")); }
+        @Test @DisplayName("date from string")
+        void fromString() { assertNotNull(eval("@Date(\"11/20/95\")")); }
+    }
+
+    // ================================================================
+    // @DocFields / @DocLength / @DocLock / @DocumentUniqueID
+    // ================================================================
+    @Nested @DisplayName("@DocFields")
+    class DocFieldsTests {
+        @Test @DisplayName("returns list")
+        void returnsList() {
+            Object r = eval("@DocFields");
+            assertTrue(r instanceof List);
+        }
+    }
+    @Nested @DisplayName("@DocLength")
+    class DocLengthTests {
+        @Test @DisplayName("returns number")
+        void returnsNumber() { assertEquals(0.0, eval("@DocLength")); }
+    }
+    @Nested @DisplayName("@DocLock")
+    class DocLockTests {
+        @Test @DisplayName("LOCKINGENABLED returns 0")
+        void lockingEnabled() { assertEquals(0.0, eval("@DocLock([LOCKINGENABLED])")); }
+        @Test @DisplayName("STATUS returns empty")
+        void status() { assertEquals("", eval("@DocLock([STATUS])")); }
+        @Test @DisplayName("LOCK returns 1")
+        void lock() { assertEquals(1.0, eval("@DocLock([LOCK])")); }
+    }
+    @Nested @DisplayName("@DocumentUniqueID")
+    class DocumentUniqueIdTests {
+        @Test @DisplayName("returns string")
+        void returnsUnid() {
+            assertEquals("", eval("@DocumentUniqueID")); // default context returns empty
+        }
+    }
+
+    // ================================================================
+    // @DoWhile
+    // ================================================================
+    @Nested @DisplayName("@DoWhile")
+    class DoWhileTests {
+        @Test @DisplayName("executes body then checks condition")
+        void doWhile() {
+            assertEquals(1.0, eval("x := 0; @DoWhile(x := x + 1; x < 3)"));
+        }
+    }
+
+    // ================================================================
+    // @Error / @IsError
+    // ================================================================
+    @Nested @DisplayName("@Error/@IsError")
+    class ErrorTests {
+        @Test @DisplayName("@Error is detectable by @IsError")
+        void isErrorDetects() { assertEquals(1.0, eval("@IsError(@Error)")); }
+        @Test @DisplayName("non-error is not error")
+        void notError() { assertEquals(0.0, eval("@IsError(42)")); }
+    }
+
+    // ================================================================
+    // @Eval
+    // ================================================================
+    @Nested @DisplayName("@Eval")
+    class EvalTests {
+        @Test @DisplayName("basic meta-evaluation")
+        void basic() { assertEquals(3.0, eval("@Eval(\"1 + 2\")")); }
+        @Test @DisplayName("assignment in eval")
+        void assignInEval() { assertEquals("rebar", eval("@Eval(\"x := \\\"re\\\"; x + \\\"bar\\\"\")")); }
+    }
+
+    // ================================================================
+    // Math: @Pi, @Power, @Sqrt, @Exp, @Log, @Cos, @Sin, @Tan
+    // ================================================================
+    @Nested @DisplayName("Math functions")
+    class MathTests {
+        @Test @DisplayName("@Pi")
+        void pi() { assertEquals(Math.PI, (Double) eval("@Pi"), 0.0001); }
+        @Test @DisplayName("@Power")
+        void power() { assertEquals(8.0, eval("@Power(2; 3)")); }
+        @Test @DisplayName("@Sqrt")
+        void sqrt() { assertEquals(3.0, eval("@Sqrt(9)")); }
+        @Test @DisplayName("@Exp")
+        void exp() { assertEquals(Math.exp(1.25), (Double) eval("@Exp(1.25)"), 0.0001); }
+        @Test @DisplayName("@Log")
+        void log() { assertEquals(0.0, eval("@Log(1)")); }
+        @Test @DisplayName("@Cos")
+        void cos() { assertEquals(1.0, (Double) eval("@Cos(2 * @Pi)"), 0.0001); }
+        @Test @DisplayName("@Sin")
+        void sin() { assertEquals(Math.sin(0.5), (Double) eval("@Sin(0.5)"), 0.0001); }
+        @Test @DisplayName("@Tan")
+        void tan() { assertEquals(Math.tan(0.5), (Double) eval("@Tan(0.5)"), 0.0001); }
+        @Test @DisplayName("@Integer")
+        void integer() { assertEquals(3.0, eval("@Integer(3.7)")); }
+        @Test @DisplayName("@Round")
+        void round() { assertEquals(4.0, eval("@Round(3.7)")); }
+    }
+
+    // ================================================================
+    // @ATan / @ATan2 / @ASin / @ACos
+    // ================================================================
+    @Nested @DisplayName("Arc trig")
+    class ArcTrigTests {
+        @Test @DisplayName("@ATan")
+        void atan() { assertEquals(Math.atan(1.0), (Double) eval("@ATan(1)"), 0.0001); }
+        @Test @DisplayName("@ATan2")
+        void atan2() { assertEquals(Math.atan2(1.0, 1.0), (Double) eval("@ATan2(1; 1)"), 0.0001); }
+        @Test @DisplayName("@ASin")
+        void asin() { assertEquals(Math.asin(0.5), (Double) eval("@ASin(0.5)"), 0.0001); }
+        @Test @DisplayName("@ACos")
+        void acos() { assertEquals(Math.acos(0.5), (Double) eval("@ACos(0.5)"), 0.0001); }
+    }
+
+    // ================================================================
+    // @Ascii / @Char
+    // ================================================================
+    @Nested @DisplayName("@Ascii/@Char")
+    class AsciiCharTests {
+        @Test @DisplayName("@Ascii basic")
+        void ascii() { assertEquals("A", eval("@Ascii(\"A\")")); }
+        @Test @DisplayName("@Char basic")
+        void charFn() { assertEquals("A", eval("@Char(65)")); }
+    }
+
+    // ================================================================
+    // @CheckFormulaSyntax
+    // ================================================================
+    @Nested @DisplayName("@CheckFormulaSyntax")
+    class CheckFormulaSyntaxTests {
+        @Test @DisplayName("valid formula")
+        void valid() { assertEquals("1", eval("@CheckFormulaSyntax(\"1 + 2\")")); }
+        @Test @DisplayName("invalid formula")
+        void invalid() {
+            Object r = eval("@CheckFormulaSyntax(\"@Foo(\")");
+            assertTrue(r instanceof List);
+        }
+    }
+
+    // ================================================================
+    // @DeleteField
+    // ================================================================
+    @Nested @DisplayName("@DeleteField")
+    class DeleteFieldDirectTests {
+        @Test @DisplayName("function exists and evaluates")
+        void exists() {
+            // @DeleteField returns an Expr.DeleteField node that is a side-effect marker.
+            // In a simple context without setField capability, it still evaluates.
+            Object r = eval("@IsError(@DeleteField(\"Field\"))");
+            assertEquals(0.0, r);
+        }
+    }
+
+    // ================================================================
+    // @Accessed / @Modified / @AddedToThisFile
+    // ================================================================
+    @Nested @DisplayName("Document timestamps")
+    class DocTimestampsTests {
+        @Test @DisplayName("@Created resolves")
+        void created() { eval("@Created"); } // runs without error
+        @Test @DisplayName("@Modified resolves")
+        void modified() { eval("@Modified"); }
+        @Test @DisplayName("@Accessed resolves")
+        void accessed() { eval("@Accessed"); }
+        @Test @DisplayName("@AddedToThisFile resolves")
+        void added() { eval("@AddedToThisFile"); }
+    }
+
+    // ================================================================
+    // @Today / @Now
+    // ================================================================
+    @Nested @DisplayName("@Today/@Now")
+    class TodayNowTests {
+        @Test @DisplayName("@Today returns date")
+        void today() { assertNotNull(eval("@Today")); }
+        @Test @DisplayName("@Now returns datetime")
+        void now() { assertNotNull(eval("@Now")); }
+    }
+
+    // ================================================================
+    // @BusinessDays
+    // ================================================================
+    @Nested @DisplayName("@BusinessDays")
+    class BusinessDaysTests {
+        @Test @DisplayName("one business day")
+        void oneDay() { assertTrue(((Double) eval("@BusinessDays([06/30/95]; [07/01/95])")) >= 0); }
+    }
 }
