@@ -456,7 +456,7 @@ Immediately stops formula evaluation and returns `value`. Implemented via except
 |---------|--------|
 | `@If(cond; @Return("early"); "late")` | `"early"` (if cond is true) |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @While  *(Phase 2)*
 ```
