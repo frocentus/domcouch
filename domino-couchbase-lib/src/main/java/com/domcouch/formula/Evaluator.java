@@ -823,6 +823,7 @@ public class Evaluator {
         functions.put("USERNAME", (ev, args, ctx) -> currentUserName);
         functions.put("DOCFIELDS", (ev, args, ctx) -> ctx.getFieldNames());
         functions.put("DOCLENGTH", (ev, args, ctx) -> 0.0);
+        functions.put("DOCUMENTUNIQUEID", (ev, args, ctx) -> ctx.getDocumentUNID());
         functions.put("DOCLOCK", (ev, args, ctx) -> {
             if (args.isEmpty()) return "";
             String kw = toString(ev.eval(args.get(0), ctx));

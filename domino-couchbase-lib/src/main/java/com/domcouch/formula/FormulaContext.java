@@ -25,4 +25,9 @@ public interface FormulaContext {
     default java.util.List<String> getFieldNames() {
         return java.util.List.of();
     }
+
+    /** Return the document's universal ID. Default: empty string. */
+    default String getDocumentUNID() {
+        return "";
+    }
 }

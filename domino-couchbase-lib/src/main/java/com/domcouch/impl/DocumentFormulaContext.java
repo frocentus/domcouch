@@ -61,6 +61,11 @@ public class DocumentFormulaContext implements FormulaContext {
         return names;
     }
 
+    @Override
+    public String getDocumentUNID() {
+        return document.getUniversalID();
+    }
+
     /** @return the underlying document */
     public Document getDocument() {
         return document;
