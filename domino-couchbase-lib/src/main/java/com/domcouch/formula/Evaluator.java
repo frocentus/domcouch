@@ -307,6 +307,33 @@ public class Evaluator {
         return List.of(val);
     }
 
+    /** Map a single-arg math function over a value or list. */
+    private static Object map1(Evaluator ev, List<Expr> args, FormulaContext ctx,
+                                java.util.function.DoubleUnaryOperator fn) {
+        Object val = ev.eval(args.get(0), ctx);
+        List<Object> sources = toList(val);
+        List<Object> result = new ArrayList<>();
+        for (Object src : sources) result.add(fn.applyAsDouble(toNumber(src)));
+        return result.size() == 1 ? result.get(0) : result;
+    }
+
+    /** Map a dual-arg math function pair-wise over value(s) or list(s). */
+    private static Object map2(Evaluator ev, List<Expr> args, FormulaContext ctx,
+                                java.util.function.DoubleBinaryOperator fn) {
+        Object val1 = ev.eval(args.get(0), ctx);
+        Object val2 = ev.eval(args.get(1), ctx);
+        List<Object> list1 = toList(val1);
+        List<Object> list2 = toList(val2);
+        int size = Math.max(list1.size(), list2.size());
+        List<Object> result = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            double a = toNumber(list1.get(Math.min(i, list1.size() - 1)));
+            double b = toNumber(list2.get(Math.min(i, list2.size() - 1)));
+            result.add(fn.applyAsDouble(a, b));
+        }
+        return result.size() == 1 ? result.get(0) : result;
+    }
+
     /** Check if any pair (a,b) from two values (or lists) matches the predicate. */
     private static boolean anyPairMatch(Object a, Object b,
                                          java.util.function.BiPredicate<String, String> pred) {
@@ -407,13 +434,10 @@ public class Evaluator {
             for (Object src : sources) result.add(Math.abs(toNumber(src)));
             return result.size() == 1 ? result.get(0) : result;
         });
-        functions.put("ACOS", (ev, args, ctx) -> {
-            Object val = ev.eval(args.get(0), ctx);
-            List<Object> sources = toList(val);
-            List<Object> result = new ArrayList<>();
-            for (Object src : sources) result.add(Math.acos(toNumber(src)));
-            return result.size() == 1 ? result.get(0) : result;
-        });
+        functions.put("ACOS", (ev, args, ctx) -> map1(ev, args, ctx, Math::acos));
+        functions.put("ASIN", (ev, args, ctx) -> map1(ev, args, ctx, Math::asin));
+        functions.put("ATAN", (ev, args, ctx) -> map1(ev, args, ctx, Math::atan));
+        functions.put("ATAN2", (ev, args, ctx) -> map2(ev, args, ctx, Math::atan2));
 
         // String functions
         functions.put("ASCII", (ev, args, ctx) -> {
