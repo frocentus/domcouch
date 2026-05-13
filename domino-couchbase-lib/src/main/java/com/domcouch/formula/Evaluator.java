@@ -764,6 +764,31 @@ public class Evaluator {
             throw new ReturnValue(ev.eval(args.get(0), ctx));
         });
 
+        // Date construction
+        functions.put("DATE", (ev, args, ctx) -> {
+            if (args.size() >= 3 && ev.eval(args.get(0), ctx) instanceof Number) {
+                int year = (int) toNumber(ev.eval(args.get(0), ctx));
+                int month = (int) toNumber(ev.eval(args.get(1), ctx));
+                int day = (int) toNumber(ev.eval(args.get(2), ctx));
+                int hour = args.size() >= 6 ? (int) toNumber(ev.eval(args.get(3), ctx)) : 0;
+                int min = args.size() >= 6 ? (int) toNumber(ev.eval(args.get(4), ctx)) : 0;
+                int sec = args.size() >= 6 ? (int) toNumber(ev.eval(args.get(5), ctx)) : 0;
+                var dt = java.time.LocalDateTime.of(year, month, day, hour, min, sec);
+                return DT_FMT.format(dt.atZone(java.time.ZoneId.systemDefault()));
+            }
+            // time-date overload: strip time
+            Object val = ev.eval(args.get(0), ctx);
+            List<Object> sources = toList(val);
+            List<Object> result = new ArrayList<>();
+            for (Object src : sources) {
+                java.time.ZonedDateTime zdt = parseDateToZoned(toString(src));
+                if (zdt != null) {
+                    result.add(DT_FMT.format(zdt.toLocalDate().atStartOfDay(zdt.getZone())));
+                } else result.add("");
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
+
         // Date/time
         functions.put("CREATED", (ev, args, ctx) -> ctx.resolve("CREATED"));
         functions.put("MODIFIED", (ev, args, ctx) -> ctx.resolve("MODIFIED"));
