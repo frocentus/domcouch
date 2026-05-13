@@ -300,7 +300,7 @@ characters; case-sensitive for `{...}` character classes. List-aware.
 | `@Matches("abc"; "ABC")` | `1` (case-insensitive) |
 | `@Matches("one":"two":"three"; "three":"four":"five")` | `1` (list: any match) |
 
-Status: ✅ 📋
+Status: 🟡 📋 (missing !, |, ✅ 📋, + operators)
 
 ---
 
@@ -320,7 +320,7 @@ Converts any value to a string (numbers lose decimal if whole).
 | `@Text(42)` | `"42"` |
 | `@Text(@Created)` | `"11/30/2000 02:39:55 PM"` |
 
-Status: ✅ 📋
+Status: 🟡 📋 (missing date format strings D0-D3,T0-T1,Z0-Z2,S0-S3)
 
 ### @TextToNumber
 ```
@@ -569,11 +569,12 @@ Extracts the 4-digit year.
 Status: ✅ 📋
 
 ### @Adjust  *(Phase 2)*
+**Missing**: [DST] keyword, [INLOCALTIME]/[INGMT], pair-wise list edge cases.
 ```
 @Adjust(date; years; months; days; hours; minutes; seconds)
 ```
 Adjusts a date by the given increments. Not yet implemented.
-Status: ✅ 📋
+Status: 🟡 📋 (missing DST, pair-wise list)
 
 ### @TimeZoneToText  *(Phase 2)*
 Status: ❌
