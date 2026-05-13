@@ -358,7 +358,7 @@ Returns True if the named field exists and is non-empty.
 | `@IsAvailable(Subject)` | `1` (if Subject exists) |
 | `@IsAvailable(Missing)` | `0` |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ---
 

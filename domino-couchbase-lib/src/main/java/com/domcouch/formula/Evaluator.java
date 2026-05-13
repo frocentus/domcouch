@@ -547,10 +547,9 @@ public class Evaluator {
 
         // Existence
         functions.put("ISAVAILABLE", (ev, args, ctx) -> {
-            // args[0] is a Variable — check if it exists in context
             if (args.get(0) instanceof Expr.Variable v) {
                 Object val = ctx.resolve(v.name());
-                return boolToNum(val != null && !val.toString().isEmpty());
+                return boolToNum(val != null);
             }
             return 0.0;
         });

@@ -34,7 +34,7 @@ public class DocumentFormulaContext implements FormulaContext {
     @Override
     public Object resolve(String name) {
         Item item = document.getFirstItem(name);
-        if (item == null) return "";
+        if (item == null) return null;          // field does not exist
         var values = item.getValues();
         if (values == null || values.isEmpty()) return "";
         if (values.size() > 1) return values;
