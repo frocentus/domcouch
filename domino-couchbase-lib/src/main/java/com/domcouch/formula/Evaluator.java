@@ -264,6 +264,24 @@ public class Evaluator {
         return 0;
     }
 
+    /** Parse a date string to ZonedDateTime, returning null on failure. */
+    private static java.time.ZonedDateTime parseDateToZoned(String s) {
+        for (var fmt : DATE_PARSERS) {
+            try {
+                var parsed = fmt.parseBest(s,
+                        java.time.ZonedDateTime::from,
+                        java.time.LocalDateTime::from,
+                        java.time.LocalDate::from);
+                if (parsed instanceof java.time.ZonedDateTime zdt) return zdt;
+                if (parsed instanceof java.time.LocalDateTime ldt)
+                    return ldt.atZone(java.time.ZoneId.systemDefault());
+                if (parsed instanceof java.time.LocalDate ld)
+                    return ld.atStartOfDay(java.time.ZoneId.systemDefault());
+            } catch (Exception e) { /* try next */ }
+        }
+        return null;
+    }
+
     static boolean isFalsy(Object val) { return !isTruthy(val); }
 
     /** Check if a string represents a valid number. */
@@ -644,8 +662,31 @@ public class Evaluator {
         functions.put("CREATED", (ev, args, ctx) -> ctx.resolve("CREATED"));
         functions.put("MODIFIED", (ev, args, ctx) -> ctx.resolve("MODIFIED"));
         functions.put("ACCESSED", (ev, args, ctx) -> ctx.resolve("ACCESSED"));
+        functions.put("ADDEDTOTHISFILE", (ev, args, ctx) -> ctx.resolve("ADDEDTOTHISFILE"));
         functions.put("NOW", (ev, args, ctx) -> DT_FMT.format(Instant.now()));
         functions.put("TODAY", (ev, args, ctx) -> DT_FMT.format(Instant.now()));
+
+        // @Adjust: apply adjustments in reverse order (seconds→years)
+        functions.put("ADJUST", (ev, args, ctx) -> {
+            Object dateVal = ev.eval(args.get(0), ctx);
+            int years = (int) toNumber(ev.eval(args.get(1), ctx));
+            int months = (int) toNumber(ev.eval(args.get(2), ctx));
+            int days = (int) toNumber(ev.eval(args.get(3), ctx));
+            int hours = (int) toNumber(ev.eval(args.get(4), ctx));
+            int minutes = (int) toNumber(ev.eval(args.get(5), ctx));
+            int seconds = (int) toNumber(ev.eval(args.get(6), ctx));
+            List<Object> sources = toList(dateVal);
+            List<Object> result = new ArrayList<>();
+            for (Object src : sources) {
+                java.time.ZonedDateTime dt = parseDateToZoned(toString(src));
+                if (dt == null) { result.add(""); continue; }
+                // Apply last-to-first: seconds, minutes, hours, days, months, years
+                dt = dt.plusSeconds(seconds).plusMinutes(minutes).plusHours(hours)
+                       .plusDays(days).plusMonths(months).plusYears(years);
+                result.add(DT_FMT.format(dt));
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
 
         // Security
         functions.put("USERNAME", (ev, args, ctx) -> currentUserName);
