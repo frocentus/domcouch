@@ -266,6 +266,13 @@ public class Evaluator {
 
     static boolean isFalsy(Object val) { return !isTruthy(val); }
 
+    /** Check if a string represents a valid number. */
+    private static boolean isNumeric(String s) {
+        if (s == null || s.isEmpty()) return false;
+        try { Double.parseDouble(s); return true; }
+        catch (NumberFormatException e) { return false; }
+    }
+
     static String toString(Object val) {
         if (val == null) return "";
         if (val instanceof Double d && d == Math.floor(d) && !Double.isInfinite(d))
@@ -352,9 +359,22 @@ public class Evaluator {
             return result.size() == 1 ? result.get(0) : result;
         });
         functions.put("LEFT", (ev, args, ctx) -> {
-            String s = toString(ev.eval(args.get(0), ctx));
-            int n = (int) toNumber(ev.eval(args.get(1), ctx));
-            return s.substring(0, Math.min(n, s.length()));
+            Object val = ev.eval(args.get(0), ctx);
+            Object arg2 = ev.eval(args.get(1), ctx);
+            List<Object> sources = toList(val);
+            List<Object> result = new ArrayList<>();
+            for (Object src : sources) {
+                String s = toString(src);
+                if (arg2 instanceof Number || (arg2 instanceof String && isNumeric((String) arg2))) {
+                    int n = (int) toNumber(arg2);
+                    result.add(n < 0 ? s : s.substring(0, Math.min(n, s.length())));
+                } else {
+                    String sub = toString(arg2);
+                    int idx = s.indexOf(sub);
+                    result.add(idx >= 0 ? s.substring(0, idx) : "");
+                }
+            }
+            return result.size() == 1 ? result.get(0) : result;
         });
         functions.put("RIGHT", (ev, args, ctx) -> {
             String s = toString(ev.eval(args.get(0), ctx));
