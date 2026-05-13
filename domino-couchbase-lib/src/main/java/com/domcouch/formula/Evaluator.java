@@ -238,6 +238,32 @@ public class Evaluator {
 
     static double boolToNum(boolean b) { return b ? 1.0 : 0.0; }
 
+    // ---- Date parsing ----
+
+    private static final java.time.format.DateTimeFormatter[] DATE_PARSERS = {
+            java.time.format.DateTimeFormatter.ISO_DATE_TIME,
+            java.time.format.DateTimeFormatter.ofPattern("M/d/yyyy[ hh:mm:ss a]"),
+            java.time.format.DateTimeFormatter.ofPattern("M/d/yyyy['T'HH:mm:ss'Z']"),
+            java.time.format.DateTimeFormatter.ISO_LOCAL_DATE,
+    };
+
+    /** Extract a date field (month, day, year) from a date string or object. */
+    private static int extractDateField(Object val, java.time.temporal.ChronoField field) {
+        if (val == null) return 0;
+        String s = toString(val).trim();
+        if (s.isEmpty()) return 0;
+        for (var fmt : DATE_PARSERS) {
+            try {
+                var parsed = fmt.parseBest(s,
+                        java.time.ZonedDateTime::from,
+                        java.time.LocalDateTime::from,
+                        java.time.LocalDate::from);
+                return ((java.time.temporal.TemporalAccessor) parsed).get(field);
+            } catch (Exception e) { /* try next format */ }
+        }
+        return 0;
+    }
+
     static boolean isFalsy(Object val) { return !isTruthy(val); }
 
     static String toString(Object val) {
@@ -248,6 +274,23 @@ public class Evaluator {
     }
 
     // ---- List operations ----
+
+    @SuppressWarnings("unchecked")
+    private static List<Object> toList(Object val) {
+        if (val instanceof List l) return l;
+        return List.of(val);
+    }
+
+    /** Check if any pair (a,b) from two values (or lists) matches the predicate. */
+    private static boolean anyPairMatch(Object a, Object b,
+                                         java.util.function.BiPredicate<String, String> pred) {
+        for (Object sa : toList(a)) {
+            for (Object sb : toList(b)) {
+                if (pred.test(toString(sa), toString(sb))) return true;
+            }
+        }
+        return false;
+    }
 
     @SuppressWarnings("unchecked")
     private static Object subscript(Object list, Object idx) {
@@ -274,7 +317,19 @@ public class Evaluator {
 
     private void registerBuiltins() {
         // String functions
-        functions.put("TRIM", (ev, args, ctx) -> toString(ev.eval(args.get(0), ctx)).trim());
+        functions.put("TRIM", (ev, args, ctx) -> {
+            Object val = ev.eval(args.get(0), ctx);
+            List<Object> sources = toList(val);
+            List<Object> result = new ArrayList<>();
+            for (Object src : sources) {
+                String s = toString(src);
+                // Collapse consecutive spaces, then trim
+                String trimmed = s.replaceAll("  +", " ").trim();
+                if (!trimmed.isEmpty()) result.add(trimmed);
+            }
+            if (result.isEmpty()) return "";
+            return result.size() == 1 ? result.get(0) : result;
+        });
         functions.put("UPPERCASE", (ev, args, ctx) -> toString(ev.eval(args.get(0), ctx)).toUpperCase());
         functions.put("LOWERCASE", (ev, args, ctx) -> toString(ev.eval(args.get(0), ctx)).toLowerCase());
         functions.put("LENGTH", (ev, args, ctx) -> (double) toString(ev.eval(args.get(0), ctx)).length());
@@ -374,6 +429,101 @@ public class Evaluator {
         FunctionHandler noop = (ev, args, ctx) -> "";
         functions.put("COMMAND", noop);
         functions.put("POSTEDCOMMAND", noop);
+
+        // ---- Phase 2: String matching (list-aware) ----
+        functions.put("CONTAINS", (ev, args, ctx) -> {
+            Object a = ev.eval(args.get(0), ctx);
+            Object b = ev.eval(args.get(1), ctx);
+            return boolToNum(anyPairMatch(a, b, (s1, s2) -> s1.contains(s2)));
+        });
+        functions.put("BEGINS", (ev, args, ctx) -> {
+            Object a = ev.eval(args.get(0), ctx);
+            Object b = ev.eval(args.get(1), ctx);
+            return boolToNum(anyPairMatch(a, b, (s1, s2) -> s1.startsWith(s2)));
+        });
+        functions.put("ENDS", (ev, args, ctx) -> {
+            Object a = ev.eval(args.get(0), ctx);
+            Object b = ev.eval(args.get(1), ctx);
+            return boolToNum(anyPairMatch(a, b, (s1, s2) -> s1.endsWith(s2)));
+        });
+
+        // ---- Phase 2: String manipulation ----
+        functions.put("REPLACESUBSTRING", (ev, args, ctx) -> {
+            Object source = ev.eval(args.get(0), ctx);
+            Object from = ev.eval(args.get(1), ctx);
+            Object to = ev.eval(args.get(2), ctx);
+            List<Object> fromList = toList(from);
+            List<Object> toList = toList(to);
+            // Process each source element through all from→to replacements sequentially
+            List<Object> sources = toList(source);
+            List<Object> result = new ArrayList<>();
+            for (Object src : sources) {
+                String current = toString(src);
+                for (int i = 0; i < fromList.size(); i++) {
+                    String f = toString(fromList.get(i));
+                    String t = toString(i < toList.size() ? toList.get(i) : toList.get(toList.size() - 1));
+                    current = current.replace(f, t);
+                }
+                result.add(current);
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
+        functions.put("WORD", (ev, args, ctx) -> {
+            Object source = ev.eval(args.get(0), ctx);
+            String sep = toString(ev.eval(args.get(1), ctx));
+            if (sep.isEmpty()) sep = " ";
+            double num = toNumber(ev.eval(args.get(2), ctx));
+            int n = (int) num;
+            if (n == 0) n = 1; // 0 = first word
+
+            List<Object> sources = toList(source);
+            List<Object> result = new ArrayList<>();
+            for (Object src : sources) {
+                String s = toString(src);
+                // Split on separator, preserving empty strings between consecutive separators
+                String[] parts = s.split(java.util.regex.Pattern.quote(sep), -1);
+                if (n > 0) {
+                    result.add(n <= parts.length ? parts[n - 1] : "");
+                } else {
+                    int idx = parts.length + n; // -1 → last
+                    result.add(idx >= 0 && idx < parts.length ? parts[idx] : "");
+                }
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
+
+        // ---- Phase 2: Date extraction ----
+        functions.put("MONTH", (ev, args, ctx) ->
+                (double) extractDateField(ev.eval(args.get(0), ctx), java.time.temporal.ChronoField.MONTH_OF_YEAR));
+        functions.put("DAY", (ev, args, ctx) ->
+                (double) extractDateField(ev.eval(args.get(0), ctx), java.time.temporal.ChronoField.DAY_OF_MONTH));
+        functions.put("YEAR", (ev, args, ctx) ->
+                (double) extractDateField(ev.eval(args.get(0), ctx), java.time.temporal.ChronoField.YEAR));
+
+        // ---- Phase 2: Control flow ----
+        functions.put("WHILE", (ev, args, ctx) -> {
+            // @While(condition; body; increment)
+            Object last = "";
+            while (isTruthy(ev.eval(args.get(0), ctx))) {
+                last = ev.eval(args.get(1), ctx);  // body
+                if (args.size() > 2) ev.eval(args.get(2), ctx);  // increment
+            }
+            return last;
+        });
+
+        // ---- Phase 2: Variable/field manipulation ----
+        functions.put("SET", (ev, args, ctx) -> {
+            String varName = toString(ev.eval(args.get(0), ctx)).toUpperCase();
+            Object val = ev.eval(args.get(1), ctx);
+            if (ev.tempScope != null) ev.tempScope.put(varName, val);
+            return val;
+        });
+        functions.put("SETFIELD", (ev, args, ctx) -> {
+            String fieldName = toString(ev.eval(args.get(0), ctx)).toUpperCase();
+            Object val = ev.eval(args.get(1), ctx);
+            ctx.setField(fieldName, val);
+            return val;
+        });
     }
 
     /** Exception thrown by @Return to unwind evaluation. */
