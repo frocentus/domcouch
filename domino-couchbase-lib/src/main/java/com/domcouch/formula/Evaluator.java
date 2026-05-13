@@ -821,6 +821,7 @@ public class Evaluator {
 
         // Security
         functions.put("USERNAME", (ev, args, ctx) -> currentUserName);
+        functions.put("DOCFIELDS", (ev, args, ctx) -> ctx.getFieldNames());
 
         // Boolean constants
         functions.put("ALL", (ev, args, ctx) -> 1.0);

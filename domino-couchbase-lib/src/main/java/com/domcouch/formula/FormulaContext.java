@@ -20,4 +20,9 @@ public interface FormulaContext {
     default void deleteField(String name) {
         throw new UnsupportedOperationException("deleteField not supported");
     }
+
+    /** Return all field names on the document. Default: empty list. */
+    default java.util.List<String> getFieldNames() {
+        return java.util.List.of();
+    }
 }

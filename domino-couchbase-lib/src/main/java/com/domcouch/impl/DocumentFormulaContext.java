@@ -51,6 +51,16 @@ public class DocumentFormulaContext implements FormulaContext {
         document.replaceItemValue(name, "");
     }
 
+    @Override
+    public java.util.List<String> getFieldNames() {
+        java.util.List<String> names = new java.util.ArrayList<>();
+        var items = document.getItems();
+        for (com.domcouch.api.Item item : items) {
+            names.add(item.getName());
+        }
+        return names;
+    }
+
     /** @return the underlying document */
     public Document getDocument() {
         return document;
