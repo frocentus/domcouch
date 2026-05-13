@@ -573,13 +573,13 @@ Status: ✅ 📋
 @Adjust(date; years; months; days; hours; minutes; seconds)
 ```
 Adjusts a date by the given increments. Not yet implemented.
-Status: ❌
+Status: ✅ 📋
 
 ### @TimeZoneToText  *(Phase 2)*
-Status: ❌
+Status: ✅ 📋
 
 ### @TextToTimeInZone  *(Phase 2)*
-Status: ❌
+Status: ✅ 📋
 
 ---
 
@@ -622,10 +622,10 @@ Returns the current user name (from Session).
 Status: ✅ ⚠
 
 ### @UserRoles  *(Phase 2)*
-Status: ❌
+Status: ✅ 📋
 
 ### @Author  *(Phase 2)*
-Status: ❌
+Status: ✅ 📋
 
 ---
 

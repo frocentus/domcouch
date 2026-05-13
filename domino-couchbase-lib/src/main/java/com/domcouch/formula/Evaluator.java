@@ -243,6 +243,7 @@ public class Evaluator {
     private static final java.time.format.DateTimeFormatter[] DATE_PARSERS = {
             java.time.format.DateTimeFormatter.ISO_DATE_TIME,
             java.time.format.DateTimeFormatter.ofPattern("M/d/yyyy[ hh:mm:ss a]"),
+            java.time.format.DateTimeFormatter.ofPattern("M/d/yy[ hh:mm:ss a]"),
             java.time.format.DateTimeFormatter.ofPattern("M/d/yyyy['T'HH:mm:ss'Z']"),
             java.time.format.DateTimeFormatter.ISO_LOCAL_DATE,
     };
