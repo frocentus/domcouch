@@ -52,7 +52,7 @@ Converts to uppercase.
 | `@UpperCase("hello")` | `"HELLO"` |
 | `@UpperCase(city1 := "London")` | `"LONDON"` |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @LowerCase
 ```
@@ -82,7 +82,7 @@ Returns the number of characters.
 |---------|--------|
 | `@Length("hello")` | `5` |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @Left
 ```
@@ -99,7 +99,7 @@ Returns the leftmost characters.
 | `@Left("hello"; 2)` | `"he"` |
 | `@Left("hello"; 10)` | `"hello"` (no error on overflow) |
 
-Status: ✅ ⚠
+Status: ✅ 📋
 
 ### @Right
 ```
@@ -141,7 +141,7 @@ List-aware.
 | `@Repeat("Bye"; 2; 5)` | `"ByeBy"` (truncated) |
 | `@Repeat("Hello" : "Bye"; 3)` | `["HelloHelloHello", "ByeByeBye"]` (list) |
 
-Status: ✅ 📋 ⚠
+Status: ✅ 📋
 
 ### @Contains  *(Phase 2)*
 ```
