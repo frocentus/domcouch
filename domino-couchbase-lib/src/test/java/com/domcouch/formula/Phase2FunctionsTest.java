@@ -542,4 +542,23 @@ class Phase2FunctionsTest {
         @Test @DisplayName("field value")
         void field() { vars.put("NET", -5.0); assertEquals(5.0, eval("@Abs(Net)")); }
     }
+
+    // ================================================================
+    // @Adjust
+    // ================================================================
+
+    @Nested @DisplayName("@Adjust")
+    class AdjustTests {
+        @Test @DisplayName("adjust years, months, days")
+        void basic() {
+            // [06/30/95] + 2y 2m 2d → 09/02/97
+            String result = (String) eval("@Adjust([06/30/95]; 2; 2; 2; 0; 0; 0)");
+            assertTrue(result.contains("09/02") || result.contains("9/2"));
+        }
+        @Test @DisplayName("negative adjustment")
+        void negative() {
+            String result = (String) eval("@Adjust([03/30/96]; -2; 0; -10; 0; 0; 0)");
+            assertTrue(result.contains("03/20") || result.contains("3/20"));
+        }
+    }
 }
