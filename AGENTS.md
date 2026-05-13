@@ -312,11 +312,12 @@ mvn test -pl domino-couchbase-lib
 |-----------|-------|----------|
 | `LexerTest` | 54 | All token types, escapes, numbers, brackets, comments |
 | `ParserTest` | 39 | Precedence, operators, FIELD/DEFAULT/ENVIRONMENT, @Functions |
-| `EvaluatorTest` | 57 | Arithmetic, comparison, coercion, 25+ @Functions, assignment |
+| `EvaluatorTest` | 57 | Arithmetic, comparison, coercion, @Functions, assignment |
 | `FormulaExamplesTest` | 97 | Real Domino spec examples — all formula categories |
 | `CachedEvaluationTest` | 8 | Compile-once, evaluate-many; verified against Java values |
 | `PerformanceComparisonTest` | 9 | Throughput, cached vs uncached, pipeline breakdown |
-| **Total** | **264** → **308** | |
+| `Phase2FunctionsTest` | 160 | Per-function tests covering 60+ @Functions with spec examples |
+| **Total** | **424** | |
 
 ### 6.4 Data Generation
 

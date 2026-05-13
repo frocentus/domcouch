@@ -690,8 +690,100 @@ Status: 🚫 No-op
 | `@Matches` | Medium | Pattern matching with wildcards |
 | `@PickList` | Low | UI pick list |
 | `@Prompt` | Low | UI dialog |
-| `@Replace` | Medium | List value replacement |
 | `@UserRoles` | Low | User roles query |
+
+---
+
+### Math
+
+| Function | Status | Spec | Description |
+|----------|--------|------|-------------|
+| `@Abs` | ✅ | 📋 | Absolute value |
+| `@ACos` | ✅ | 📋 | Arc cosine |
+| `@ASin` | ✅ | 📋 | Arc sine |
+| `@ATan` | ✅ | 📋 | Arc tangent |
+| `@ATan2` | ✅ | 📋 | Arc tangent (y, x) |
+| `@Cos` | ✅ | 📋 | Cosine |
+| `@Sin` | ✅ | 📋 | Sine |
+| `@Tan` | ✅ | 📋 | Tangent |
+| `@Exp` | ✅ | 📋 | e^x |
+| `@Log` | ✅ | 📋 | Natural logarithm |
+| `@Sqrt` | ✅ | 📋 | Square root |
+| `@Pi` | ✅ | 📋 | π constant |
+| `@Power` | ✅ | 📋 | Exponentiation |
+| `@Integer` | ✅ | 📋 | Truncate to integer |
+| `@Round` | ✅ | 📋 | Round to nearest integer |
+
+### Document
+
+| Function | Status | Spec | Description |
+|----------|--------|------|-------------|
+| `@DocFields` | ✅ | 📋 | List all field names |
+| `@DocLength` | ✅ | 📋 | Approximate doc size (stub) |
+| `@DocLock` | ✅ | 📋 | Doc locking (stub) |
+| `@DocumentUniqueID` | ✅ | 📋 | Document universal ID |
+| `@Created` | ✅ | 📋 | Document creation time |
+| `@Modified` | ✅ | 📋 | Last modified time |
+| `@Accessed` | ✅ | 📋 | Last accessed time |
+| `@AddedToThisFile` | ✅ | 📋 | Added-to-db time |
+
+### Date Construction
+
+| Function | Status | Spec | Description |
+|----------|--------|------|-------------|
+| `@Date` | ✅ | 📋 | Date/time constructor |
+| `@Now` | ✅ | 📋 | Current date & time |
+| `@Today` | ✅ | 📋 | Current date |
+
+### Meta / Evaluation
+
+| Function | Status | Spec | Description |
+|----------|--------|------|-------------|
+| `@CheckFormulaSyntax` | ✅ | 📋 | Syntax validation |
+| `@Eval` | ✅ | 📋 | Runtime formula evaluation |
+| `@Error` | ✅ | 📋 | Error sentinel value |
+| `@IsError` | ✅ | 📋 | Error detection |
+| `@DoWhile` | ✅ | 📋 | Do-while loop |
+| `@While` | ✅ | 📋 | While loop |
+| `@DeleteField` | ✅ | 📋 | Delete field (FIELD kind) |
+| `@Return` | ✅ | 📋 | Early return from formula |
+
+### Validation
+
+| Function | Status | Spec | Description |
+|----------|--------|------|-------------|
+| `@Failure` | ✅ | 📋 | Validation failure message |
+| `@Success` | ✅ | 📋 | Validation success (returns 1) |
+
+### List Comparison
+
+| Function | Status | Spec | Description |
+|----------|--------|------|-------------|
+| `@Compare` | ✅ | 📋 | Pairwise string comparison |
+| `@Count` | ✅ | 📋 | Element count (scalar→1) |
+| `@Explode` | ✅ | 📋 | Split string by separators |
+
+### Character Encoding
+
+| Function | Status | Spec | Description |
+|----------|--------|------|-------------|
+| `@Ascii` | ✅ | 📋 | Filter/convert to ASCII |
+| `@Char` | ✅ | 📋 | Code point to character (Cp850) |
+
+### Command No-ops
+
+| Function | Status | Spec | Description |
+|----------|--------|------|-------------|
+| `@Command` | ✅ | 📋 | UI command (no-op) |
+| `@PostedCommand` | ✅ | 📋 | Posted UI command (no-op) |
+
+### Boolean Constants
+
+| Function | Status | Spec | Description |
+|----------|--------|------|-------------|
+| `@True` | ✅ | 📋 | Boolean true (1) |
+| `@False` | ✅ | 📋 | Boolean false (0) |
+| `@All` | ✅ | 📋 | Boolean true/select-all (1) |
 
 ---
 
@@ -710,7 +802,16 @@ Status: 🚫 No-op
 | Security | 1 | 0 | 1 | 2 | 0 |
 | Side-Effecting | 1 | 0 | 1 | 0 | 2 |
 | Cross-DB | 0 | 0 | 0 | 3 | 0 |
-| **Total** | **35** | **6** | **29** | **10** | **2** |
+| Math | 15 | 15 | 0 | 0 | 0 |
+| Document | 8 | 8 | 0 | 0 | 0 |
+| Date Construction | 3 | 3 | 0 | 0 | 0 |
+| Meta / Evaluation | 8 | 8 | 0 | 0 | 0 |
+| Validation | 2 | 2 | 0 | 0 | 0 |
+| List Comparison | 3 | 3 | 0 | 0 | 0 |
+| Character Encoding | 2 | 2 | 0 | 0 | 0 |
+| Command No-ops | 2 | 2 | 0 | 0 | 0 |
+| Boolean Constants | 3 | 3 | 0 | 0 | 0 |
+| **Total** | **81** | **52** | **29** | **10** | **2** |
 
-📋 6 verified against official Domino spec  
+📋 52 verified against official Domino spec
 ⚠ 29 need spec verification
