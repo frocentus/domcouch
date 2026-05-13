@@ -401,10 +401,23 @@ Status: ✅ 📋
 
 ### @Replace  *(Phase 2)*
 ```
-@Replace(source; fromList; toList)
+@Replace(sourceList; fromList; toList)
 ```
-Replaces values in a list. Not yet implemented.
-Status: ❌
+Element-level list replacement. If an element in `sourceList` matches an element
+in `fromList`, it is replaced by the corresponding element from `toList`.
+(Not to be confused with `@ReplaceSubstring` which does string-level replacement.)
+
+| Arg | Type | Description |
+|-----|------|-------------|
+| 1 | Text list | Source list |
+| 2 | Text list | Values to find |
+| 3 | Text list | Replacement values |
+
+| Example | Result |
+|---------|--------|
+| `@Replace("Red":"Orange":"Yellow":"Green"; "Orange":"Blue"; "Black":"Brown")` | `["Red", "Black", "Yellow", "Green"]` |
+
+Status: ✅ 📋
 
 ---
 

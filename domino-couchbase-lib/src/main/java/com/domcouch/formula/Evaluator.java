@@ -588,6 +588,19 @@ public class Evaluator {
             return boolToNum(!list2.contains(val));
         });
 
+        // List replacement (element-level, not string-level)
+        functions.put("REPLACE", (ev, args, ctx) -> {
+            List<Object> source = toList(ev.eval(args.get(0), ctx));
+            List<Object> from = toList(ev.eval(args.get(1), ctx));
+            List<Object> to = toList(ev.eval(args.get(2), ctx));
+            List<Object> result = new ArrayList<>();
+            for (Object src : source) {
+                int idx = from.indexOf(src);
+                result.add(idx >= 0 && idx < to.size() ? to.get(idx) : src);
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
+
         // Control flow
         functions.put("IF", (ev, args, ctx) -> {
             boolean cond = isTruthy(ev.eval(args.get(0), ctx));

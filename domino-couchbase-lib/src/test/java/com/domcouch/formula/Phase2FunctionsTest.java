@@ -506,4 +506,22 @@ class Phase2FunctionsTest {
             assertEquals(1.0, eval("@IsMember(\"R&D\"; Department)"));
         }
     }
+
+    // ================================================================
+    // @Replace (list-level element replacement)
+    // ================================================================
+
+    @Nested @DisplayName("@Replace")
+    class ReplaceTests {
+        @Test @DisplayName("element replacement in list")
+        void elementReplace() {
+            Object result = eval("@Replace(\"Red\" : \"Orange\" : \"Yellow\" : \"Green\"; \"Orange\" : \"Blue\"; \"Black\" : \"Brown\")");
+            assertEquals(List.of("Red", "Black", "Yellow", "Green"), result);
+        }
+        @Test @DisplayName("no match returns original")
+        void noMatch() {
+            Object result = eval("@Replace(\"A\" : \"B\" : \"C\"; \"X\"; \"Y\")");
+            assertEquals(List.of("A", "B", "C"), result);
+        }
+    }
 }
