@@ -17,6 +17,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.domcouch</groupId>
+            <artifactId>formula-engine</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.couchbase.client</groupId>
             <artifactId>java-client</artifactId>
         </dependency>

@@ -19,6 +19,7 @@
     <description>HCL Domino 14.5 Java API emulation over Couchbase</description>
 
     <modules>
+        <module>formula-engine</module>
         <module>domino-couchbase-lib</module>
         <module>springboot-demo</module>
     </modules>
