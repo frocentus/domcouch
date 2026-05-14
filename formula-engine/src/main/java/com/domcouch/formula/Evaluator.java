@@ -85,7 +85,9 @@ public class Evaluator {
                 }
                 case Expr.KeywordStatement ks -> eval(ks.body(), ctx);
                 case Expr.DeleteField df -> {
-                    ctx.deleteField(((Expr.Variable) df.target()).name());
+                    try {
+                        ctx.deleteField(((Expr.Variable) df.target()).name());
+                    } catch (ContextNotSupportedException e) { /* no-op */ }
                     yield "";
                 }
                 case Expr.Comment c -> "";
@@ -224,7 +226,9 @@ public class Evaluator {
             return "";
         }
         if ("FIELD".equals(kind)) {
-            ctx.setField(name, val);
+            try {
+                ctx.setField(name, val);
+            } catch (ContextNotSupportedException e) { /* no-op */ }
         } else {
             if (tempScope != null) tempScope.put(name, val != null ? val : "");
         }
@@ -917,14 +921,20 @@ public class Evaluator {
             String name = toString(ev.eval(args.getFirst(), ctx));
             return boolToNum(ctx.resolve(name) == null);
         });
-        functions.put("ISNEWDOC", (ev, args, ctx) ->
-                boolToNum(ctx.getDocumentUNID().isEmpty()));
+        functions.put("ISNEWDOC", (ev, args, ctx) -> {
+            try { return boolToNum(ctx.getDocumentUNID().isEmpty()); }
+            catch (ContextNotSupportedException e) { return 1.0; }
+        });
         functions.put("ISRESPONSEDOC", (ev, args, ctx) -> {
             Object parent = ctx.resolve("PARENTUNID");
             return boolToNum(parent != null && !toString(parent).isEmpty());
         });
-        functions.put("NOTEID", (ev, args, ctx) ->
-                "NT" + ctx.getDocumentUNID().substring(0, Math.min(8, ctx.getDocumentUNID().length())));
+        functions.put("NOTEID", (ev, args, ctx) -> {
+            try {
+                return "NT" + ctx.getDocumentUNID().substring(0,
+                        Math.min(8, ctx.getDocumentUNID().length()));
+            } catch (ContextNotSupportedException e) { return ""; }
+        });
         functions.put("INHERITEDDOCUMENTUNIQUEID", (ev, args, ctx) ->
                 ctx.resolve("PARENTUNID") != null ? toString(ctx.resolve("PARENTUNID")) : "");
         functions.put("AUTHOR", (ev, args, ctx) -> ctx.resolve("AUTHORS") != null ? ctx.resolve("AUTHORS") : "");
@@ -1078,14 +1088,29 @@ public class Evaluator {
         functions.put("USERNAMESLIST", (ev, args, ctx) -> List.of(currentUserName));
         functions.put("DOMAIN", (ev, args, ctx) -> ""); // no Domino domain
         functions.put("VERSION", (ev, args, ctx) -> "Domino 14.5 / Couchbase");
-        functions.put("DBNAME", (ev, args, ctx) -> List.of("", ctx.getDatabaseName()));
-        functions.put("DBTITLE", (ev, args, ctx) -> ctx.getDatabaseName());
-        functions.put("REPLICAID", (ev, args, ctx) -> ctx.getDatabaseName());
+        functions.put("DBNAME", (ev, args, ctx) -> {
+            try { return List.of("", ctx.getDatabaseName()); }
+            catch (ContextNotSupportedException e) { return List.of("", ""); }
+        });
+        functions.put("DBTITLE", (ev, args, ctx) -> {
+            try { return ctx.getDatabaseName(); }
+            catch (ContextNotSupportedException e) { return ""; }
+        });
+        functions.put("REPLICAID", (ev, args, ctx) -> {
+            try { return ctx.getDatabaseName(); }
+            catch (ContextNotSupportedException e) { return ""; }
+        });
         functions.put("SERVERNAME", (ev, args, ctx) -> "");
-        functions.put("DOCFIELDS", (ev, args, ctx) -> ctx.getFieldNames());
+        functions.put("DOCFIELDS", (ev, args, ctx) -> {
+            try { return ctx.getFieldNames(); }
+            catch (ContextNotSupportedException e) { return List.of(); }
+        });
 // TODO: @DocLength returns placeholder 0; needs Couchbase document metadata
         functions.put("DOCLENGTH", (ev, args, ctx) -> 0.0);
-        functions.put("DOCUMENTUNIQUEID", (ev, args, ctx) -> ctx.getDocumentUNID());
+        functions.put("DOCUMENTUNIQUEID", (ev, args, ctx) -> {
+            try { return ctx.getDocumentUNID(); }
+            catch (ContextNotSupportedException e) { return ""; }
+        });
 // TODO: @DocLock returns stubs; needs Couchbase document-level locking
         functions.put("DOCLOCK", (ev, args, ctx) -> {
             if (args.isEmpty()) return "";
@@ -1582,7 +1607,7 @@ public class Evaluator {
         functions.put("SETFIELD", (ev, args, ctx) -> {
             String fieldName = toString(ev.eval(args.get(0), ctx)).toUpperCase();
             Object val = ev.eval(args.get(1), ctx);
-            ctx.setField(fieldName, val);
+            try { ctx.setField(fieldName, val); } catch (ContextNotSupportedException e) { /* no-op */ }
             return val;
         });
     }

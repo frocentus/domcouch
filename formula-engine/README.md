@@ -54,14 +54,14 @@ public interface FormulaContext {
 
 ### Context Properties at a Glance
 
-| Property              | Return Type    | Purpose                                     | Default |
-| --------------------- | -------------- | ------------------------------------------- | ------- |
-| `resolve(name)`       | `Object`       | Read a field value (null → "", absent → "") | —       |
-| `setField(name, val)` | `void`         | Write to a document field                   | throws  |
-| `deleteField(name)`   | `void`         | Remove a document field                     | throws  |
-| `getFieldNames()`     | `List<String>` | Enumerate all fields                        | `[]`    |
-| `getDocumentUNID()`   | `String`       | Document universal ID                       | `""`    |
-| `getDatabaseName()`   | `String`       | Current database name                       | `""`    |
+| Property              | Return Type    | Purpose                                     | Default                             |
+| --------------------- | -------------- | ------------------------------------------- | ----------------------------------- |
+| `resolve(name)`       | `Object`       | Read a field value (null → "", absent → "") | —                                   |
+| `setField(name, val)` | `void`         | Write to a document field                   | throws `ContextNotSupportedException` |
+| `deleteField(name)`   | `void`         | Remove a document field                     | throws `ContextNotSupportedException` |
+| `getFieldNames()`     | `List<String>` | Enumerate all fields                        | throws `ContextNotSupportedException` |
+| `getDocumentUNID()`   | `String`       | Document universal ID                       | throws `ContextNotSupportedException` |
+| `getDatabaseName()`   | `String`       | Current database name                       | throws `ContextNotSupportedException` |
 
 ### Evaluator Internal State (outside FormulaContext)
 
@@ -69,6 +69,22 @@ public interface FormulaContext {
 | ----------------- | ---------------------------------------- | ---------------------- |
 | `currentUserName` | @UserName / @V3UserName / @UserNamesList | Constructor            |
 | `tempScope`       | `:=` assignments, @Set temp variables    | Per-evaluation HashMap |
+
+### ContextNotSupportedException — Graceful Degradation
+
+Every default method throws `ContextNotSupportedException`. The evaluator
+catches this in every @Function handler and returns a sensible default:
+
+| Context method       | When not supported                      | Evaluator default        |
+| -------------------- | --------------------------------------- | ------------------------ |
+| `setField()`         | @SetField, FIELD `:=`                   | value unchanged (no-op)  |
+| `deleteField()`      | @DeleteField, REM {}                    | `""` (no-op)            |
+| `getFieldNames()`    | @DocFields                              | `[]`                     |
+| `getDocumentUNID()`  | @DocumentUniqueID, @NoteID, @IsNewDoc   | `""`, `""`, `1.0` (new)  |
+| `getDatabaseName()`  | @DbName, @DbTitle, @ReplicaID           | `["",""]`, `""`, `""`    |
+
+This means a **read-only context with only `resolve()`** works safely with
+any formula — @SetField becomes a no-op, @DocumentUniqueID returns `""`, etc.
 
 ---
 
@@ -232,17 +248,18 @@ built-in state. They work with any `FormulaContext`, including `null`.
 
 ### Minimal Context (read-only, no mutations)
 
+Only `resolve()` is implemented — all other methods throw
+`ContextNotSupportedException`. The evaluator handles this gracefully:
+`@SetField` returns its argument, `@DocumentUniqueID` returns `""`, etc.
+
 ```java
-FormulaContext ctx = new FormulaContext() {
-    @Override
-    public Object resolve(String name) {
-        // Return field value or null
-        return myFieldMap.get(name);
-    }
-};
+FormulaContext ctx = name -> myFieldMap.get(name);
 
 Evaluator ev = new Evaluator("Alice");
 Object result = ev.evalExpr("@UpperCase(FirstName)", ctx);
+
+// Even this works — @SetField is silently ignored
+result = ev.evalExpr("@SetField(\"Status\"; \"active\")", ctx);
 ```
 
 ### Full Context (read + write + identity)
@@ -281,6 +298,38 @@ FormulaContext ctx = new FormulaContext() {
 };
 ```
 
+### Domino-Backed Context
+
+```java
+public class DominoFormulaContext implements FormulaContext {
+    private final lotus.domino.Document doc;
+    private final lotus.domino.Database db;
+
+    @Override public Object resolve(String name) {
+        var item = doc.getFirstItem(name);
+        return item != null ? item.getValues() : null;
+    }
+    @Override public void setField(String name, Object value) {
+        doc.replaceItemValue(name, value);
+    }
+    @Override public void deleteField(String name) {
+        doc.removeItem(name);
+    }
+    @Override public List<String> getFieldNames() {
+        var names = new ArrayList<String>();
+        for (var item : (java.util.Vector<?>) doc.getItems())
+            names.add(((lotus.domino.Item) item).getName());
+        return names;
+    }
+    @Override public String getDocumentUNID() {
+        return doc.getUniversalID();
+    }
+    @Override public String getDatabaseName() {
+        return db.getFilePath();
+    }
+}
+```
+
 ### Test Context (Map-backed)
 
 ```java
@@ -289,8 +338,9 @@ Map<String, Object> fields = Map.of(
     "Salary", 95000.0
 );
 
-FormulaContext ctx = name -> fields.get(name);
-// All other methods use defaults (read-only, no UNID, no db name)
+// Lambda implements only resolve() — all other methods throw
+// ContextNotSupportedException, caught by evaluator.
+FormulaContext ctx = fields::get;
 ```
 
 ---
