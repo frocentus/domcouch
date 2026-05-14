@@ -208,6 +208,18 @@ Add new methods to the public interfaces (`com.domcouch.api.*`) **only** when:
 
 ## 5. Code Conventions
 
+### 5.0 Tool Usage
+
+- **String comparison / diffing**: Use `ctx_execute` with Python or JavaScript,
+  not manual eyeballing. One-liner example:
+  ```python
+  a, b = "DOCOMMITTEDLENGTH", "DOCCCOMMITTEDLENGTH"
+  diffs = [(i, ca, cb) for i, (ca, cb) in enumerate(zip(a, b)) if ca != cb]
+  print(diffs)  # [(2, 'C', 'C')] — no, wait...
+  ```
+  Script catches typos humans miss. Apply whenever comparing identifiers,
+  logs, or any >5 character strings.
+
 ### 5.1 Project Layout
 
 ```
@@ -326,8 +338,17 @@ mvn test -pl domino-couchbase-lib
 | `FormulaExamplesTest` | 97 | Real Domino spec examples — all formula categories |
 | `CachedEvaluationTest` | 8 | Compile-once, evaluate-many; verified against Java values |
 | `PerformanceComparisonTest` | 9 | Throughput, cached vs uncached, pipeline breakdown |
-| `Phase2FunctionsTest` | 280 | Per-function tests covering 130+ @Functions with spec examples |
-| **Total** | **579** | |
+| `StringFunctionsTest` | 107 | @Contains @Matches @Repeat @ReplaceSubstring @Word @Trim @Case @Length @Left @Right @ProperCase @Explode @Ascii @Char |
+| `MathFunctionsTest` | 33 | @Pi @Power @Sqrt @Exp @Log @Cos @Sin @Tan @Abs @Ln @FloatEq @Max @Min @Sum @Modulo @Sign @ATan @ATan2 @ASin @ACos |
+| `DateTimeFunctionsTest` | 28 | @Month @Day @Year @Date @Adjust @TimeMerge @Tomorrow @Yesterday @BusinessDays @Today @Now + doc timestamps |
+| `ListFunctionsTest` | 24 | @IsMember @Replace @Count @Compare @Subset @Unique @Member @Implode @Sort @Transform |
+| `ControlFlowTest` | 17 | @While @For @DoWhile @Set @SetField @Eval @Error @IsError @CheckFormulaSyntax |
+| `DocumentFunctionsTest` | 15 | @DocFields @DocLength @DocLock @DocumentUniqueID lifecycle folders @DeleteField |
+| `OperatorsTest` | 14 | Pair-wise and permuted list operations |
+| `PatternMatchingTest` | 25 | @Matches (24) + @Like (4) — all pattern operators |
+| `DataConversionTest` | 20 | @Text @TextToNumber @IsNumber @IsTime @TextToTime @ToNumber @ToTime |
+| `ValidationTest` | 25 | @Success @Failure @IsNull @IsValid @IfError + placeholders + constants |
+| **Total** | **562** | |
 
 ### 6.4 Data Generation
 
@@ -350,11 +371,11 @@ documents and regenerates.
 | 2026-05-11 | `FTSearch` uses parameterized N1QL queries (`$q`)                   | Eliminates N1QL injection; user input never concatenated      |
 | 2026-05-11 | `getCollectionPath()` extracted; shared by DB + View                | Single source of truth for backtick-escaped path              |
 | 2026-05-11 | Reader check in `getDocumentByUNID` BEFORE deserialization          | Avoids full doc construction cost if user can't read          |
-| 2026-05-12 | Formula engine: Lexer → Parser → Evaluator pipeline        | Full Domino formula language support; 579 tests            |
+| 2026-05-12 | Formula engine: Lexer → Parser → Evaluator pipeline        | Full Domino formula language support; 562 tests            |
 | 2026-05-12 | Compiled formula caching with `compileFormula()`            | 16× speedup for batch document processing                   |
 | 2026-05-12 | `DocumentFormulaContext` bridges formula engine with Document | Computed fields evaluated directly against domcouch Documents |
 | 2026-05-12 | `@Command` / `@PostedCommand` treated as no-ops             | Matches Domino `NoExternalApps=1`; formulas with UI commands still evaluate |
-| 2026-05-13 | 150+ @Functions implemented (132 ✅ + 19 🟡) | 579 tests; function-catalog.md with per-function spec verification |
+| 2026-05-13 | 150+ @Functions implemented (132 ✅ + 19 🟡) | 562 tests; function-catalog.md with per-function spec verification |
 | 2026-05-14 | Extracted `formula-engine` as standalone Maven module | Zero external deps; 3-module project (formula-engine → domino-couchbase-lib → springboot-demo) |
 | 2026-05-14 | Pair-wise + permuted list operators | All 12 permuted operators, list broadcasting, any-match semantics |
 
