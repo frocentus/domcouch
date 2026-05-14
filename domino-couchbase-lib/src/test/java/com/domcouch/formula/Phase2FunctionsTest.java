@@ -1092,6 +1092,148 @@ class Phase2FunctionsTest {
     }
 
     // ================================================================
+    // New data-layer functions — @Max / @Min / @Sum / @Modulo / @Sign
+    // ================================================================
+    @Nested @DisplayName("@Max @Min @Sum @Modulo @Sign")
+    class AggregationTests {
+        @Test @DisplayName("@Max(1;3)") void maxSimple() { assertEquals(3.0, eval("@Max(1; 3)")); }
+        @Test @DisplayName("@Max pairwise lists") void maxPairwise() { assertEquals(99.0, eval("@Max(99:2:3; 5:6:7:8)")); }
+        @Test @DisplayName("@Min(35;100)") void minSimple() { assertEquals(35.0, eval("@Min(35; 100)")); }
+        @Test @DisplayName("@Min negative") void minNeg() { assertEquals(-35.0, eval("@Min((-3.5):(-35):100; (-2):45:54)")); }
+        @Test @DisplayName("@Sum list") void sumList() { assertEquals(3.0, eval("@Sum(1 : 2)")); }
+        @Test @DisplayName("@Sum neg pair") void sumNeg() { assertEquals(11.0, eval("@Sum((-1):2; (-10):20)")); }
+        @Test @DisplayName("@Modulo(4;3)") void mod1() { assertEquals(1.0, eval("@Modulo(4; 3)")); }
+        @Test @DisplayName("@Modulo(4;2)") void mod2() { assertEquals(0.0, eval("@Modulo(4; 2)")); }
+        @Test @DisplayName("@Modulo neg") void modNeg() { assertEquals(1.0, eval("@Modulo((-14); 3)")); }
+        @Test @DisplayName("@Sign positive") void signPos() { assertEquals(1.0, eval("@Sign(42)")); }
+        @Test @DisplayName("@Sign negative") void signNeg() { assertEquals(-1.0, eval("@Sign(-42)")); }
+        @Test @DisplayName("@Sign zero") void signZero() { assertEquals(0.0, eval("@Sign(0)")); }
+    }
+
+    // ================================================================
+    // @Subset / @Unique / @Member / @Implode / @Sort
+    // ================================================================
+    @Nested @DisplayName("@Subset @Unique @Member @Implode @Sort")
+    class ListManipTests {
+        @Test @DisplayName("@Subset first 2") void subsetFirst() {
+            assertEquals(List.of("New Orleans","London"),
+                    eval("@Subset(\"New Orleans\":\"London\":\"Frankfurt\":\"Tokyo\"; 2)")); }
+        @Test @DisplayName("@Subset last 3") void subsetLast() {
+            assertEquals(List.of("London","Frankfurt","Tokyo"),
+                    eval("@Subset(\"New Orleans\":\"London\":\"Frankfurt\":\"Tokyo\"; -3)")); }
+        @Test @DisplayName("@Unique deduplicates") void unique() {
+            assertEquals(List.of("red","green","blue"),
+                    eval("@Unique(\"red\":\"green\":\"blue\":\"green\":\"red\")")); }
+        @Test @DisplayName("@Member finds position") void memberPos() {
+            assertEquals(3.0, eval("@Member(\"Sales\"; \"Finance\":\"Service\":\"Sales\":\"Legal\")")); }
+        @Test @DisplayName("@Member not found") void memberNotFound() {
+            assertEquals(0.0, eval("@Member(\"HR\"; \"Finance\":\"Service\":\"Sales\")")); }
+        @Test @DisplayName("@Implode space default") void implodeSpace() { assertEquals("a b c", eval("@Implode(\"a\":\"b\":\"c\")")); }
+        @Test @DisplayName("@Implode comma") void implodeComma() { assertEquals("a,b,c", eval("@Implode(\"a\":\"b\":\"c\"; \",\")")); }
+        @Test @DisplayName("@Sort ascending") void sortAsc() {
+            assertEquals(List.of("a","b","c"), eval("@Sort(\"c\":\"a\":\"b\")")); }
+    }
+
+    // ================================================================
+    // @LeftBack / @RightBack
+    // ================================================================
+    @Nested @DisplayName("@LeftBack @RightBack")
+    class BackSubstringTests {
+        // @LeftBack(string; number) removes last N chars
+        @Test @DisplayName("@LeftBack char count") void leftBackChars() { assertEquals("Len", eval("@LeftBack(\"Lennard Wallace\"; 3)")); }
+        // @LeftBack(string; separator) returns everything left of LAST separator
+        @Test @DisplayName("@LeftBack separator") void leftBackSep() { assertEquals("Lennard Wallace", eval("@LeftBack(\"Lennard Wallace\"; \"x\")")); }
+        @Test @DisplayName("@RightBack char count") void rightBackChars() { assertEquals("ace", eval("@RightBack(\"Lennard Wallace\"; 3)")); }
+        @Test @DisplayName("@RightBack separator") void rightBackSep() { assertEquals("Wallace", eval("@RightBack(\"Lennard Wallace\"; \" \")")); }
+    }
+
+    // ================================================================
+    // @ProperCase
+    // ================================================================
+    @Nested @DisplayName("@ProperCase")
+    class ProperCaseTests {
+        @Test @DisplayName("spec example") void spec() { assertEquals("Every Child Loves Toys", eval("@ProperCase(\"every CHILD LOves toys\")")); }
+        @Test @DisplayName("with digits") void digits() { assertEquals("3-Digit Code", eval("@ProperCase(\"3-digit code\")")); }
+        @Test @DisplayName("list support") void list() { assertEquals(List.of("Robert","Smith"), eval("@ProperCase(\"ROBERT\" : \"SMITH\")")); }
+    }
+
+    // ================================================================
+    // @NewLine / @No / @Yes / @Nothing / @Random
+    // ================================================================
+    @Nested @DisplayName("@NewLine @No @Yes @Nothing @Random")
+    class ConstantTests {
+        @Test @DisplayName("@NewLine") void newline() { assertEquals("\n", eval("@NewLine")); }
+        @Test @DisplayName("@Yes") void yes() { assertEquals(1.0, eval("@Yes")); }
+        @Test @DisplayName("@No") void no() { assertEquals(0.0, eval("@No")); }
+        @Test @DisplayName("@Nothing") void nothing() { assertEquals("", eval("@Nothing")); }
+        @Test @DisplayName("@Random") void random() { assertTrue(((Double)eval("@Random")) >= 0 && ((Double)eval("@Random")) <= 1); }
+    }
+
+    // ================================================================
+    // @Second / @Minute / @Hour / @Weekday
+    // ================================================================
+    @Nested @DisplayName("@Second @Minute @Hour @Weekday")
+    class TimePartTests {
+        @Test @DisplayName("@Second") void second() { assertNotNull(eval("@Second(@Now)")); }
+        @Test @DisplayName("@Minute") void minute() { assertNotNull(eval("@Minute(@Now)")); }
+        @Test @DisplayName("@Hour") void hour() { assertNotNull(eval("@Hour(@Now)")); }
+        @Test @DisplayName("@Weekday Thursday") void weekday() { assertNotNull(eval("@Weekday(@Now)")); } // Thursday
+    }
+
+    // ================================================================
+    // @Tomorrow / @Yesterday / @Time / @TimeMerge
+    // ================================================================
+    @Nested @DisplayName("@Tomorrow @Yesterday @Time @TimeMerge")
+    class DateOpTests {
+        @Test @DisplayName("@Tomorrow") void tomorrow() { assertNotNull(eval("@Tomorrow")); }
+        @Test @DisplayName("@Yesterday") void yesterday() { assertNotNull(eval("@Yesterday")); }
+        @Test @DisplayName("@Time constructor") void timeCons() { assertNotNull(eval("@Time(23; 50; 30)")); }
+        @Test @DisplayName("@TimeMerge") void timeMerge() { assertNotNull(eval("@TimeMerge(\"01/01/2008\"; \"5:14 AM\")")); }
+    }
+
+    // ================================================================
+    // @FloatEq
+    // ================================================================
+    @Nested @DisplayName("@FloatEq")
+    class FloatEqTests {
+        @Test @DisplayName("equal within epsilon") void eq() { assertEquals(1.0, eval("@FloatEq(1.000001; 1.000002; 0.001)")); }
+        @Test @DisplayName("not equal") void neq() { assertEquals(0.0, eval("@FloatEq(1.0; 2.0; 0.1)")); }
+    }
+
+    // ================================================================
+    // @Ln
+    // ================================================================
+    @Nested @DisplayName("@Ln")
+    class LnTests {
+        @Test @DisplayName("@Ln(2)") void ln1() { assertEquals(Math.log(2), (Double) eval("@Ln(2)"), 0.0001); }
+    }
+
+    // ================================================================
+    // @Like
+    // ================================================================
+    @Nested @DisplayName("@Like")
+    class LikeTests {
+        @Test @DisplayName("underscore wildcard") void underscore() { assertEquals(1.0, eval("@Like(\"big\"; \"b_g\")")); }
+        @Test @DisplayName("case insensitive") void caseIns() { assertEquals(1.0, eval("@Like(\"A big test\"; \"A BIG TEST\")")); }
+        @Test @DisplayName("percent wildcard") void percent() { assertEquals(1.0, eval("@Like(\"A big test\"; \"%test\")")); }
+        @Test @DisplayName("no match") void noMatch() { assertEquals(0.0, eval("@Like(\"A big test\"; \"xyz\")")); }
+    }
+
+    // ================================================================
+    // @IsNull / @IsValid / @IfError
+    // ================================================================
+    @Nested @DisplayName("@IsNull @IsValid @IfError")
+    class NullValidTests {
+        @Test @DisplayName("@IsNull empty") void nullEmpty() { assertEquals(1.0, eval("@IsNull(\"\")")); }
+        @Test @DisplayName("@IsNull not null") void notNull() { assertEquals(0.0, eval("@IsNull(\"hello\")")); }
+        @Test @DisplayName("@IsValid") void isValid() { assertEquals(1.0, eval("@IsValid")); }
+        @Test @DisplayName("@IfError no error") void ifErrorOk() { assertEquals(3.0, eval("@IfError(1 + 2; 42)")); }
+        @Test @DisplayName("@IfError catches parse error in @Eval") void parseError() {
+            assertEquals(42.0, eval("@IfError(@Eval(\"@Foo(\"); 42)"));
+        }
+    }
+
+    // ================================================================
     // Spec Example Tests — @Do
     // ================================================================
     @Nested @DisplayName("@Do spec examples")

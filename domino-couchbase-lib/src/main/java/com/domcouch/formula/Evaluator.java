@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * Walks an {@link Expr} AST and evaluates it against a {@link FormulaContext}.
@@ -869,6 +870,312 @@ public class Evaluator {
         functions.put("ERROR", (ev, args, ctx) -> ERROR_VALUE);
         functions.put("ISERROR", (ev, args, ctx) ->
                 boolToNum(ev.eval(args.get(0), ctx) == ERROR_VALUE));
+
+        // ---- List aggregation ----
+        functions.put("MAX", (ev, args, ctx) -> {
+            double max = Double.NEGATIVE_INFINITY;
+            for (Expr arg : args) for (Object o : toList(ev.eval(arg, ctx))) max = Math.max(max, toNumber(o));
+            return max == (int) max ? (double) (int) max : max;
+        });
+        functions.put("MIN", (ev, args, ctx) -> {
+            double min = Double.POSITIVE_INFINITY;
+            for (Expr arg : args) for (Object o : toList(ev.eval(arg, ctx))) min = Math.min(min, toNumber(o));
+            return min == (int) min ? (double) (int) min : min;
+        });
+        functions.put("SUM", (ev, args, ctx) -> {
+            double sum = 0;
+            for (Expr arg : args) for (Object o : toList(ev.eval(arg, ctx))) sum += toNumber(o);
+            return sum == (int) sum ? (double) (int) sum : sum;
+        });
+        functions.put("MODULO", (ev, args, ctx) -> map2(ev, args, ctx, (a, b) -> {
+            if (b == 0) return 0.0;
+            double r = a % b;
+            return r < 0 ? r + Math.abs(b) : r;
+        }));
+        functions.put("SIGN", (ev, args, ctx) -> {
+            double v = toNumber(ev.eval(args.get(0), ctx));
+            return v > 0 ? 1.0 : v < 0 ? -1.0 : 0.0;
+        });
+
+        // ---- List manipulation ----
+        functions.put("SUBSET", (ev, args, ctx) -> {
+            List<Object> src = toList(ev.eval(args.get(0), ctx));
+            int n = (int) toNumber(ev.eval(args.get(1), ctx));
+            List<Object> r = new java.util.ArrayList<>();
+            if (n > 0) for (int i = 0; i < n && i < src.size(); i++) r.add(src.get(i));
+            else for (int i = src.size() - 1; i >= src.size() + n && i >= 0; i--) r.add(0, src.get(i));
+            return r.isEmpty() ? "" : r.size() == 1 ? r.get(0) : r;
+        });
+        functions.put("UNIQUE", (ev, args, ctx) -> {
+            List<Object> src = toList(ev.eval(args.get(0), ctx));
+            java.util.LinkedHashSet<Object> seen = new java.util.LinkedHashSet<>();
+            for (Object o : src) seen.add(toString(o));
+            List<Object> r = new java.util.ArrayList<>(seen);
+            return r.isEmpty() ? "" : r.size() == 1 ? r.get(0) : r;
+        });
+        functions.put("MEMBER", (ev, args, ctx) -> {
+            Object needle = ev.eval(args.get(0), ctx);
+            List<Object> haystack = toList(ev.eval(args.get(1), ctx));
+            for (int i = 0; i < haystack.size(); i++) {
+                if (toString(needle).equals(toString(haystack.get(i)))) return (double) (i + 1);
+            }
+            return 0.0;
+        });
+        functions.put("IMPLODE", (ev, args, ctx) -> {
+            List<Object> src = toList(ev.eval(args.get(0), ctx));
+            String sep = args.size() > 1 ? toString(ev.eval(args.get(1), ctx)) : " ";
+            return src.isEmpty() ? "" : String.join(sep, src.stream().map(Evaluator::toString).toList());
+        });
+        functions.put("SORT", (ev, args, ctx) -> {
+            List<Object> src = new java.util.ArrayList<>(toList(ev.eval(args.get(0), ctx)));
+            src.sort((a, b) -> toString(a).compareTo(toString(b)));
+            return src.isEmpty() ? "" : src.size() == 1 ? src.get(0) : src;
+        });
+
+        // ---- String: substring from end ----
+        functions.put("LEFTBACK", (ev, args, ctx) -> {
+            Object src = ev.eval(args.get(0), ctx);
+            Object arg = ev.eval(args.get(1), ctx);
+            List<Object> sources = toList(src);
+            List<Object> result = new ArrayList<>();
+            for (Object item : sources) {
+                String str = toString(item);
+                if (arg instanceof Number) {
+                    int n = ((Number) arg).intValue();
+                    result.add(n <= 0 ? "" : str.substring(0, Math.min(n, str.length())));
+                } else {
+                    String sep = toString(arg);
+                    int idx = str.lastIndexOf(sep);
+                    result.add(idx < 0 ? str : str.substring(0, idx + sep.length()));
+                }
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
+        functions.put("RIGHTBACK", (ev, args, ctx) -> {
+            Object src = ev.eval(args.get(0), ctx);
+            Object arg = ev.eval(args.get(1), ctx);
+            List<Object> sources = toList(src);
+            List<Object> result = new ArrayList<>();
+            for (Object item : sources) {
+                String str = toString(item);
+                if (arg instanceof Number) {
+                    int n = ((Number) arg).intValue();
+                    result.add(n <= 0 ? "" : str.substring(Math.max(0, str.length() - n)));
+                } else {
+                    String sep = toString(arg);
+                    int idx = str.indexOf(sep);
+                    result.add(idx < 0 ? str : str.substring(idx + sep.length()));
+                }
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
+        functions.put("MIDDLE", (ev, args, ctx) -> {
+            String s = toString(ev.eval(args.get(0), ctx));
+            Object fromObj = ev.eval(args.get(1), ctx);
+            if (fromObj instanceof Number) {
+                int start = ((Number) fromObj).intValue();
+                if (args.size() > 2) {
+                    Object toObj = ev.eval(args.get(2), ctx);
+                    if (toObj instanceof Number) {
+                        int len = ((Number) toObj).intValue();
+                        if (len < 0) return s.substring(Math.max(0, s.length() + len), Math.min(s.length(), start));
+                        return start <= 0 ? "" : s.substring(start - 1, Math.min(s.length(), start - 1 + len));
+                    }
+                    String sep = toString(toObj);
+                    if (sep.isEmpty()) return s.substring(start - 1);
+                    int from = start <= 0 ? 0 : start - 1;
+                    int to = s.indexOf(sep, from);
+                    return to < 0 ? s.substring(from) : s.substring(from, to);
+                }
+                return start <= 0 ? "" : s.substring(start - 1);
+            }
+            // fromObj is a separator string
+            String sep = toString(fromObj);
+            int idx = s.indexOf(sep);
+            if (idx < 0) return "";
+            int start = idx + sep.length();
+            if (args.size() > 2) {
+                Object toObj = ev.eval(args.get(2), ctx);
+                if (toObj instanceof Number) {
+                    int n = ((Number) toObj).intValue();
+                    if (n > 0) return start + n <= s.length() ? s.substring(start, start + n) : s.substring(start);
+                    int end = start + (-n) > s.length() ? s.length() : start + (-n);
+                    return s.substring(start, end);
+                }
+                String toSep = toString(toObj);
+                if (toSep.isEmpty()) return s.substring(start);
+                int to = s.indexOf(toSep, start);
+                return to < 0 ? s.substring(start) : s.substring(start, to);
+            }
+            return s.substring(start);
+        });
+        functions.put("MIDDLEBACK", (ev, args, ctx) -> {
+            String s = toString(ev.eval(args.get(0), ctx));
+            Object fromObj = ev.eval(args.get(1), ctx);
+            if (fromObj instanceof Number) {
+                int start = ((Number) fromObj).intValue();
+                int from = s.length() - start + 1;
+                if (args.size() > 2) {
+                    Object toObj = ev.eval(args.get(2), ctx);
+                    if (toObj instanceof Number) {
+                        int len = ((Number) toObj).intValue();
+                        from = s.length() - Math.abs(start) + 1;
+                        return s.substring(Math.max(0, from - len), Math.min(s.length(), from));
+                    }
+                    String sep = toString(toObj);
+                    if (sep.isEmpty()) return s.substring(from - 1);
+                    int to = s.lastIndexOf(sep, from - 1);
+                    return to < 0 ? s.substring(0, from) : s.substring(to + sep.length(), from);
+                }
+                return from <= 0 ? "" : s.substring(0, from);
+            }
+            // fromObj is separator string
+            String sep = toString(fromObj);
+            if (sep.isEmpty()) return s;
+            int idxEnd = s.lastIndexOf(sep);
+            if (idxEnd < 0) return "";
+            if (args.size() > 2) {
+                Object toObj = ev.eval(args.get(2), ctx);
+                if (toObj instanceof Number) {
+                    int n = ((Number) toObj).intValue();
+                    if (n > 0) {
+                        int end = Math.min(idxEnd + n, s.length());
+                        return s.substring(idxEnd, end);
+                    }
+                    int to = idxEnd + (-n);
+                    to = Math.max(0, idxEnd - to);
+                    return s.substring(to, idxEnd);
+                }
+                String toSep = toString(toObj);
+                if (toSep.isEmpty()) return s.substring(idxEnd);
+                int to = s.lastIndexOf(toSep, idxEnd - 1);
+                return to < 0 ? s.substring(0, idxEnd) : s.substring(to + toSep.length(), idxEnd);
+            }
+            return s.substring(idxEnd);
+        });
+        functions.put("PROPERCASE", (ev, args, ctx) -> {
+            List<Object> sources = toList(ev.eval(args.get(0), ctx));
+            List<Object> result = new ArrayList<>();
+            for (Object o : sources) {
+                String s = toString(o);
+                StringBuilder sb = new StringBuilder();
+                boolean cap = true;
+                for (char c : s.toCharArray()) {
+                    sb.append(cap ? Character.toUpperCase(c) : Character.toLowerCase(c));
+                    cap = !Character.isLetterOrDigit(c);
+                }
+                result.add(sb.toString());
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
+
+        // ---- Type checking ----
+        functions.put("ISNULL", (ev, args, ctx) ->
+                boolToNum(ev.eval(args.get(0), ctx) == null || "".equals(toString(ev.eval(args.get(0), ctx)))));
+        functions.put("ISVALID", (ev, args, ctx) -> 1.0); // document is always valid in our context
+
+        // ---- Boolean constants ----
+        functions.put("YES", (ev, args, ctx) -> 1.0);
+        functions.put("NO", (ev, args, ctx) -> 0.0);
+        functions.put("NOTHING", (ev, args, ctx) -> "");
+        functions.put("NEWLINE", (ev, args, ctx) -> "\n");
+        functions.put("RANDOM", (ev, args, ctx) -> Math.random());
+
+        // ---- Time part extraction ----
+        functions.put("SECOND", (ev, args, ctx) -> map1(ev, args, ctx, s ->
+                (double) extractDateField(s, java.time.temporal.ChronoField.SECOND_OF_MINUTE)));
+        functions.put("MINUTE", (ev, args, ctx) -> map1(ev, args, ctx, s ->
+                (double) extractDateField(s, java.time.temporal.ChronoField.MINUTE_OF_HOUR)));
+        functions.put("HOUR", (ev, args, ctx) -> map1(ev, args, ctx, s ->
+                (double) extractDateField(s, java.time.temporal.ChronoField.HOUR_OF_DAY)));
+        functions.put("WEEKDAY", (ev, args, ctx) -> map1(ev, args, ctx, s -> {
+            long v = extractDateField(s, java.time.temporal.ChronoField.DAY_OF_WEEK);
+            // Domino: Sunday=1, Saturday=7. Java: Monday=1, Sunday=7. Convert.
+            return v == 7 ? 1.0 : (double) (v + 1);
+        }));
+        functions.put("TOMORROW", (ev, args, ctx) ->
+                DT_FMT.format(java.time.ZonedDateTime.now().plusDays(1)));
+        functions.put("YESTERDAY", (ev, args, ctx) ->
+                DT_FMT.format(java.time.ZonedDateTime.now().minusDays(1)));
+        functions.put("TIME", (ev, args, ctx) -> {
+            if (args.size() >= 3 && ev.eval(args.get(0), ctx) instanceof Number) {
+                int h = (int) toNumber(ev.eval(args.get(0), ctx));
+                int m = (int) toNumber(ev.eval(args.get(1), ctx));
+                int s = args.size() > 2 ? (int) toNumber(ev.eval(args.get(2), ctx)) : 0;
+                return DT_FMT.format(java.time.ZonedDateTime.now()
+                        .withHour(h).withMinute(m).withSecond(s).withNano(0));
+            }
+            // Strip date, keep time
+            List<Object> sources = toList(ev.eval(args.get(0), ctx));
+            List<Object> result = new ArrayList<>();
+            for (Object src : sources) {
+                java.time.ZonedDateTime zdt = parseDateToZoned(toString(src));
+                if (zdt == null) result.add("");
+                else result.add(DT_FMT.format(zdt.toLocalTime().atDate(java.time.LocalDate.of(1970,1,1))
+                        .atZone(zdt.getZone())));
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
+        functions.put("TIMEMERGE", (ev, args, ctx) -> {
+            List<Object> dates = toList(ev.eval(args.get(0), ctx));
+            List<Object> times = toList(ev.eval(args.get(1), ctx));
+            int size = Math.max(dates.size(), times.size());
+            List<Object> result = new java.util.ArrayList<>();
+            for (int i = 0; i < size; i++) {
+                String ds = toString(dates.get(Math.min(i, dates.size() - 1)));
+                String ts = toString(times.get(Math.min(i, times.size() - 1)));
+                java.time.ZonedDateTime d = parseDateToZoned(ds);
+                java.time.ZonedDateTime t = parseDateToZoned(ts);
+                if (d == null || t == null) { result.add(""); continue; }
+                result.add(DT_FMT.format(d.toLocalDate().atTime(t.toLocalTime()).atZone(d.getZone())));
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
+
+        // ---- Float equality ----
+        functions.put("FLOATEQ", (ev, args, ctx) -> {
+            double a = toNumber(ev.eval(args.get(0), ctx));
+            double b = toNumber(ev.eval(args.get(1), ctx));
+            double eps = args.size() > 2 ? toNumber(ev.eval(args.get(2), ctx)) : 1e-15;
+            return boolToNum(Math.abs(a - b) <= eps);
+        });
+
+        // ---- Math: natural log ----
+        functions.put("LN", (ev, args, ctx) -> map1(ev, args, ctx, Math::log));
+
+        // ---- Pattern matching ----
+        functions.put("LIKE", (ev, args, ctx) -> {
+            Object str = ev.eval(args.get(0), ctx);
+            Object pat = ev.eval(args.get(1), ctx);
+            String escape = args.size() > 2 ? toString(ev.eval(args.get(2), ctx)) : null;
+            return boolToNum(anyPairMatch(str, pat, (s, pattern) -> {
+                // Convert Domino LIKE pattern to regex
+                String esc = escape != null && !escape.isEmpty() ? escape : "\\\\";
+                StringBuilder regex = new StringBuilder();
+                regex.append("^(?i)"); // case-insensitive by default
+                for (int i = 0; i < pattern.length(); i++) {
+                    char c = pattern.charAt(i);
+                    if (c == '_') regex.append('.');
+                    else if (c == '%') regex.append(".*");
+                    else if (escape != null && i < pattern.length() - escape.length()) {
+                        String sub = pattern.substring(i, i + escape.length());
+                        if (sub.equals(escape)) { regex.append(Pattern.quote(escape)); i += escape.length() - 1; continue; }
+                    }
+                    else regex.append(Pattern.quote(String.valueOf(c)));
+                }
+                regex.append("$");
+                return s.matches(regex.toString());
+            }));
+        });
+
+        // ---- Error handling ----
+        functions.put("IFERROR", (ev, args, ctx) -> {
+            try {
+                return ev.eval(args.get(0), ctx);
+            } catch (Exception e) {
+                return args.size() > 1 ? ev.eval(args.get(1), ctx) : "";
+            }
+        });
 
         // Formula validation
         functions.put("CHECKFORMULASYNTAX", (ev, args, ctx) -> {
