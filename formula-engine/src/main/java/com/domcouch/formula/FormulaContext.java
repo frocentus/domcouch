@@ -164,4 +164,38 @@ public interface FormulaContext {
     default void addToFolder(String folderName) {
         throw new ContextNotSupportedException("addToFolder");
     }
+
+    // ---- Time zone (Domino-specific canonical format; not applicable in Couchbase) ----
+
+    /**
+     * Return the time zone offset as {@code [hours, minutes, DSTflag]}.
+     * Used by {@code @Zone}. Default: throws {@link ContextNotSupportedException}.
+     */
+    default java.util.List<Number> getTimeZoneOffset(String timeDate) {
+        throw new ContextNotSupportedException("getTimeZoneOffset");
+    }
+
+    /**
+     * Return the Domino canonical time zone string (e.g. {@code "Z=5$DO=1$DL=..."}).
+     * Used by {@code @GetCurrentTimeZone}. Default: throws {@link ContextNotSupportedException}.
+     */
+    default String getCanonicalTimeZone() {
+        throw new ContextNotSupportedException("getCanonicalTimeZone");
+    }
+
+    /**
+     * Convert a time-date to text in the specified canonical time zone.
+     * Used by {@code @TimeToTextInZone}. Default: throws {@link ContextNotSupportedException}.
+     */
+    default String timeToTextInZone(String timeDate, String timeZone, String format) {
+        throw new ContextNotSupportedException("timeToTextInZone");
+    }
+
+    /**
+     * Convert a canonical time zone value to human-readable text.
+     * Used by {@code @TimeZoneToText}. Default: throws {@link ContextNotSupportedException}.
+     */
+    default String timeZoneToText(String timeZone, String format) {
+        throw new ContextNotSupportedException("timeZoneToText");
+    }
 }

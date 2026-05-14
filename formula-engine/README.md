@@ -373,10 +373,21 @@ FormulaContext ctx = new FormulaContext() {
 public class DominoFormulaContext implements FormulaContext {
     private final lotus.domino.Document doc;
     private final lotus.domino.Database db;
+    private final lotus.domino.Session session;
 
+    public DominoFormulaContext(lotus.domino.Document doc) {
+        this.doc = doc;
+        this.db = doc.getParentDatabase();
+        this.session = db.getParent();
+    }
+
+    // ---- Fields ----
     @Override public Object resolve(String name) {
         var item = doc.getFirstItem(name);
-        return item != null ? item.getValues() : null;
+        if (item == null) return null;
+        var values = item.getValues();
+        if (values == null || values.isEmpty()) return "";
+        return values.size() == 1 ? values.get(0) : values;
     }
     @Override public void setField(String name, Object value) {
         doc.replaceItemValue(name, value);
@@ -390,23 +401,29 @@ public class DominoFormulaContext implements FormulaContext {
             names.add(((lotus.domino.Item) item).getName());
         return names;
     }
+
+    // ---- Document identity ----
     @Override public String getDocumentUNID() {
         return doc.getUniversalID();
     }
-
-    // Document metadata
     @Override public boolean isDocumentValid() {
         return doc.isValid();
     }
+
+    // ---- Document metadata ----
     @Override public long getDocumentSize() {
         return doc.getSize();
     }
-    @Override public java.util.List<String> getFolderNames() {
+    @Override public int getAttachmentCount() {
+        var eo = doc.getEmbeddedObjects();
+        return eo != null ? eo.size() : 0;
+    }
+    @Override public List<String> getFolderNames() {
         var v = doc.getFolderReferences();
         return v != null ? new ArrayList<>((java.util.Vector<String>) v) : List.of();
     }
 
-    // Document locking
+    // ---- Document locking ----
     @Override public boolean lockDocument() { return doc.lock(); }
     @Override public boolean unlockDocument() { return doc.unlock(); }
     @Override public String getDocumentLockStatus() {
@@ -417,33 +434,68 @@ public class DominoFormulaContext implements FormulaContext {
         return db.isDocumentLockingEnabled();
     }
 
-    // Database
+    // ---- Database ----
     @Override public String getDatabaseName() {
         try { return db.getFilePath(); } catch (Exception e) { return ""; }
     }
-
     @Override public String getServerName() {
         try { return db.getServer(); } catch (Exception e) { return ""; }
     }
-
     @Override public String getDatabaseTitle() {
         try { return db.getTitle(); } catch (Exception e) { return ""; }
     }
-
     @Override public String getReplicaID() {
         try { return db.getReplicaID(); } catch (Exception e) { return ""; }
     }
 
-    // Session
+    // ---- Session / environment ----
     @Override public String getDomain() {
-        try { return db.getParent().getDomain(); } catch (Exception e) { return ""; }
+        try { return session.getDomain(); } catch (Exception e) { return ""; }
+    }
+    @Override public String getEnvironmentValue(String name) {
+        try { return session.getEnvironmentString(name, true); } catch (Exception e) { return ""; }
     }
 
-    // Lifecycle
+    // ---- Document lifecycle ----
     @Override public void markForDeletion()  { doc.markForDeletion(); }
     @Override public void unmarkForDeletion() { doc.unmarkForDeletion(); }
     @Override public void hardDelete()        { doc.remove(true); }
     @Override public void addToFolder(String name) { doc.putInFolder(name); }
+
+    // ---- Time zone (Domino canonical format) ----
+    @Override public List<Number> getTimeZoneOffset(String timeDate) {
+        try {
+            java.util.TimeZone tz;
+            if (timeDate != null && !timeDate.isEmpty()) {
+                var dt = session.createDateTime(timeDate);
+                tz = dt.getTimeZone();
+            } else {
+                tz = java.util.TimeZone.getDefault();
+            }
+            int offsetMs = tz.getRawOffset();
+            int hours = offsetMs / 3600000;
+            int minutes = (Math.abs(offsetMs) % 3600000) / 60000;
+            int dst = tz.observesDaylightTime() ? 1 : 0;
+            return List.of(hours, minutes, dst);
+        } catch (Exception e) { return List.of(0, 0, 0); }
+    }
+    @Override public String getCanonicalTimeZone() {
+        try { return session.getCurrentTimeZone().getCanonical(); } catch (Exception e) { return ""; }
+    }
+    @Override public String timeToTextInZone(String timeDate, String timeZone, String format) {
+        try {
+            var dt = session.createDateTime(timeDate);
+            dt.convertToZone(session.getCurrentTimeZone());
+            return dt.getLocalTime();
+        } catch (Exception e) { return ""; }
+    }
+    @Override public String timeZoneToText(String timeZone, String format) {
+        try {
+            var tz = session.createDateTime("Today");
+            // Translate canonical tz to text (simplified)
+            return tz.getZoneTime();
+        } catch (Exception e) { return ""; }
+    }
 }
 ```
 

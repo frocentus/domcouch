@@ -102,14 +102,14 @@
 | `@Minute` | ✅ | 📋 | Extract minute (0–59) |
 | `@Second` | ✅ | 📋 | Extract second (0–59) |
 | `@Weekday` | ✅ | 📋 | Day of week (1=Sun, 7=Sat) |
-| `@Adjust` | 🟡 | 📋 | Date arithmetic; missing DST keywords, pair-wise list |
-| `@BusinessDays` | 🟡 | 📋 | Business days count; missing exclusion params |
-| `@Zone` | ✅ | ⚠ | Current timezone |
+| `@Adjust` | ✅ | 📋 | Date arithmetic with [INLOCALTIME]/[INGMT] DST keyword |
+| `@BusinessDays` | ✅ | 📋 | Business days with daysToExclude and datesToExclude |
+| `@Zone` | ✅ | 📋 | Delegates to getTimeZoneOffset(); fallback Java tz ID |
 | `@TextToTime` | ✅ | 📋 | Convert string to time-date |
 | `@ToTime` | ✅ | 📋 | Convert to time-date |
-| `@TimeToTextInZone` | 🟡 | ⚠ | Placeholder (returns input string) |
-| `@TimeZoneToText` | 🟡 | ⚠ | Placeholder (returns "UTC") |
-| `@GetCurrentTimeZone` | ✅ | ⚠ | Current timezone ID |
+| `@TimeToTextInZone` | 🟡 | 📋 | Delegates to timeToTextInZone(); Couchbase: returns "" |
+| `@TimeZoneToText` | 🟡 | 📋 | Delegates to timeZoneToText(); Couchbase: returns "" |
+| `@GetCurrentTimeZone` | ⚠ | 📋 | Delegates to getCanonicalTimeZone(); Couchbase: Java tz ID |
 
 ---
 

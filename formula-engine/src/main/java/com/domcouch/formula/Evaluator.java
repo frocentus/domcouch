@@ -779,10 +779,24 @@ public class Evaluator {
         });
 
         // Calendar functions
-// TODO: @BusinessDays missing daysToExclude and datesToExclude params
         functions.put("BUSINESSDAYS", (ev, args, ctx) -> {
             Object starts = ev.eval(args.get(0), ctx);
             Object ends = ev.eval(args.get(1), ctx);
+            // Optional: days to exclude (1=Sunday..7=Saturday) and dates to exclude
+            java.util.Set<Integer> excludeDays = new java.util.HashSet<>();
+            if (args.size() > 2) {
+                for (Object o : toList(ev.eval(args.get(2), ctx))) {
+                    int d = (int) toNumber(o);
+                    if (d >= 1 && d <= 7) excludeDays.add(d);
+                }
+            }
+            java.util.Set<java.time.LocalDate> excludeDates = new java.util.HashSet<>();
+            if (args.size() > 3) {
+                for (Object o : toList(ev.eval(args.get(3), ctx))) {
+                    java.time.LocalDate ld = parseDate(toString(o));
+                    if (ld != null) excludeDates.add(ld);
+                }
+            }
             List<Object> startList = toList(starts);
             List<Object> endList = toList(ends);
             int size = Math.max(startList.size(), endList.size());
@@ -792,8 +806,12 @@ public class Evaluator {
                 java.time.LocalDate e = parseDate(toString(endList.get(Math.min(i, endList.size() - 1))));
                 if (s == null || e == null || e.isBefore(s)) { result.add(-1.0); continue; }
                 long days = 0;
-                for (java.time.LocalDate d = s; !d.isAfter(e); d = d.plusDays(1)) days++;
-                result.add((double) days);
+                for (java.time.LocalDate d = s; !d.isAfter(e); d = d.plusDays(1)) {
+                    int dow = d.getDayOfWeek().getValue(); // 1=Mon..7=Sun
+                    int dominoDow = (dow == 7) ? 1 : dow + 1; // convert to Domino 1=Sun..7=Sat
+                    if (!excludeDays.contains(dominoDow) && !excludeDates.contains(d)) days++;
+                }
+                result.add(days < 0 ? -1.0 : (double) days);
             }
             return result.size() == 1 ? result.getFirst() : result;
         });
@@ -1186,8 +1204,7 @@ public class Evaluator {
         functions.put("TODAY", (ev, args, ctx) ->
                 DT_FMT.format(java.time.ZonedDateTime.now().toLocalDate().atStartOfDay(java.time.ZoneId.systemDefault())));
 
-        // @Adjust: apply adjustments in reverse order (seconds→years)
-// TODO: @Adjust missing [DST] keyword, [INLOCALTIME]/[INGMT], pair-wise list edge cases
+        // @Adjust: apply in reverse order (seconds→years); optional [DST] keyword
         functions.put("ADJUST", (ev, args, ctx) -> {
             Object dateVal = ev.eval(args.get(0), ctx);
             int years = (int) toNumber(ev.eval(args.get(1), ctx));
@@ -1196,14 +1213,19 @@ public class Evaluator {
             int hours = (int) toNumber(ev.eval(args.get(4), ctx));
             int minutes = (int) toNumber(ev.eval(args.get(5), ctx));
             int seconds = (int) toNumber(ev.eval(args.get(6), ctx));
+            boolean inLocalTime = args.size() > 7 && "INLOCALTIME".equalsIgnoreCase(
+                    toString(ev.eval(args.get(7), ctx)));
             List<Object> sources = toList(dateVal);
             List<Object> result = new ArrayList<>();
             for (Object src : sources) {
                 java.time.ZonedDateTime dt = parseDateToZoned(toString(src));
                 if (dt == null) { result.add(""); continue; }
-                // Apply last-to-first: seconds, minutes, hours, days, months, years
                 dt = dt.plusSeconds(seconds).plusMinutes(minutes).plusHours(hours)
                        .plusDays(days).plusMonths(months).plusYears(years);
+                if (inLocalTime) {
+                    // DST adjustment: keep wall-clock time at the adjusted date
+                    dt = dt.withZoneSameLocal(java.time.ZoneId.systemDefault());
+                }
                 result.add(DT_FMT.format(dt));
             }
             return result.size() == 1 ? result.getFirst() : result;
@@ -1438,8 +1460,6 @@ public class Evaluator {
                 DT_FMT.format(java.time.ZonedDateTime.now().plusDays(1)));
         functions.put("YESTERDAY", (ev, args, ctx) ->
                 DT_FMT.format(java.time.ZonedDateTime.now().minusDays(1)));
-        functions.put("ZONE", (ev, args, ctx) ->
-                java.time.ZoneId.systemDefault().getId());
         functions.put("TIME", (ev, args, ctx) -> {
             if (args.size() >= 3 && ev.eval(args.get(0), ctx) instanceof Number) {
                 int h = (int) toNumber(ev.eval(args.get(0), ctx));
@@ -1555,18 +1575,37 @@ public class Evaluator {
             }
             return result.size() == 1 ? result.get(0) : result;
         });
-        // Time-zone conversions: placeholder (defer)
-// TODO: @TimeToTextInZone placeholder: returns input string; needs proper timezone conversion
-        functions.put("TIMETOTEXTINZONE", (ev, args, ctx) ->
-                toString(ev.eval(args.get(0), ctx)));
-// TODO: @TimeZoneToText placeholder: returns "UTC"; needs proper timezone formatting
-        functions.put("TIMEZONETOTEXT", (ev, args, ctx) -> "UTC");
+        // ---- Time zone ----
+        functions.put("ZONE", (ev, args, ctx) -> {
+            String timeDate = args.isEmpty() ? null : toString(ev.eval(args.get(0), ctx));
+            try { return ctx.getTimeZoneOffset(timeDate); }
+            catch (ContextNotSupportedException e) {
+                return java.time.ZoneId.systemDefault().getId();
+            }
+        });
+        functions.put("GETCURRENTTIMEZONE", (ev, args, ctx) -> {
+            try { return ctx.getCanonicalTimeZone(); }
+            catch (ContextNotSupportedException e) {
+                return java.time.ZoneId.systemDefault().getId();
+            }
+        });
+        functions.put("TIMETOTEXTINZONE", (ev, args, ctx) -> {
+            String timeDate = toString(ev.eval(args.get(0), ctx));
+            String timeZone = toString(ev.eval(args.get(1), ctx));
+            String format = args.size() > 2 ? toString(ev.eval(args.get(2), ctx)) : "";
+            try { return ctx.timeToTextInZone(timeDate, timeZone, format); }
+            catch (ContextNotSupportedException e) { return ""; }
+        });
+        functions.put("TIMEZONETOTEXT", (ev, args, ctx) -> {
+            String timeZone = toString(ev.eval(args.get(0), ctx));
+            String format = args.size() > 1 ? toString(ev.eval(args.get(1), ctx)) : "";
+            try { return ctx.timeZoneToText(timeZone, format); }
+            catch (ContextNotSupportedException e) { return ""; }
+        });
 
         // ---- Quick-win placeholders ----
         functions.put("CLIENTTYPE", (ev, args, ctx) -> "Notes");
         functions.put("DBEXISTS", (ev, args, ctx) -> 1.0);
-        functions.put("GETCURRENTTIMEZONE", (ev, args, ctx) ->
-                java.time.ZoneId.systemDefault().getId());
         functions.put("LANGUAGEPREFERENCE", (ev, args, ctx) -> "EN");
         functions.put("LOCALE", (ev, args, ctx) -> java.util.Locale.getDefault().toString());
         functions.put("KEYWORDS", (ev, args, ctx) -> List.of());
