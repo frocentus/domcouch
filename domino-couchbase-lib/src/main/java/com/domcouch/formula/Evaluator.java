@@ -1468,6 +1468,17 @@ public class Evaluator {
             } while (isTruthy(ev.eval(args.get(args.size() - 1), ctx)));
             return 1.0;
         });
+        functions.put("FOR", (ev, args, ctx) -> {
+            // args: init, condition, increment, statement...
+            if (args.size() < 4) return "";
+            ev.eval(args.get(0), ctx); // init
+            Object last = 1.0;
+            while (isTruthy(ev.eval(args.get(1), ctx))) { // condition
+                for (int i = 3; i < args.size(); i++) last = ev.eval(args.get(i), ctx); // statements
+                ev.eval(args.get(2), ctx); // increment
+            }
+            return last;
+        });
 
         // ---- Phase 2: Variable/field manipulation ----
         functions.put("SET", (ev, args, ctx) -> {

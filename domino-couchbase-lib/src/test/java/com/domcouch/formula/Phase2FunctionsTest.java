@@ -1136,6 +1136,20 @@ class Phase2FunctionsTest {
         }
     }
 
+    @Nested @DisplayName("@For")
+    class ForTests {
+        @Test @DisplayName("simple counter 1 to 3")
+        void counter() {
+            assertEquals(3.0, eval("x := 0; @For(i := 1; i <= 3; i := i + 1; x := x + 1); x"));
+        }
+        @Test @DisplayName("loop with @Do style")
+        void loopDo() {
+            // Accumulate with @Do inline
+            Object r = eval("t := 0; @For(n := 1; n <= 5; n := n + 1; t := t + n); t");
+            assertEquals(15.0, r); // 1+2+3+4+5
+        }
+    }
+
     // ================================================================
     // Pair-wise and permuted list operations (from official spec table)
     // ================================================================
