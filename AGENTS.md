@@ -211,14 +211,24 @@ Add new methods to the public interfaces (`com.domcouch.api.*`) **only** when:
 ### 5.0 Tool Usage
 
 - **String comparison / diffing**: Use `ctx_execute` with Python or JavaScript,
-  not manual eyeballing. One-liner example:
+  not manual eyeballing. Example:
   ```python
   a, b = "DOCOMMITTEDLENGTH", "DOCCCOMMITTEDLENGTH"
   diffs = [(i, ca, cb) for i, (ca, cb) in enumerate(zip(a, b)) if ca != cb]
-  print(diffs)  # [(2, 'C', 'C')] — no, wait...
+  print(diffs)
   ```
+- **String lengths / positions**: Use a script, never count characters manually.
+  Example:
+  ```python
+  s = "North Carolina"
+  print(f"len={len(s)}")
+  for i, ch in enumerate(s): print(f"  [{i}] = '{ch}'")
+  sub = "th"; idx = s.index(sub); print(f"'{sub}' at [{idx}:{idx+len(sub)}]")
+  ```
+  Manual counting like `"N(1)o(2)r(3)..."` is error-prone and wastes time.
   Script catches typos humans miss. Apply whenever comparing identifiers,
-  logs, or any >5 character strings.
+  counting string positions, extracting substrings, or analyzing any text
+  longer than ~10 characters.
 
 ### 5.1 Project Layout
 
