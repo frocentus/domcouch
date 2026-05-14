@@ -316,8 +316,8 @@ mvn test -pl domino-couchbase-lib
 | `FormulaExamplesTest` | 97 | Real Domino spec examples — all formula categories |
 | `CachedEvaluationTest` | 8 | Compile-once, evaluate-many; verified against Java values |
 | `PerformanceComparisonTest` | 9 | Throughput, cached vs uncached, pipeline breakdown |
-| `Phase2FunctionsTest` | 160 | Per-function tests covering 60+ @Functions with spec examples |
-| **Total** | **424** | |
+| `Phase2FunctionsTest` | 280 | Per-function tests covering 130+ @Functions with spec examples |
+| **Total** | **579** | |
 
 ### 6.4 Data Generation
 
