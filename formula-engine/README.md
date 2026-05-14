@@ -54,17 +54,31 @@ public interface FormulaContext {
 
 ### Context Properties at a Glance
 
-| Property              | Return Type    | Purpose                                       | Default                             |
-| --------------------- | -------------- | --------------------------------------------- | ----------------------------------- |
-| `resolve(name)`       | `Object`       | Read a field value (null → "", absent → "")  | —                                   |
-| `setField(name, val)` | `void`         | Write to a document field                     | throws `ContextNotSupportedException` |
-| `deleteField(name)`   | `void`         | Remove a document field                       | throws `ContextNotSupportedException` |
-| `getFieldNames()`     | `List<String>` | Enumerate all fields                          | throws `ContextNotSupportedException` |
-| `getDocumentUNID()`   | `String`       | Document universal ID (32-char hex)           | throws `ContextNotSupportedException` |
-| `getDatabaseName()`   | `String`       | Database file path (e.g. `"mail\\harald.nsf"`) | throws `ContextNotSupportedException` |
-| `getServerName()`     | `String`       | Server name (e.g. `"CN=Server/O=Org"`)        | throws `ContextNotSupportedException` |
-| `getDatabaseTitle()`  | `String`       | Database title (e.g. `"Personnel Records"`)    | throws `ContextNotSupportedException` |
-| `getReplicaID()`      | `String`       | 16-char hex replica ID                        | throws `ContextNotSupportedException` |
+| Property                   | Return Type    | Purpose                                          | Default                             |
+| -------------------------- | -------------- | ------------------------------------------------ | ----------------------------------- |
+| `resolve(name)`            | `Object`       | Read a field value (null → "", absent → "")     | —                                   |
+| `setField(name, val)`      | `void`         | Write to a document field                        | throws `ContextNotSupportedException` |
+| `deleteField(name)`        | `void`         | Remove a document field                          | throws `ContextNotSupportedException` |
+| `getFieldNames()`          | `List<String>` | Enumerate all fields                             | throws `ContextNotSupportedException` |
+| `getDocumentUNID()`        | `String`       | Document universal ID (32-char hex)              | throws `ContextNotSupportedException` |
+| `isDocumentValid()`        | `boolean`      | Whether the document is valid (not deleted)      | throws `ContextNotSupportedException` |
+| `getDocumentSize()`        | `long`         | Document size in bytes                           | throws `ContextNotSupportedException` |
+| `getAttachmentCount()`     | `int`          | Number of file attachments                       | throws `ContextNotSupportedException` |
+| `getFolderNames()`         | `List<String>` | Folders containing this document                 | throws `ContextNotSupportedException` |
+| `lockDocument()`           | `boolean`      | Lock the document                                | throws `ContextNotSupportedException` |
+| `unlockDocument()`         | `boolean`      | Unlock the document                              | throws `ContextNotSupportedException` |
+| `getDocumentLockStatus()`  | `String`       | Lock holder name or ""                           | throws `ContextNotSupportedException` |
+| `isDocumentLockingEnabled()`| `boolean`     | Whether document locking is enabled              | throws `ContextNotSupportedException` |
+| `getDatabaseName()`        | `String`       | Database file path (e.g. `"mail\\harald.nsf"`)   | throws `ContextNotSupportedException` |
+| `getServerName()`          | `String`       | Server name (e.g. `"CN=Server/O=Org"`)           | throws `ContextNotSupportedException` |
+| `getDatabaseTitle()`       | `String`       | Database title (e.g. `"Personnel Records"`)       | throws `ContextNotSupportedException` |
+| `getReplicaID()`           | `String`       | 16-char hex replica ID                           | throws `ContextNotSupportedException` |
+| `getDomain()`              | `String`       | Domino domain (e.g. `"MyOrg"`)                   | throws `ContextNotSupportedException` |
+| `getEnvironmentValue(n)`   | `String`       | notes.ini / environment variable value           | throws `ContextNotSupportedException` |
+| `markForDeletion()`        | `void`         | Mark document for deletion (soft delete)         | throws `ContextNotSupportedException` |
+| `unmarkForDeletion()`      | `void`         | Unmark document for deletion                     | throws `ContextNotSupportedException` |
+| `hardDelete()`             | `void`         | Permanently delete the document                  | throws `ContextNotSupportedException` |
+| `addToFolder(name)`        | `void`         | Add document to a folder                         | throws `ContextNotSupportedException` |
 
 ### Evaluator Internal State (outside FormulaContext)
 
@@ -78,16 +92,30 @@ public interface FormulaContext {
 Every default method throws `ContextNotSupportedException`. The evaluator
 catches this in every @Function handler and returns a sensible default:
 
-| Context method       | When not supported                      | Evaluator default        |
-| -------------------- | --------------------------------------- | ------------------------ |
-| `setField()`         | @SetField, FIELD `:=`                   | value unchanged (no-op)  |
-| `deleteField()`      | @DeleteField, REM {}                    | `""` (no-op)            |
-| `getFieldNames()`    | @DocFields                              | `[]`                     |
-| `getDocumentUNID()`  | @DocumentUniqueID, @NoteID, @IsNewDoc   | `""`, `""`, `1.0` (new)   |
-| `getDatabaseName()`  | @DbName[1] (file path)                  | `""`                      |
-| `getServerName()`    | @DbName[0], @ServerName                 | `""`                      |
-| `getDatabaseTitle()` | @DbTitle                                | `""`                      |
-| `getReplicaID()`     | @ReplicaID                              | `""`                      |
+| Context method            | When not supported                               | Evaluator default        |
+| ------------------------- | ------------------------------------------------ | ------------------------ |
+| `setField()`              | @SetField, FIELD `:=`                            | value unchanged (no-op)  |
+| `deleteField()`           | @DeleteField, REM {}                             | `""` (no-op)            |
+| `getFieldNames()`         | @DocFields                                       | `[]`                     |
+| `getDocumentUNID()`       | @DocumentUniqueID, @NoteID, @IsNewDoc            | `""`, `""`, `1.0` (new)  |
+| `isDocumentValid()`       | @IsValid                                         | `1.0` (true)             |
+| `getDocumentSize()`       | @DocLength, @DocCommittedLength                  | `0.0`                     |
+| `getAttachmentCount()`    | @Attachments                                     | `0.0`                     |
+| `getFolderNames()`        | @WhichFolders                                    | `[]`                      |
+| `lockDocument()`          | @DocLock("LOCK")                                 | `1.0`                     |
+| `unlockDocument()`        | @DocLock("UNLOCK")                               | `1.0`                     |
+| `getDocumentLockStatus()` | @DocLock("STATUS")                               | `""`                     |
+| `isDocumentLockingEnabled()`| @DocLock("LOCKINGENABLED")                      | `0.0`                     |
+| `getDatabaseName()`       | @DbName[1] (file path)                           | `""`                      |
+| `getServerName()`         | @DbName[0], @ServerName                          | `""`                      |
+| `getDatabaseTitle()`      | @DbTitle                                         | `""`                      |
+| `getReplicaID()`          | @ReplicaID                                       | `""`                      |
+| `getDomain()`             | @Domain                                          | `""`                      |
+| `getEnvironmentValue(n)`  | @Environment                                     | `""`                      |
+| `markForDeletion()`       | @DeleteDocument                                  | `1.0`                     |
+| `unmarkForDeletion()`     | @UndeleteDocument                                | `1.0`                     |
+| `hardDelete()`            | @HardDeleteDocument                              | `1.0`                     |
+| `addToFolder(name)`       | @AddToFolder                                     | `1.0`                     |
 
 This means a **read-only context with only `resolve()`** works safely with
 any formula — @SetField becomes a no-op, @DocumentUniqueID returns `""`, etc.
@@ -154,6 +182,41 @@ These functions modify document fields.
 | `@DbTitle`    | `getDatabaseTitle()`  | Database title (e.g. "Personnel")   |
 | `@ReplicaID`  | `getReplicaID()`      | 16-char hex replica ID             |
 | `@ServerName` | `getServerName()`     | Server name (e.g. "CN=...")         |
+
+### Document Metadata (`ctx.getDocumentSize` / `getAttachmentCount` / `getFolderNames` / `isDocumentValid`)
+
+| @Function            | Context Property       | Notes                          |
+| -------------------- | ---------------------- | ------------------------------ |
+| `@DocLength`         | `getDocumentSize()`    | Approximate size in bytes      |
+| `@DocCommittedLength`| `getDocumentSize()`    | Size on disk (same as DocLength)|
+| `@Attachments`       | `getAttachmentCount()` | Number of file attachments     |
+| `@WhichFolders`      | `getFolderNames()`     | List of folder names           |
+| `@IsValid`           | `isDocumentValid()`    | 1 if document is valid         |
+
+### Document Locking (`ctx.lockDocument` / `unlockDocument` / `getDocumentLockStatus` / `isDocumentLockingEnabled`)
+
+| @Function                  | Context Property              | Notes                     |
+| -------------------------- | ----------------------------- | ------------------------- |
+| `@DocLock("LOCK")`         | `lockDocument()`              | Lock the document         |
+| `@DocLock("UNLOCK")`       | `unlockDocument()`            | Unlock the document       |
+| `@DocLock("STATUS")`       | `getDocumentLockStatus()`     | Lock holder name or ""    |
+| `@DocLock("LOCKINGENABLED")`| `isDocumentLockingEnabled()` | 1 if locking is enabled   |
+
+### Session / Environment (`ctx.getDomain` / `getEnvironmentValue`)
+
+| @Function        | Context Property          | Notes                           |
+| ---------------- | ------------------------- | ------------------------------- |
+| `@Domain`        | `getDomain()`             | Domino domain (e.g. "MyOrg")    |
+| `@Environment`   | `getEnvironmentValue(n)`  | notes.ini variable value        |
+
+### Document Lifecycle (`ctx.markForDeletion` / `unmarkForDeletion` / `hardDelete` / `addToFolder`)
+
+| @Function             | Context Property      | Notes                          |
+| --------------------- | --------------------- | ------------------------------ |
+| `@DeleteDocument`     | `markForDeletion()`   | Soft delete (mark)             |
+| `@UndeleteDocument`   | `unmarkForDeletion()` | Undo soft delete               |
+| `@HardDeleteDocument` | `hardDelete()`        | Permanent delete               |
+| `@AddToFolder`        | `addToFolder(name)`   | Add document to a folder       |
 
 ### User Identity (Evaluator `currentUserName`)
 
@@ -225,7 +288,7 @@ built-in state. They work with any `FormulaContext`, including `null`.
 
 ### Type Checking (5)
 
-`@IsNumber`, `@IsText`, `@IsTime`, `@IsNull`, `@IsValid`
+`@IsNumber`, `@IsText`, `@IsTime`, `@IsNull`
 
 ### Boolean Constants (8)
 
@@ -235,15 +298,13 @@ built-in state. They work with any `FormulaContext`, including `null`.
 
 `@Error`, `@IsError`, `@IfError`
 
-### Placeholders & Stubs (29)
+### Placeholders & Stubs (21)
 
 `@ClientType`, `@DbExists`, `@GetCurrentTimeZone`, `@LanguagePreference`,
 `@Locale`, `@Keywords`, `@ThisName`, `@ThisValue`, `@URQueryString`,
-`@V4UserAccess`, `@Environment`, `@RegQueryValue`,
+`@V4UserAccess`, `@RegQueryValue`,
 `@GetIMContactListGroupNames`, `@UserNameLanguage`, `@UserNameList`,
-`@DeleteDocument`, `@UndeleteDocument`, `@HardDeleteDocument`,
-`@DocCommittedLength`, `@AddToFolder`, `@WhichFolders`, `@Narrow`, `@Wide`,
-`@DocLength`, `@DocLock`, `@Attachments`, `@Prompt`, `@Password`,
+`@Narrow`, `@Wide`, `@Prompt`, `@Password`,
 `@PasswordQuality`, `@VerifyPassword`, `@PickList`
 
 ### No-ops (2)
@@ -332,6 +393,31 @@ public class DominoFormulaContext implements FormulaContext {
     @Override public String getDocumentUNID() {
         return doc.getUniversalID();
     }
+
+    // Document metadata
+    @Override public boolean isDocumentValid() {
+        return doc.isValid();
+    }
+    @Override public long getDocumentSize() {
+        return doc.getSize();
+    }
+    @Override public java.util.List<String> getFolderNames() {
+        var v = doc.getFolderReferences();
+        return v != null ? new ArrayList<>((java.util.Vector<String>) v) : List.of();
+    }
+
+    // Document locking
+    @Override public boolean lockDocument() { return doc.lock(); }
+    @Override public boolean unlockDocument() { return doc.unlock(); }
+    @Override public String getDocumentLockStatus() {
+        var holders = doc.getLockHolders();
+        return (holders != null && !holders.isEmpty()) ? (String) holders.get(0) : "";
+    }
+    @Override public boolean isDocumentLockingEnabled() {
+        return db.isDocumentLockingEnabled();
+    }
+
+    // Database
     @Override public String getDatabaseName() {
         try { return db.getFilePath(); } catch (Exception e) { return ""; }
     }
@@ -347,6 +433,17 @@ public class DominoFormulaContext implements FormulaContext {
     @Override public String getReplicaID() {
         try { return db.getReplicaID(); } catch (Exception e) { return ""; }
     }
+
+    // Session
+    @Override public String getDomain() {
+        try { return db.getParent().getDomain(); } catch (Exception e) { return ""; }
+    }
+
+    // Lifecycle
+    @Override public void markForDeletion()  { doc.markForDeletion(); }
+    @Override public void unmarkForDeletion() { doc.unmarkForDeletion(); }
+    @Override public void hardDelete()        { doc.remove(true); }
+    @Override public void addToFolder(String name) { doc.putInFolder(name); }
 }
 ```
 
