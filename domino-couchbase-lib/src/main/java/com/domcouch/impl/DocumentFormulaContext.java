@@ -130,4 +130,48 @@ public class DocumentFormulaContext implements FormulaContext {
         if (replicaID != null) return replicaID;
         throw new com.domcouch.formula.ContextNotSupportedException("getReplicaID");
     }
+
+    // ---- Document metadata ----
+
+    @Override
+    public java.util.List<String> getFolderNames() {
+        return document.getFolderNames();
+    }
+
+    @Override
+    public boolean isDocumentValid() {
+        return true; // Couchbase documents are always valid
+    }
+
+    @Override
+    public int getAttachmentCount() {
+        return 0; // attachments not yet supported
+    }
+
+    // ---- Document lifecycle ----
+
+    @Override
+    public void addToFolder(String folderName) {
+        document.putInFolder(folderName);
+    }
+
+    @Override
+    public void hardDelete() {
+        try { document.remove(); } catch (com.domcouch.api.NotesException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // ---- Document locking (not supported by Couchbase backend) ----
+    // lockDocument, unlockDocument, getDocumentLockStatus, isDocumentLockingEnabled
+    // use default → ContextNotSupportedException
+
+    // ---- Session / environment (not applicable in Couchbase) ----
+    // getDomain, getEnvironmentValue use default → ContextNotSupportedException
+
+    // ---- Document size (not exposed by Document API) ----
+    // getDocumentSize uses default → ContextNotSupportedException
+
+    // ---- Soft deletion (not supported by Couchbase) ----
+    // markForDeletion, unmarkForDeletion use default → ContextNotSupportedException
 }

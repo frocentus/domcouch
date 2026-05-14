@@ -938,8 +938,11 @@ public class Evaluator {
         functions.put("INHERITEDDOCUMENTUNIQUEID", (ev, args, ctx) ->
                 ctx.resolve("PARENTUNID") != null ? toString(ctx.resolve("PARENTUNID")) : "");
         functions.put("AUTHOR", (ev, args, ctx) -> ctx.resolve("AUTHORS") != null ? ctx.resolve("AUTHORS") : "");
-// TODO: @Attachments returns 0; needs binary attachment support
-        functions.put("ATTACHMENTS", (ev, args, ctx) -> 0.0); // no attachment support yet
+// TODO: @Attachments returns attachment count from context; needs binary attachment support
+        functions.put("ATTACHMENTS", (ev, args, ctx) -> {
+            try { return (double) ctx.getAttachmentCount(); }
+            catch (ContextNotSupportedException e) { return 0.0; }
+        });
         functions.put("ISAVAILABLE", (ev, args, ctx) -> {
             if (args.getFirst() instanceof Expr.Variable v) {
                 Object val = ctx.resolve(v.name());
@@ -1086,7 +1089,10 @@ public class Evaluator {
         functions.put("USERNAME", (ev, args, ctx) -> currentUserName);
         functions.put("USERROLES", (ev, args, ctx) -> List.of()); // no roles in Couchbase
         functions.put("USERNAMESLIST", (ev, args, ctx) -> List.of(currentUserName));
-        functions.put("DOMAIN", (ev, args, ctx) -> ""); // no Domino domain
+        functions.put("DOMAIN", (ev, args, ctx) -> {
+            try { return ctx.getDomain(); }
+            catch (ContextNotSupportedException e) { return ""; }
+        });
         functions.put("VERSION", (ev, args, ctx) -> "Domino 14.5 / Couchbase");
         functions.put("DBNAME", (ev, args, ctx) -> {
             try { return List.of(ctx.getServerName(), ctx.getDatabaseName()); }
@@ -1109,22 +1115,35 @@ public class Evaluator {
             catch (ContextNotSupportedException e) { return List.of(); }
         });
 // TODO: @DocLength returns placeholder 0; needs Couchbase document metadata
-        functions.put("DOCLENGTH", (ev, args, ctx) -> 0.0);
+        functions.put("DOCLENGTH", (ev, args, ctx) -> {
+            try { return (double) ctx.getDocumentSize(); }
+            catch (ContextNotSupportedException e) { return 0.0; }
+        });
         functions.put("DOCUMENTUNIQUEID", (ev, args, ctx) -> {
             try { return ctx.getDocumentUNID(); }
             catch (ContextNotSupportedException e) { return ""; }
         });
-// TODO: @DocLock returns stubs; needs Couchbase document-level locking
+// TODO: @DocLock uses context methods; lockDocument/unlockDocument/getDocumentLockStatus/isDocumentLockingEnabled
         functions.put("DOCLOCK", (ev, args, ctx) -> {
             if (args.isEmpty()) return "";
             String kw = toString(ev.eval(args.getFirst(), ctx));
-            return switch (kw) {
-                case "LOCK", "UNLOCK" -> 1.0;
-                case "STATUS" -> "";
-                case "LOCKINGENABLED" -> 0.0;
-                default -> "";
-            };
-        }); // requires Couchbase document metadata
+            try {
+                return switch (kw) {
+                    case "LOCK" -> boolToNum(ctx.lockDocument());
+                    case "UNLOCK" -> boolToNum(ctx.unlockDocument());
+                    case "STATUS" -> ctx.getDocumentLockStatus();
+                    case "LOCKINGENABLED" -> boolToNum(ctx.isDocumentLockingEnabled());
+                    default -> "";
+                };
+            } catch (ContextNotSupportedException e) {
+                return switch (kw) {
+                    case "LOCK", "UNLOCK" -> 1.0;
+                    case "STATUS" -> "";
+                    case "LOCKINGENABLED" -> 0.0;
+                    default -> "";
+                };
+            }
+        });
 
         // Boolean constants
         functions.put("ALL", (ev, args, ctx) -> 1.0);
@@ -1268,7 +1287,10 @@ public class Evaluator {
         // ---- Type checking ----
         functions.put("ISNULL", (ev, args, ctx) ->
                 boolToNum(ev.eval(args.get(0), ctx) == null || "".equals(toString(ev.eval(args.get(0), ctx)))));
-        functions.put("ISVALID", (ev, args, ctx) -> 1.0); // document is always valid in our context
+        functions.put("ISVALID", (ev, args, ctx) -> {
+            try { return boolToNum(ctx.isDocumentValid()); }
+            catch (ContextNotSupportedException e) { return 1.0; }
+        });
 
         // ---- Boolean constants ----
         functions.put("YES", (ev, args, ctx) -> 1.0);
@@ -1433,21 +1455,44 @@ public class Evaluator {
         functions.put("V4USERACCESS", (ev, args, ctx) -> 1.0);
         functions.put("UNAVAILABLE", (ev, args, ctx) ->
                 boolToNum(ctx.resolve(toString(ev.eval(args.get(0), ctx))) == null));
-        functions.put("ENVIRONMENT", (ev, args, ctx) -> "");
+        functions.put("ENVIRONMENT", (ev, args, ctx) -> {
+            String name = toString(ev.eval(args.getFirst(), ctx));
+            try { return ctx.getEnvironmentValue(name); }
+            catch (ContextNotSupportedException e) { return ""; }
+        });
         functions.put("REGQUERYVALUE", (ev, args, ctx) -> "");
         functions.put("GETIMCONTACTLISTGROUPNAMES", (ev, args, ctx) -> List.of());
         functions.put("USERNAMELANGUAGE", (ev, args, ctx) -> "EN");
 
         // ---- Document lifecycle ----
-// TODO: @DeleteDocument/@UndeleteDocument/@HardDeleteDocument are stubs; need Couchbase doc lifecycle
-        functions.put("DELETEDOCUMENT", (ev, args, ctx) -> 1.0);
-        functions.put("UNDELETEDOCUMENT", (ev, args, ctx) -> 1.0);
-        functions.put("HARDDELETEDOCUMENT", (ev, args, ctx) -> 1.0);
-        functions.put("DOCOMMITTEDLENGTH", (ev, args, ctx) -> 0.0);
+// Document lifecycle — delegate to context; graceful fallback to 1.0
+        functions.put("DELETEDOCUMENT", (ev, args, ctx) -> {
+            try { ctx.markForDeletion(); return 1.0; }
+            catch (ContextNotSupportedException e) { return 1.0; }
+        });
+        functions.put("UNDELETEDOCUMENT", (ev, args, ctx) -> {
+            try { ctx.unmarkForDeletion(); return 1.0; }
+            catch (ContextNotSupportedException e) { return 1.0; }
+        });
+        functions.put("HARDDELETEDOCUMENT", (ev, args, ctx) -> {
+            try { ctx.hardDelete(); return 1.0; }
+            catch (ContextNotSupportedException e) { return 1.0; }
+        });
+        functions.put("DOCOMMITTEDLENGTH", (ev, args, ctx) -> {
+            try { return (double) ctx.getDocumentSize(); }
+            catch (ContextNotSupportedException e) { return 0.0; }
+        });
 
         // ---- Folder operations (stubs) ----
-        functions.put("ADDTOFOLDER", (ev, args, ctx) -> 1.0);
-        functions.put("WHICHFOLDERS", (ev, args, ctx) -> List.of());
+        functions.put("ADDTOFOLDER", (ev, args, ctx) -> {
+            String folderName = toString(ev.eval(args.getFirst(), ctx));
+            try { ctx.addToFolder(folderName); return 1.0; }
+            catch (ContextNotSupportedException e) { return 1.0; }
+        });
+        functions.put("WHICHFOLDERS", (ev, args, ctx) -> {
+            try { return ctx.getFolderNames(); }
+            catch (ContextNotSupportedException e) { return List.of(); }
+        });
         functions.put("NARROW", (ev, args, ctx) -> 1.0);
         functions.put("WIDE", (ev, args, ctx) -> 1.0);
 

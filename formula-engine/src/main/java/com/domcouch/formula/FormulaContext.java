@@ -68,4 +68,100 @@ public interface FormulaContext {
     default String getReplicaID() {
         throw new ContextNotSupportedException("getReplicaID");
     }
+
+    // ---- Document metadata ----
+
+    /**
+     * Return the document size in bytes. Used by {@code @DocLength}.
+     * Default: throws {@link ContextNotSupportedException}.
+     */
+    default long getDocumentSize() {
+        throw new ContextNotSupportedException("getDocumentSize");
+    }
+
+    /**
+     * Return the number of file attachments. Used by {@code @Attachments}.
+     * Default: throws {@link ContextNotSupportedException}.
+     */
+    default int getAttachmentCount() {
+        throw new ContextNotSupportedException("getAttachmentCount");
+    }
+
+    /**
+     * Return folder names containing this document. Used by {@code @WhichFolders}.
+     * Default: throws {@link ContextNotSupportedException}.
+     */
+    default java.util.List<String> getFolderNames() {
+        throw new ContextNotSupportedException("getFolderNames");
+    }
+
+    /**
+     * Return whether the document is valid (not deleted). Used by {@code @IsValid}.
+     * Default: throws {@link ContextNotSupportedException}.
+     */
+    default boolean isDocumentValid() {
+        throw new ContextNotSupportedException("isDocumentValid");
+    }
+
+    // ---- Document locking ----
+
+    /** Lock the document. Used by {@code @DocLock("LOCK")}. Default: throws. */
+    default boolean lockDocument() {
+        throw new ContextNotSupportedException("lockDocument");
+    }
+
+    /** Unlock the document. Used by {@code @DocLock("UNLOCK")}. Default: throws. */
+    default boolean unlockDocument() {
+        throw new ContextNotSupportedException("unlockDocument");
+    }
+
+    /** Return the lock holder name or "". Used by {@code @DocLock("STATUS")}. Default: throws. */
+    default String getDocumentLockStatus() {
+        throw new ContextNotSupportedException("getDocumentLockStatus");
+    }
+
+    /** Return whether document locking is enabled. Used by {@code @DocLock("LOCKINGENABLED")}. Default: throws. */
+    default boolean isDocumentLockingEnabled() {
+        throw new ContextNotSupportedException("isDocumentLockingEnabled");
+    }
+
+    // ---- Session / environment ----
+
+    /**
+     * Return the Domino domain (e.g. {@code "MyOrg"}). Used by {@code @Domain}.
+     * Default: throws {@link ContextNotSupportedException}.
+     */
+    default String getDomain() {
+        throw new ContextNotSupportedException("getDomain");
+    }
+
+    /**
+     * Return the value of a notes.ini / environment variable.
+     * Used by {@code @Environment(name)}. Default: throws {@link ContextNotSupportedException}.
+     */
+    default String getEnvironmentValue(String name) {
+        throw new ContextNotSupportedException("getEnvironmentValue");
+    }
+
+    // ---- Document lifecycle ----
+
+    /** Mark the document for deletion. Used by {@code @DeleteDocument}. Default: throws. */
+    default void markForDeletion() {
+        throw new ContextNotSupportedException("markForDeletion");
+    }
+
+    /** Unmark the document for deletion. Used by {@code @UndeleteDocument}. Default: throws. */
+    default void unmarkForDeletion() {
+        throw new ContextNotSupportedException("unmarkForDeletion");
+    }
+
+    /** Permanently delete the document. Used by {@code @HardDeleteDocument}. Default: throws. */
+    default void hardDelete() {
+        throw new ContextNotSupportedException("hardDelete");
+    }
+
+    /** Add this document to a folder. Used by {@code @AddToFolder}. Default: throws. */
+    default void addToFolder(String folderName) {
+        throw new ContextNotSupportedException("addToFolder");
+    }
 }
