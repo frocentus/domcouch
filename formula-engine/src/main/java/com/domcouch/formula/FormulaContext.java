@@ -36,8 +36,36 @@ public interface FormulaContext {
         throw new ContextNotSupportedException("getDocumentUNID");
     }
 
-    /** Return the current database name. Default: throws {@link ContextNotSupportedException}. */
+    /**
+     * Return the current database file path (e.g. {@code "mail\harald.nsf"}).
+     * Used by {@code @DbName[1]}. Default: throws {@link ContextNotSupportedException}.
+     */
     default String getDatabaseName() {
         throw new ContextNotSupportedException("getDatabaseName");
+    }
+
+    /**
+     * Return the server name (e.g. {@code "CN=Server/O=Org"}).
+     * Used by {@code @DbName[0]} and {@code @ServerName}.
+     * Default: throws {@link ContextNotSupportedException}.
+     */
+    default String getServerName() {
+        throw new ContextNotSupportedException("getServerName");
+    }
+
+    /**
+     * Return the database title (e.g. {@code "Personnel Records"}).
+     * Used by {@code @DbTitle}. Default: throws {@link ContextNotSupportedException}.
+     */
+    default String getDatabaseTitle() {
+        throw new ContextNotSupportedException("getDatabaseTitle");
+    }
+
+    /**
+     * Return the 16-character hex replica ID (e.g. {@code "85255B6E004A6D12"}).
+     * Used by {@code @ReplicaID}. Default: throws {@link ContextNotSupportedException}.
+     */
+    default String getReplicaID() {
+        throw new ContextNotSupportedException("getReplicaID");
     }
 }

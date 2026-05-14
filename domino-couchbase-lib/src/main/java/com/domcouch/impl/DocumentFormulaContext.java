@@ -11,18 +11,34 @@ import com.domcouch.formula.FormulaContext;
  * {@link Document#getFirstItem(String)}. Supports {@code setField} for
  * {@code FIELD} assignments and {@code deleteField} for {@code @DeleteField}.
  * <p>
+ * Database-level properties ({@code @DbName}, {@code @DbTitle},
+ * {@code @ReplicaID}, {@code @ServerName}) are optional — if not set,
+ * they throw {@link com.domcouch.formula.ContextNotSupportedException}
+ * and the evaluator returns sensible defaults ("").
+ * <p>
  * Multi-value items are returned as {@link java.util.Vector} lists;
  * single-value items return the first value directly.
  *
  * <h2>Usage</h2>
  * <pre>{@code
+ *   // Document-only context (read/write fields, UNID — no database info)
  *   DocumentFormulaContext ctx = new DocumentFormulaContext(document);
- *   Object result = translator.evaluate("FirstName + \" \" + LastName", ctx);
+ *
+ *   // Full context with database metadata
+ *   DocumentFormulaContext ctx = new DocumentFormulaContext(document)
+ *       .withDatabaseName("contacts.nsf")
+ *       .withServerName("CN=Server/O=Org")
+ *       .withDatabaseTitle("Personnel Records")
+ *       .withReplicaID("85255B6E004A6D12");
  * }</pre>
  */
 public class DocumentFormulaContext implements FormulaContext {
 
     private final Document document;
+    private String databaseName;
+    private String serverName;
+    private String databaseTitle;
+    private String replicaID;
 
     /**
      * @param document the document to resolve fields from
@@ -69,5 +85,49 @@ public class DocumentFormulaContext implements FormulaContext {
     /** @return the underlying document */
     public Document getDocument() {
         return document;
+    }
+
+    // ---- Builder methods for database-level context ----
+
+    public DocumentFormulaContext withDatabaseName(String name) {
+        this.databaseName = name; return this;
+    }
+
+    public DocumentFormulaContext withServerName(String name) {
+        this.serverName = name; return this;
+    }
+
+    public DocumentFormulaContext withDatabaseTitle(String title) {
+        this.databaseTitle = title; return this;
+    }
+
+    public DocumentFormulaContext withReplicaID(String replicaID) {
+        this.replicaID = replicaID; return this;
+    }
+
+    // ---- Database-level context overrides ----
+
+    @Override
+    public String getDatabaseName() {
+        if (databaseName != null) return databaseName;
+        throw new com.domcouch.formula.ContextNotSupportedException("getDatabaseName");
+    }
+
+    @Override
+    public String getServerName() {
+        if (serverName != null) return serverName;
+        throw new com.domcouch.formula.ContextNotSupportedException("getServerName");
+    }
+
+    @Override
+    public String getDatabaseTitle() {
+        if (databaseTitle != null) return databaseTitle;
+        throw new com.domcouch.formula.ContextNotSupportedException("getDatabaseTitle");
+    }
+
+    @Override
+    public String getReplicaID() {
+        if (replicaID != null) return replicaID;
+        throw new com.domcouch.formula.ContextNotSupportedException("getReplicaID");
     }
 }

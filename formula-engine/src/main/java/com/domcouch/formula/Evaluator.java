@@ -1089,18 +1089,21 @@ public class Evaluator {
         functions.put("DOMAIN", (ev, args, ctx) -> ""); // no Domino domain
         functions.put("VERSION", (ev, args, ctx) -> "Domino 14.5 / Couchbase");
         functions.put("DBNAME", (ev, args, ctx) -> {
-            try { return List.of("", ctx.getDatabaseName()); }
+            try { return List.of(ctx.getServerName(), ctx.getDatabaseName()); }
             catch (ContextNotSupportedException e) { return List.of("", ""); }
         });
         functions.put("DBTITLE", (ev, args, ctx) -> {
-            try { return ctx.getDatabaseName(); }
+            try { return ctx.getDatabaseTitle(); }
             catch (ContextNotSupportedException e) { return ""; }
         });
         functions.put("REPLICAID", (ev, args, ctx) -> {
-            try { return ctx.getDatabaseName(); }
+            try { return ctx.getReplicaID(); }
             catch (ContextNotSupportedException e) { return ""; }
         });
-        functions.put("SERVERNAME", (ev, args, ctx) -> "");
+        functions.put("SERVERNAME", (ev, args, ctx) -> {
+            try { return ctx.getServerName(); }
+            catch (ContextNotSupportedException e) { return ""; }
+        });
         functions.put("DOCFIELDS", (ev, args, ctx) -> {
             try { return ctx.getFieldNames(); }
             catch (ContextNotSupportedException e) { return List.of(); }

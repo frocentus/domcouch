@@ -54,14 +54,17 @@ public interface FormulaContext {
 
 ### Context Properties at a Glance
 
-| Property              | Return Type    | Purpose                                     | Default                             |
-| --------------------- | -------------- | ------------------------------------------- | ----------------------------------- |
-| `resolve(name)`       | `Object`       | Read a field value (null → "", absent → "") | —                                   |
-| `setField(name, val)` | `void`         | Write to a document field                   | throws `ContextNotSupportedException` |
-| `deleteField(name)`   | `void`         | Remove a document field                     | throws `ContextNotSupportedException` |
-| `getFieldNames()`     | `List<String>` | Enumerate all fields                        | throws `ContextNotSupportedException` |
-| `getDocumentUNID()`   | `String`       | Document universal ID                       | throws `ContextNotSupportedException` |
-| `getDatabaseName()`   | `String`       | Current database name                       | throws `ContextNotSupportedException` |
+| Property              | Return Type    | Purpose                                       | Default                             |
+| --------------------- | -------------- | --------------------------------------------- | ----------------------------------- |
+| `resolve(name)`       | `Object`       | Read a field value (null → "", absent → "")  | —                                   |
+| `setField(name, val)` | `void`         | Write to a document field                     | throws `ContextNotSupportedException` |
+| `deleteField(name)`   | `void`         | Remove a document field                       | throws `ContextNotSupportedException` |
+| `getFieldNames()`     | `List<String>` | Enumerate all fields                          | throws `ContextNotSupportedException` |
+| `getDocumentUNID()`   | `String`       | Document universal ID (32-char hex)           | throws `ContextNotSupportedException` |
+| `getDatabaseName()`   | `String`       | Database file path (e.g. `"mail\\harald.nsf"`) | throws `ContextNotSupportedException` |
+| `getServerName()`     | `String`       | Server name (e.g. `"CN=Server/O=Org"`)        | throws `ContextNotSupportedException` |
+| `getDatabaseTitle()`  | `String`       | Database title (e.g. `"Personnel Records"`)    | throws `ContextNotSupportedException` |
+| `getReplicaID()`      | `String`       | 16-char hex replica ID                        | throws `ContextNotSupportedException` |
 
 ### Evaluator Internal State (outside FormulaContext)
 
@@ -80,8 +83,11 @@ catches this in every @Function handler and returns a sensible default:
 | `setField()`         | @SetField, FIELD `:=`                   | value unchanged (no-op)  |
 | `deleteField()`      | @DeleteField, REM {}                    | `""` (no-op)            |
 | `getFieldNames()`    | @DocFields                              | `[]`                     |
-| `getDocumentUNID()`  | @DocumentUniqueID, @NoteID, @IsNewDoc   | `""`, `""`, `1.0` (new)  |
-| `getDatabaseName()`  | @DbName, @DbTitle, @ReplicaID           | `["",""]`, `""`, `""`    |
+| `getDocumentUNID()`  | @DocumentUniqueID, @NoteID, @IsNewDoc   | `""`, `""`, `1.0` (new)   |
+| `getDatabaseName()`  | @DbName[1] (file path)                  | `""`                      |
+| `getServerName()`    | @DbName[0], @ServerName                 | `""`                      |
+| `getDatabaseTitle()` | @DbTitle                                | `""`                      |
+| `getReplicaID()`     | @ReplicaID                              | `""`                      |
 
 This means a **read-only context with only `resolve()`** works safely with
 any formula — @SetField becomes a no-op, @DocumentUniqueID returns `""`, etc.
@@ -139,13 +145,15 @@ These functions modify document fields.
 | `@IsNewDoc`         | `getDocumentUNID()` | 1 if UNID is empty             |
 | `@DocFields`        | `getFieldNames()`   | List of all field names        |
 
-### Database Identity (`ctx.getDatabaseName`)
+### Database Identity (`ctx.getDatabaseName` / `getServerName` / `getDatabaseTitle` / `getReplicaID`)
 
-| @Function    | Context Property    | Notes                        |
-| ------------ | ------------------- | ---------------------------- |
-| `@DbName`    | `getDatabaseName()` | Returns list: `["", dbName]` |
-| `@DbTitle`   | `getDatabaseName()` | Returns db name string       |
-| `@ReplicaID` | `getDatabaseName()` | Returns db name string       |
+| @Function     | Context Property      | Notes                              |
+| ------------- | --------------------- | ---------------------------------- |
+| `@DbName`     | `getServerName()` +   | Returns list: `[serverName,        |
+|               | `getDatabaseName()`   |             databaseName]`          |
+| `@DbTitle`    | `getDatabaseTitle()`  | Database title (e.g. "Personnel")   |
+| `@ReplicaID`  | `getReplicaID()`      | 16-char hex replica ID             |
+| `@ServerName` | `getServerName()`     | Server name (e.g. "CN=...")         |
 
 ### User Identity (Evaluator `currentUserName`)
 
@@ -325,7 +333,19 @@ public class DominoFormulaContext implements FormulaContext {
         return doc.getUniversalID();
     }
     @Override public String getDatabaseName() {
-        return db.getFilePath();
+        try { return db.getFilePath(); } catch (Exception e) { return ""; }
+    }
+
+    @Override public String getServerName() {
+        try { return db.getServer(); } catch (Exception e) { return ""; }
+    }
+
+    @Override public String getDatabaseTitle() {
+        try { return db.getTitle(); } catch (Exception e) { return ""; }
+    }
+
+    @Override public String getReplicaID() {
+        try { return db.getReplicaID(); } catch (Exception e) { return ""; }
     }
 }
 ```
