@@ -1587,7 +1587,7 @@ public class Evaluator {
             try { ctx.hardDelete(); return 1.0; }
             catch (ContextNotSupportedException e) { return 1.0; }
         });
-        functions.put("DOCOMMITTEDLENGTH", (ev, args, ctx) -> {
+        functions.put("DOCCOMMITTEDLENGTH", (ev, args, ctx) -> {
             try { return (double) ctx.getDocumentSize(); }
             catch (ContextNotSupportedException e) { return 0.0; }
         });
