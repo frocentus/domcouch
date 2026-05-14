@@ -184,6 +184,38 @@ class StringFunctionsTest extends BaseFormulaTest {
         @Test @DisplayName("@RightBack separator not found returns whole") void rightBackSepNotFound() { assertEquals("Lennard Wallace", eval("@RightBack(\"Lennard Wallace\"; \"x\")")); }
     }
 
+    @Nested @DisplayName("@Middle / @MiddleBack")
+    class MiddleTests {
+        // @Middle spec examples (scan from left)
+        @Test @DisplayName("@Middle offset+numberchars") void midOffN() {
+            assertEquals("h C", eval("@Middle(\"North Carolina\"; 4; 3)"));
+        }
+        @Test @DisplayName("@Middle offset+neg numberchars") void midOffNegN() {
+            assertEquals("ort", eval("@Middle(\"North Carolina\"; 4; -3)"));
+        }
+        @Test @DisplayName("@Middle substring+numberchars") void midSubN() {
+            assertEquals("Car", eval("@Middle(\"North Carolina\"; \" \"; 3)"));
+        }
+        @Test @DisplayName("@Middle substring+neg numberchars") void midSubNegN() {
+            assertEquals("or", eval("@Middle(\"North Carolina\"; \"th\"; -2)"));
+        }
+        @Test @DisplayName("@Middle offset+endstring") void midOffSub() {
+            assertEquals(" is the ", eval("@Middle(\"This is the text\"; 4; \"text\")"));
+        }
+        @Test @DisplayName("@Middle substring+endstring") void midSubSub() {
+            assertEquals(" the ", eval("@Middle(\"This is the text\"; \" is\"; \"text\")"));
+        }
+
+        // @MiddleBack spec examples (scan from right)
+        @Test @DisplayName("@MiddleBack offset+numberchars") void midBackOffN() {
+            // @MiddleBack(Author; " "; 3) on "Timothy Altman" → "Alt"
+            assertEquals("Alt", eval("@MiddleBack(\"Timothy Altman\"; \" \"; 3)"));
+        }
+        @Test @DisplayName("@MiddleBack substring not found") void midBackSubNotFound() {
+            assertEquals("", eval("@MiddleBack(\"Smith\"; \" \"; 3)"));
+        }
+    }
+
     @Nested @DisplayName("@ProperCase")
     class ProperCaseTests {
         @Test @DisplayName("spec example") void spec() { assertEquals("Every Child Loves Toys", eval("@ProperCase(\"every CHILD LOves toys\")")); }

@@ -38,8 +38,8 @@
 | `@Like` | ✅ | 📋 | SQL-style pattern (_ any char, % any seq); escape char supported |
 | `@LeftBack` | ✅ | 📋 | From end: numeric removes last N; separator returns chars left of separator |
 | `@RightBack` | ✅ | 📋 | From end: numeric rightmost N; separator uses lastIndexOf |
-| `@Middle` | 🟡 | ⚠ | Middle substring; complex overloads (off/n, sub/n, off/sub, sub/sub) |
-| `@MiddleBack` | 🟡 | ⚠ | Middle from end; complex overloads |
+| `@Middle` | ✅ | 📋 | Middle substring; 4 overloads (off+n, off+sub, sub+n, sub+sub) |
+| `@MiddleBack` | ✅ | 📋 | Middle from end; 4 overloads |
 | `@ProperCase` | ✅ | 📋 | Capitalize first letter of each word; list support |
 | `@NewLine` | ✅ | 📋 | Newline character `\n` |
 | `@Explode` | ✅ | 📋 | Split by separators; includeEmpties and newlineAsSeparator supported |

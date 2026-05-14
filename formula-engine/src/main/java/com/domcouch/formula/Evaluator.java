@@ -446,55 +446,71 @@ public class Evaluator {
 
     /**
      * Shared implementation for @Middle and @MiddleBack.
-     * Overloads: (str, off, n), (str, off, sub), (str, sub, n), (str, sub, sub)
+     * Overloads: (str, off/d, n), (str, off, sub), (str, sub, n), (str, sub, sub)
+     *
+     * @Middle scans from left to right; @MiddleBack scans from right to left.
+     * For offset: the middle begins one character AFTER the offset.
+     * For negative numberchars: middle starts AT the offset/substring and goes left.
      */
     private static Object middleExtract(Evaluator ev, java.util.List<Expr> args,
                                          FormulaContext ctx, boolean fromBack) {
         String s = toString(ev.eval(args.get(0), ctx));
+        if (s.isEmpty()) return "";
         Object fromObj = ev.eval(args.get(1), ctx);
         Object toObj = args.size() > 2 ? ev.eval(args.get(2), ctx) : null;
 
-        // Determine start index
-        int start;
+        int start, end;
+
+        // Determine start position
         if (fromObj instanceof Number) {
             int off = ((Number) fromObj).intValue();
-            start = fromBack ? s.length() - Math.abs(off) + (off > 0 ? 1 : 0) : off - 1;
-            if (off == 0) start = fromBack ? s.length() : 0;
+            if (fromBack) {
+                // Offset counts from right: off=1 means last char, off=2 means second-to-last
+                start = s.length() - off;
+            } else {
+                // Offset counts from left; middle begins one char AFTER offset
+                start = off; // 1-based off → 0-based index after offset
+            }
         } else {
             String sub = toString(fromObj);
-            if (sub.isEmpty()) return fromBack ? s : "";
+            if (sub.isEmpty()) return "";
             int idx = fromBack ? s.lastIndexOf(sub) : s.indexOf(sub);
             if (idx < 0) return "";
-            start = fromBack ? idx : idx + sub.length();
+            start = idx + sub.length(); // one char after substring
         }
         start = Math.max(0, Math.min(start, s.length()));
 
-        // Determine end index
-        int end = fromBack ? start : s.length();
+        // Determine end position
         if (toObj == null) {
-            end = fromBack ? 0 : s.length();
+            end = s.length();
         } else if (toObj instanceof Number) {
             int len = ((Number) toObj).intValue();
-            if (fromBack) {
-                end = Math.max(0, start - Math.abs(len));
-                int tmp = start; start = end; end = tmp;
+            if (len > 0) {
+                end = Math.min(s.length(), start + len);
             } else {
-                if (len > 0) end = Math.min(s.length(), start + len);
-                else end = s.length() + len;
+                // Negative: start moves left by |len|.
+                // For offset: reference is old_start (after offset), count includes offset char.
+                // For substring: reference is idx (start of substring), count excludes substring.
+                if (fromObj instanceof Number) {
+                    start = Math.max(0, start + len);
+                    end = start - len; // old start
+                } else {
+                    int idx = start - toString(fromObj).length();
+                    start = Math.max(0, idx + len);
+                    end = idx;
+                }
             }
         } else {
             String toSub = toString(toObj);
-            if (!toSub.isEmpty()) {
+            if (toSub.isEmpty()) { end = s.length(); }
+            else {
                 int idx = fromBack
-                        ? s.lastIndexOf(toSub, start - 1)
+                        ? s.lastIndexOf(toSub, Math.max(0, start - 1))
                         : s.indexOf(toSub, start);
-                if (fromBack) {
-                    if (idx >= 0) start = idx + toSub.length();
-                } else {
-                    end = idx >= 0 ? idx : s.length();
-                }
+                end = idx >= 0 ? idx : s.length();
             }
         }
+
         start = Math.max(0, Math.min(start, s.length()));
         end = Math.max(0, Math.min(end, s.length()));
         if (start > end) { int tmp = start; start = end; end = tmp; }
@@ -1373,7 +1389,6 @@ public class Evaluator {
             }
             return result.size() == 1 ? result.get(0) : result;
         });
-// TODO: @Middle complex overloads (off+n, off+sub, sub+n, sub+sub) — edge cases need review
         functions.put("MIDDLE", (ev, args, ctx) -> middleExtract(ev, args, ctx, false));
         functions.put("MIDDLEBACK", (ev, args, ctx) -> middleExtract(ev, args, ctx, true));
         functions.put("PROPERCASE", (ev, args, ctx) -> {
