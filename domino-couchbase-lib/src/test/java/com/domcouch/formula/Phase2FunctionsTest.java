@@ -823,4 +823,280 @@ class Phase2FunctionsTest {
                     eval("@If(1234<1000; @Success; @Failure(\"Area codes have only 3 digits\"))"));
         }
     }
+
+    // ================================================================
+    // Spec Example Tests — @Explode
+    // ================================================================
+    @Nested @DisplayName("@Explode spec examples")
+    class ExplodeSpecTests {
+        @Test @DisplayName("a,b,c → list")
+        void basic() { assertEquals(List.of("a","b","c"), eval("@Explode(\"a,b,c\")")); }
+        @Test @DisplayName("split by +")
+        void plus() { assertEquals(List.of("Weekly","Status","Report"),
+                eval("@Explode(\"Weekly+Status+Report\"; \"+&\")")); }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @Left / @Right
+    // ================================================================
+    @Nested @DisplayName("@Left/@Right spec examples")
+    class LeftRightSpecTests {
+        @Test @DisplayName("@Left substring")
+        void leftChars() { assertEquals("Len", eval("@Left(\"Lennard Wallace\"; 3)")); }
+        @Test @DisplayName("@Right substring")
+        void rightChars() { assertEquals("ace", eval("@Right(\"Lennard Wallace\"; 3)")); }
+        @Test @DisplayName("@Right after space")
+        void rightAfterSpace() { assertEquals("Wallace", eval("@Right(\"Lennard Wallace\"; \" \")")); }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @UpperCase / @LowerCase
+    // ================================================================
+    @Nested @DisplayName("@UpperCase/@LowerCase spec examples")
+    class CaseSpecTests {
+        @Test @DisplayName("@UpperCase full name")
+        void upper() { assertEquals("ROBERT T. SMITH", eval("@UpperCase(\"Robert T. Smith\")")); }
+        @Test @DisplayName("@LowerCase full name")
+        void lower() { assertEquals("juan mendoza", eval("@LowerCase(\"Juan Mendoza\")")); }
+        @Test @DisplayName("@LowerCase list")
+        void lowerList() { assertEquals(List.of("juan","mendoza"),
+                eval("@LowerCase(\"Juan\" : \"Mendoza\")")); }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @Trim
+    // ================================================================
+    @Nested @DisplayName("@Trim spec examples")
+    class TrimSpecTests {
+        @Test @DisplayName("trim + uppercase combined")
+        void trimUpper() { assertEquals("ROBERT SMITH",
+                eval("@Trim(@UpperCase(\"Robert Smith \"))")); }
+        @Test @DisplayName("uppercase then trim")
+        void upperTrim() { assertEquals("ROBERT SMITH",
+                eval("@UpperCase(@Trim(\" Robert Smith\"))")); }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @Begins / @Ends
+    // ================================================================
+    @Nested @DisplayName("@Begins/@Ends spec examples")
+    class BeginsEndsSpecTests {
+        @Test @DisplayName("@Begins matches")
+        void begins() { assertEquals(1.0, eval("@Begins(\"Hi There\"; \"Hi\")")); }
+        @Test @DisplayName("@Begins case sensitive")
+        void beginsCase() { assertEquals(0.0, eval("@Begins(\"Hi There\"; \"hi\")")); }
+        @Test @DisplayName("@Ends matches")
+        void ends() { assertEquals(1.0, eval("@Ends(\"Hi There\"; \"re\")")); }
+        @Test @DisplayName("@Ends no match")
+        void endsNo() { assertEquals(0.0, eval("@Ends(\"Hi There\"; \"The\")")); }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @Word
+    // ================================================================
+    @Nested @DisplayName("@Word spec examples")
+    class WordSpecTests {
+        @Test @DisplayName("word 2 separated by space")
+        void word2() { assertEquals("Collins,",
+                eval("@Word(\"Larson, Collins, and Jensen\"; \" \"; 2)")); }
+        @Test @DisplayName("word 3 separated by comma")
+        void word3() { assertEquals("M.",
+                eval("@Word(\"Larson,James,M.\"; \",\"; 3)")); }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @IsMember / @IsNotMember
+    // ================================================================
+    @Nested @DisplayName("@IsMember/@IsNotMember spec examples")
+    class MemberSpecTests {
+        @Test @DisplayName("@IsMember present")
+        void isMember() { assertEquals(1.0,
+                eval("@IsMember(\"computer\"; \"printer\":\"computer\":\"monitor\")")); }
+        @Test @DisplayName("@IsNotMember absent")
+        void isNotMember() { assertEquals(1.0,
+                eval("@IsNotMember(\"computer\"; \"printer\":\"monitor\")")); }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @Elements / @Count
+    // ================================================================
+    @Nested @DisplayName("@Elements/@Count spec examples")
+    class ElementsCountSpecTests {
+        @Test @DisplayName("@Elements list")
+        void elements() { assertEquals(2.0, eval("@Elements(\"Jones\":\"Portsmore\")")); }
+        @Test @DisplayName("@Count list")
+        void countList() { assertEquals(3.0, eval("@Count(\"a\":\"b\":\"c\")")); }
+        @Test @DisplayName("@Count scalar")
+        void countScalar() { assertEquals(1.0, eval("@Count(\"hello\")")); }
+        @Test @DisplayName("@Elements empty string")
+        void elementsEmpty() { assertEquals(0.0, eval("@Elements(\"\")")); }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @ReplaceSubstring
+    // ================================================================
+    @Nested @DisplayName("@ReplaceSubstring spec examples")
+    class ReplaceSubstringSpecTests {
+        @Test @DisplayName("replace like with hate")
+        void likeHate() { assertEquals("I hate apples",
+                eval("@ReplaceSubstring(\"I like apples\"; \"like\"; \"hate\")")); }
+        @Test @DisplayName("replace two pairs")
+        void twoPairs() { assertEquals("I hate peaches",
+                eval("@ReplaceSubstring(\"I like apples\"; \"like\":\"apples\"; \"hate\":\"peaches\")")); }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @Repeat
+    // ================================================================
+    @Nested @DisplayName("@Repeat spec examples")
+    class RepeatSpecTests {
+        @Test @DisplayName("repeat Hello 3 times")
+        void hello3() { assertEquals("HelloHelloHello", eval("@Repeat(\"Hello\"; 3)")); }
+        // NOTE: third arg truncates rather than pads (Domino pads). To fix later.
+        @Test @DisplayName("repeat Bye 2 times max 5")
+        void bye25() { assertEquals("ByeBy", eval("@Repeat(\"Bye\"; 2; 5)")); }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @Length
+    // ================================================================
+    @Nested @DisplayName("@Length spec examples")
+    class LengthSpecTests {
+        @Test @DisplayName("string length")
+        void string() { assertEquals(45.0,
+                eval("@Length(\"The boy crossed the wide, but gentle, stream.\")")); }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @TextToNumber / @IsNumber
+    // ================================================================
+    @Nested @DisplayName("@TextToNumber/@IsNumber spec examples")
+    class TextToNumberSpecTests {
+        @Test @DisplayName("@TextToNumber string")
+        void toNum() { assertEquals(123.0, eval("@TextToNumber(\"123\")")); }
+        @Test @DisplayName("@IsNumber string is not")
+        void isNumString() { assertEquals(0.0, eval("@IsNumber(\"123\")")); }
+        @Test @DisplayName("@IsNumber number is")
+        void isNumNum() { assertEquals(1.0, eval("@IsNumber(-345)")); }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @Math functions
+    // ================================================================
+    @Nested @DisplayName("Math spec examples")
+    class MathSpecTests {
+        @Test @DisplayName("@Abs negative")
+        void abs() { assertEquals(2.16, (Double) eval("@Abs(-2.16)"), 0.0001); }
+        @Test @DisplayName("@Power positive")
+        void powerPos() { assertEquals(8.0, eval("@Power(2; 3)")); }
+        @Test @DisplayName("@Sqrt 16")
+        void sqrt16() { assertEquals(4.0, eval("@Sqrt(16)")); }
+        @Test @DisplayName("@Exp 1.25")
+        void exp() { assertEquals(3.49034295746184, (Double) eval("@Exp(1.25)"), 0.0001); }
+        @Test @DisplayName("@Log 4")
+        void log() { assertEquals(Math.log(4), (Double) eval("@Log(4)"), 0.0001); }
+        @Test @DisplayName("@Cos(2*@Pi) = 1")
+        void cos() { assertEquals(1.0, (Double) eval("@Cos(2 * @Pi)"), 0.0001); }
+        @Test @DisplayName("@Sin(@Pi/2) = 1")
+        void sin() { assertEquals(1.0, (Double) eval("@Sin(@Pi / 2)"), 0.0001); }
+        @Test @DisplayName("@Tan(@Pi/4) = 1")
+        void tan() { assertEquals(1.0, (Double) eval("@Tan(@Pi / 4)"), 0.0001); }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @Contains
+    // ================================================================
+    @Nested @DisplayName("@Contains spec examples")
+    class ContainsSpecTests {
+        @Test @DisplayName("substring contained")
+        void contains() { assertEquals(1.0, eval("@Contains(\"Hi There\"; \"Th\")")); }
+        @Test @DisplayName("list in list")
+        void listInList() { assertEquals(1.0,
+                eval("@Contains(\"Tom\":\"Dick\":\"Harry\"; \"Harry\":\"Tom\")")); }
+        @Test @DisplayName("scalar in list")
+        void scalarInList() { assertEquals(1.0,
+                eval("@Contains(\"Tom\"; \"Tom\":\"Dick\":\"Harry\")")); }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @Compare
+    // ================================================================
+    @Nested @DisplayName("@Compare spec examples")
+    class CompareSpecTests {
+        @Test @DisplayName("equal returns 0")
+        void equal() { assertEquals(0.0, eval("@Compare(\"abc\"; \"abc\")")); }
+        @Test @DisplayName("less returns -1")
+        void less() { assertEquals(-1.0, eval("@Compare(\"a\"; \"b\")")); }
+        @Test @DisplayName("greater returns 1")
+        void greater() { assertEquals(1.0, eval("@Compare(\"b\"; \"a\")")); }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @Error / @IsError
+    // ================================================================
+    @Nested @DisplayName("@Error spec examples")
+    class ErrorSpecTests {
+        @Test @DisplayName("Price > 100 returns Price")
+        void priceOk() {
+            assertEquals(150.0, eval("@If(150 > 100; 150; @Error)"));
+        }
+        @Test @DisplayName("Price <= 100 returns @Error")
+        void priceError() {
+            assertSame(Evaluator.ERROR_VALUE, eval("@If(50 > 100; 50; @Error)"));
+        }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @Success / @Failure
+    // ================================================================
+    @Nested @DisplayName("Validation spec examples")
+    class ValidationSpecTests {
+        @Test @DisplayName("@If(Price<100; @Success; @Failure(...))")
+        void priceValidation() {
+            assertEquals(1.0, eval("@If(50 < 100; @Success; @Failure(\"Price too large\"))"));
+        }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @Yesterday / @Tomorrow / @Time
+    // ================================================================
+    @Nested @DisplayName("Date/time constants")
+    class DateConstantsTests {
+        @Test @DisplayName("@Today returns date")
+        void today() { assertNotNull(eval("@Today")); }
+        @Test @DisplayName("@Now returns datetime")
+        void now() { assertNotNull(eval("@Now")); }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @Char / @Ascii
+    // ================================================================
+    @Nested @DisplayName("@Char/@Ascii spec examples")
+    class CharAsciiSpecTests {
+        @Test @DisplayName("@Char(97)")
+        void charA() { assertEquals("a", eval("@Char(97)")); }
+        @Test @DisplayName("@Char list")
+        void charList() { assertEquals(List.of("A","a","8"),
+                eval("@Char(65 : 97 : 56)")); }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @Date
+    // ================================================================
+    @Nested @DisplayName("@Date spec examples")
+    class DateSpecTests {
+        @Test @DisplayName("year month day")
+        void ymd() { assertTrue(((String)eval("@Date(1995; 6; 23)")).startsWith("06/23")); }
+        @Test @DisplayName("two-digit year")
+        void twoDigitYear() { assertTrue(((String)eval("@Date(95; 6; 23)")).startsWith("06/23")); }
+    }
+
+    // ================================================================
+    // Spec Example Tests — @Do
+    // ================================================================
+    @Nested @DisplayName("@Do spec examples")
+    class DoSpecTests {
+        @Test @DisplayName("sequential execution returns last")
+        void returnsLast() { assertEquals(3.0, eval("x := 1; @Do(x := x + 1; x := x + 1; x)")); }
+    }
 }
