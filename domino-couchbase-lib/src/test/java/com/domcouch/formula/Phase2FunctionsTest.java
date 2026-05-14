@@ -390,7 +390,7 @@ class Phase2FunctionsTest {
         @Test @DisplayName("basic repeat")
         void basic() { assertEquals("HelloHelloHello", eval("@Repeat(\"Hello\"; 3)")); }
         @Test @DisplayName("with max chars truncation")
-        void maxChars() { assertEquals("ByeBy", eval("@Repeat(\"Bye\"; 2; 5)")); }
+        void maxChars() { assertEquals("Bye  Bye  ", eval("@Repeat(\"Bye\"; 2; 5)")); }
         @Test @DisplayName("list support")
         void listSupport() {
             assertEquals(List.of("HelloHelloHello", "ByeByeBye"), eval("@Repeat(\"Hello\" : \"Bye\"; 3)"));
@@ -952,9 +952,9 @@ class Phase2FunctionsTest {
     class RepeatSpecTests {
         @Test @DisplayName("repeat Hello 3 times")
         void hello3() { assertEquals("HelloHelloHello", eval("@Repeat(\"Hello\"; 3)")); }
-        // NOTE: third arg truncates rather than pads (Domino pads). To fix later.
-        @Test @DisplayName("repeat Bye 2 times max 5")
-        void bye25() { assertEquals("ByeBy", eval("@Repeat(\"Bye\"; 2; 5)")); }
+        // NOTE: third arg pads each repetition to maxChars
+        @Test @DisplayName("repeat Bye 2 times padding 5")
+        void bye25() { assertEquals("Bye  Bye  ", eval("@Repeat(\"Bye\"; 2; 5)")); }
     }
 
     // ================================================================
@@ -1281,7 +1281,7 @@ class Phase2FunctionsTest {
     @Nested @DisplayName("@LeftBack @RightBack")
     class BackSubstringTests {
         // @LeftBack(string; number) removes last N chars
-        @Test @DisplayName("@LeftBack char count") void leftBackChars() { assertEquals("Len", eval("@LeftBack(\"Lennard Wallace\"; 3)")); }
+        @Test @DisplayName("@LeftBack char count") void leftBackChars() { assertEquals("Lennard Wall", eval("@LeftBack(\"Lennard Wallace\"; 3)")); }
         // @LeftBack(string; separator) returns everything left of LAST separator
         @Test @DisplayName("@LeftBack separator") void leftBackSep() { assertEquals("Lennard Wallace", eval("@LeftBack(\"Lennard Wallace\"; \"x\")")); }
         @Test @DisplayName("@RightBack char count") void rightBackChars() { assertEquals("ace", eval("@RightBack(\"Lennard Wallace\"; 3)")); }

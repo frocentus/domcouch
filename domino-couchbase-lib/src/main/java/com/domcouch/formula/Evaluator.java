@@ -441,6 +441,63 @@ public class Evaluator {
     }
 
     /**
+     * Shared implementation for @Middle and @MiddleBack.
+     * Overloads: (str, off, n), (str, off, sub), (str, sub, n), (str, sub, sub)
+     */
+    private static Object middleExtract(Evaluator ev, java.util.List<Expr> args,
+                                         FormulaContext ctx, boolean fromBack) {
+        String s = toString(ev.eval(args.get(0), ctx));
+        Object fromObj = ev.eval(args.get(1), ctx);
+        Object toObj = args.size() > 2 ? ev.eval(args.get(2), ctx) : null;
+
+        // Determine start index
+        int start;
+        if (fromObj instanceof Number) {
+            int off = ((Number) fromObj).intValue();
+            start = fromBack ? s.length() - Math.abs(off) + (off > 0 ? 1 : 0) : off - 1;
+            if (off == 0) start = fromBack ? s.length() : 0;
+        } else {
+            String sub = toString(fromObj);
+            if (sub.isEmpty()) return fromBack ? s : "";
+            int idx = fromBack ? s.lastIndexOf(sub) : s.indexOf(sub);
+            if (idx < 0) return "";
+            start = fromBack ? idx : idx + sub.length();
+        }
+        start = Math.max(0, Math.min(start, s.length()));
+
+        // Determine end index
+        int end = fromBack ? start : s.length();
+        if (toObj == null) {
+            end = fromBack ? 0 : s.length();
+        } else if (toObj instanceof Number) {
+            int len = ((Number) toObj).intValue();
+            if (fromBack) {
+                end = Math.max(0, start - Math.abs(len));
+                int tmp = start; start = end; end = tmp;
+            } else {
+                if (len > 0) end = Math.min(s.length(), start + len);
+                else end = s.length() + len;
+            }
+        } else {
+            String toSub = toString(toObj);
+            if (!toSub.isEmpty()) {
+                int idx = fromBack
+                        ? s.lastIndexOf(toSub, start - 1)
+                        : s.indexOf(toSub, start);
+                if (fromBack) {
+                    if (idx >= 0) start = idx + toSub.length();
+                } else {
+                    end = idx >= 0 ? idx : s.length();
+                }
+            }
+        }
+        start = Math.max(0, Math.min(start, s.length()));
+        end = Math.max(0, Math.min(end, s.length()));
+        if (start > end) { int tmp = start; start = end; end = tmp; }
+        return start == end ? "" : s.substring(start, end);
+    }
+
+    /**
      * Convert a Domino @Matches pattern to a Java regex Pattern.
      * Handles: ? → ., * → .*, {ABC} → [ABC], {A-F} → [A-F].
      * Simple characters are case-insensitive; {}-enclosed chars are case-sensitive.
@@ -452,20 +509,38 @@ public class Evaluator {
             char c = pattern.charAt(i);
             if (c == '?') { regex.append('.'); i++; }
             else if (c == '*') { regex.append(".*"); i++; }
+            else if (c == '+') { if (regex.length() > 0) regex.append('+'); i++; }
+            else if (c == '|') { regex.append('|'); i++; }
             else if (c == '{') {
                 int end = pattern.indexOf('}', i);
                 if (end < 0) { regex.append("\\{"); i++; }
                 else {
                     String inner = pattern.substring(i + 1, end);
-                    regex.append('[').append(inner).append(']');
+                    if (inner.startsWith("!")) {
+                        regex.append("[^").append(inner.substring(1)).append(']');
+                    } else {
+                        regex.append('[').append(inner).append(']');
+                    }
                     i = end + 1;
                 }
             } else if (c == '\\' && i + 1 < pattern.length()) {
                 regex.append("\\Q").append(pattern.charAt(i + 1)).append("\\E");
                 i += 2;
-            } else if ("!|&".indexOf(c) >= 0) {
-                regex.append(".*"); // skip unimplemented operators for now
-                i++;
+            } else if (c == '!' && i + 1 < pattern.length()) {
+                // ! prefix: negative lookahead for next char/group
+                char next = pattern.charAt(i + 1);
+                if (next == '{') {
+                    int end = pattern.indexOf('}', i + 2);
+                    if (end < 0) { regex.append('!'); i++; }
+                    else {
+                        String inner = pattern.substring(i + 3, end);
+                        regex.append("(?![").append(inner).append("]).");
+                        i = end + 1;
+                    }
+                } else {
+                    regex.append("(?!").append(next).append(").");
+                    i += 2;
+                }
             } else {
                 regex.append(Character.toLowerCase(c));
                 i++;
@@ -640,16 +715,23 @@ public class Evaluator {
         });
 // TODO: @Explode missing includeEmpties and newlineAsSeparator params
         functions.put("EXPLODE", (ev, args, ctx) -> {
-            String s = toString(ev.eval(args.get(0), ctx));
+            Object src = ev.eval(args.get(0), ctx);
+            List<Object> sources = toList(src);
             String sep = args.size() > 1 ? toString(ev.eval(args.get(1), ctx)) : " ,;";
             if (sep.isEmpty()) sep = " ,;";
+            boolean includeEmpties = args.size() > 2 && isTruthy(ev.eval(args.get(2), ctx));
+            boolean newlineAsSep = args.size() <= 3 || isTruthy(ev.eval(args.get(3), ctx));
             // Build regex character class from separators
-            StringBuilder regex = new StringBuilder("[");
-            for (char c : sep.toCharArray()) regex.append("\\").append(c);
-            regex.append("]+");
-            String[] parts = s.split(regex.toString());
+            String sepChars = newlineAsSep ? sep + "\n" : sep;
+            String sepPattern = "[" + java.util.regex.Pattern.quote(sepChars) + "]+";
             java.util.List<Object> result = new java.util.ArrayList<>();
-            for (String p : parts) if (!p.isEmpty()) result.add(p);
+            for (Object item : sources) {
+                String s = toString(item);
+                String[] parts = s.split(sepPattern, includeEmpties ? -1 : 0);
+                for (String p : parts) {
+                    if (includeEmpties || !p.isEmpty()) result.add(p);
+                }
+            }
             return result.isEmpty() ? "" : result.size() == 1 ? result.get(0) : result;
         });
         functions.put("TRIM", (ev, args, ctx) -> {
@@ -726,14 +808,18 @@ public class Evaluator {
         functions.put("REPEAT", (ev, args, ctx) -> {
             Object val = ev.eval(args.get(0), ctx);
             int n = (int) toNumber(ev.eval(args.get(1), ctx));
-            int maxChars = args.size() > 2 ? (int) toNumber(ev.eval(args.get(2), ctx)) : Integer.MAX_VALUE;
+            int maxChars = args.size() > 2 ? (int) toNumber(ev.eval(args.get(2), ctx)) : 0;
             List<Object> sources = toList(val);
             List<Object> result = new ArrayList<>();
             for (Object src : sources) {
                 String s = toString(src);
-                String repeated = s.repeat(Math.max(0, n));
-                if (repeated.length() > maxChars) repeated = repeated.substring(0, maxChars);
-                result.add(repeated);
+                if (maxChars > 0) {
+                    // Pad each repetition to maxChars: @Repeat("Bye"; 2; 5) → "Bye  Bye  "
+                    String padded = String.format("%-" + maxChars + "s", s);
+                    result.add(padded.repeat(Math.max(0, n)));
+                } else {
+                    result.add(s.repeat(Math.max(0, n)));
+                }
             }
             return result.size() == 1 ? result.get(0) : result;
         });
@@ -1103,7 +1189,8 @@ public class Evaluator {
                 String str = toString(item);
                 if (arg instanceof Number) {
                     int n = ((Number) arg).intValue();
-                    result.add(n <= 0 ? "" : str.substring(0, Math.min(n, str.length())));
+                    // Remove last N chars: @LeftBack("Lennard Wallace"; 3) → "Lennard Wal"
+                    result.add(n <= 0 ? str : str.substring(0, Math.max(0, str.length() - n)));
                 } else {
                     String sep = toString(arg);
                     int idx = str.lastIndexOf(sep);
@@ -1132,91 +1219,8 @@ public class Evaluator {
             return result.size() == 1 ? result.get(0) : result;
         });
 // TODO: @Middle complex overloads (off+n, off+sub, sub+n, sub+sub) — edge cases need review
-        functions.put("MIDDLE", (ev, args, ctx) -> {
-            String s = toString(ev.eval(args.get(0), ctx));
-            Object fromObj = ev.eval(args.get(1), ctx);
-            if (fromObj instanceof Number) {
-                int start = ((Number) fromObj).intValue();
-                if (args.size() > 2) {
-                    Object toObj = ev.eval(args.get(2), ctx);
-                    if (toObj instanceof Number) {
-                        int len = ((Number) toObj).intValue();
-                        if (len < 0) return s.substring(Math.max(0, s.length() + len), Math.min(s.length(), start));
-                        return start <= 0 ? "" : s.substring(start - 1, Math.min(s.length(), start - 1 + len));
-                    }
-                    String sep = toString(toObj);
-                    if (sep.isEmpty()) return s.substring(start - 1);
-                    int from = start <= 0 ? 0 : start - 1;
-                    int to = s.indexOf(sep, from);
-                    return to < 0 ? s.substring(from) : s.substring(from, to);
-                }
-                return start <= 0 ? "" : s.substring(start - 1);
-            }
-            // fromObj is a separator string
-            String sep = toString(fromObj);
-            int idx = s.indexOf(sep);
-            if (idx < 0) return "";
-            int start = idx + sep.length();
-            if (args.size() > 2) {
-                Object toObj = ev.eval(args.get(2), ctx);
-                if (toObj instanceof Number) {
-                    int n = ((Number) toObj).intValue();
-                    if (n > 0) return start + n <= s.length() ? s.substring(start, start + n) : s.substring(start);
-                    int end = start + (-n) > s.length() ? s.length() : start + (-n);
-                    return s.substring(start, end);
-                }
-                String toSep = toString(toObj);
-                if (toSep.isEmpty()) return s.substring(start);
-                int to = s.indexOf(toSep, start);
-                return to < 0 ? s.substring(start) : s.substring(start, to);
-            }
-            return s.substring(start);
-        });
-// TODO: @MiddleBack complex overloads — edge cases need review
-        functions.put("MIDDLEBACK", (ev, args, ctx) -> {
-            String s = toString(ev.eval(args.get(0), ctx));
-            Object fromObj = ev.eval(args.get(1), ctx);
-            if (fromObj instanceof Number) {
-                int start = ((Number) fromObj).intValue();
-                int from = s.length() - start + 1;
-                if (args.size() > 2) {
-                    Object toObj = ev.eval(args.get(2), ctx);
-                    if (toObj instanceof Number) {
-                        int len = ((Number) toObj).intValue();
-                        from = s.length() - Math.abs(start) + 1;
-                        return s.substring(Math.max(0, from - len), Math.min(s.length(), from));
-                    }
-                    String sep = toString(toObj);
-                    if (sep.isEmpty()) return s.substring(from - 1);
-                    int to = s.lastIndexOf(sep, from - 1);
-                    return to < 0 ? s.substring(0, from) : s.substring(to + sep.length(), from);
-                }
-                return from <= 0 ? "" : s.substring(0, from);
-            }
-            // fromObj is separator string
-            String sep = toString(fromObj);
-            if (sep.isEmpty()) return s;
-            int idxEnd = s.lastIndexOf(sep);
-            if (idxEnd < 0) return "";
-            if (args.size() > 2) {
-                Object toObj = ev.eval(args.get(2), ctx);
-                if (toObj instanceof Number) {
-                    int n = ((Number) toObj).intValue();
-                    if (n > 0) {
-                        int end = Math.min(idxEnd + n, s.length());
-                        return s.substring(idxEnd, end);
-                    }
-                    int to = idxEnd + (-n);
-                    to = Math.max(0, idxEnd - to);
-                    return s.substring(to, idxEnd);
-                }
-                String toSep = toString(toObj);
-                if (toSep.isEmpty()) return s.substring(idxEnd);
-                int to = s.lastIndexOf(toSep, idxEnd - 1);
-                return to < 0 ? s.substring(0, idxEnd) : s.substring(to + toSep.length(), idxEnd);
-            }
-            return s.substring(idxEnd);
-        });
+        functions.put("MIDDLE", (ev, args, ctx) -> middleExtract(ev, args, ctx, false));
+        functions.put("MIDDLEBACK", (ev, args, ctx) -> middleExtract(ev, args, ctx, true));
         functions.put("PROPERCASE", (ev, args, ctx) -> {
             List<Object> sources = toList(ev.eval(args.get(0), ctx));
             List<Object> result = new ArrayList<>();
@@ -1314,20 +1318,24 @@ public class Evaluator {
         functions.put("LIKE", (ev, args, ctx) -> {
             Object str = ev.eval(args.get(0), ctx);
             Object pat = ev.eval(args.get(1), ctx);
-            String escape = args.size() > 2 ? toString(ev.eval(args.get(2), ctx)) : null;
+            String escapeChar = args.size() > 2 ? toString(ev.eval(args.get(2), ctx)) : null;
             return boolToNum(anyPairMatch(str, pat, (s, pattern) -> {
-                // Convert Domino LIKE pattern to regex
-                String esc = escape != null && !escape.isEmpty() ? escape : "\\\\";
                 StringBuilder regex = new StringBuilder();
                 regex.append("^(?i)"); // case-insensitive by default
                 for (int i = 0; i < pattern.length(); i++) {
                     char c = pattern.charAt(i);
+                    // Check escape character first
+                    if (escapeChar != null && !escapeChar.isEmpty()
+                            && pattern.startsWith(escapeChar, i)) {
+                        i += escapeChar.length() - 1; // skip escape prefix
+                        if (i + 1 < pattern.length()) {
+                            regex.append(Pattern.quote(String.valueOf(pattern.charAt(i + 1))));
+                            i++;
+                        }
+                        continue;
+                    }
                     if (c == '_') regex.append('.');
                     else if (c == '%') regex.append(".*");
-                    else if (escape != null && i < pattern.length() - escape.length()) {
-                        String sub = pattern.substring(i, i + escape.length());
-                        if (sub.equals(escape)) { regex.append(Pattern.quote(escape)); i += escape.length() - 1; continue; }
-                    }
                     else regex.append(Pattern.quote(String.valueOf(c)));
                 }
                 regex.append("$");
