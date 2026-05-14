@@ -173,7 +173,7 @@ public class Evaluator {
             Object b = l2.get(Math.min(i, l2.size() - 1));
             result.add(op.apply(a, b));
         }
-        return result.size() == 1 ? result.get(0) : result;
+        return result.size() == 1 ? result.getFirst() : result;
     }
 
     /** Permuted: every combination of elements from left × right. */
@@ -182,7 +182,7 @@ public class Evaluator {
         List<Object> l2 = toList(right);
         List<Object> result = new ArrayList<>();
         for (Object a : l1) for (Object b : l2) result.add(op.apply(a, b));
-        return result.size() == 1 ? result.get(0) : result;
+        return result.size() == 1 ? result.getFirst() : result;
     }
 
     /** Returns true if any pair-wise comparison yields truthy. */
@@ -382,11 +382,11 @@ public class Evaluator {
     /** Map a single-arg math function over a value or list. */
     private static Object map1(Evaluator ev, List<Expr> args, FormulaContext ctx,
                                 java.util.function.DoubleUnaryOperator fn) {
-        Object val = ev.eval(args.get(0), ctx);
+        Object val = ev.eval(args.getFirst(), ctx);
         List<Object> sources = toList(val);
         List<Object> result = new ArrayList<>();
         for (Object src : sources) result.add(fn.applyAsDouble(toNumber(src)));
-        return result.size() == 1 ? result.get(0) : result;
+        return result.size() == 1 ? result.getFirst() : result;
     }
 
     /** Map a dual-arg math function pair-wise over value(s) or list(s). */
@@ -403,7 +403,7 @@ public class Evaluator {
             double b = toNumber(list2.get(Math.min(i, list2.size() - 1)));
             result.add(fn.applyAsDouble(a, b));
         }
-        return result.size() == 1 ? result.get(0) : result;
+        return result.size() == 1 ? result.getFirst() : result;
     }
 
     /** Check if any pair (a,b) from two values (or lists) matches the predicate. */
@@ -482,9 +482,28 @@ public class Evaluator {
         if (upper.matches(".*[0-9]+")) {
             try { decimals = Integer.parseInt(upper.replaceAll("[^0-9]", "")); } catch (Exception e) {}
         }
-        if (upper.contains("S")) return String.format(us, "%." + decimals + "E", value);
-        if (upper.contains("C")) return "$" + String.format(us, "%." + decimals + "f", value);
-        if (upper.contains("%")) return String.format(us, "%." + decimals + "f", value * 100) + "%";
+        int minWidth = 0;
+        // Fixed-width padding: format contains a number after all letters (e.g., "C,8" → width 8)
+        var widthMatch = java.util.regex.Pattern.compile("([A-Z,]+)(\\d+)$").matcher(upper.strip());
+        if (widthMatch.find()) {
+            try { minWidth = Integer.parseInt(widthMatch.group(2)); } catch (Exception e) {}
+        }
+
+        if (upper.contains("S")) {
+            String r = String.format(us, "%." + decimals + "E", value);
+            if (minWidth > r.length()) r = String.format("%" + minWidth + "s", r);
+            return r;
+        }
+        if (upper.contains("C")) {
+            String r = "$" + String.format(us, "%." + decimals + "f", value);
+            if (minWidth > r.length()) r = String.format("%" + minWidth + "s", r);
+            return r;
+        }
+        if (upper.contains("%")) {
+            String r = String.format(us, "%." + decimals + "f", value * 100) + "%";
+            if (minWidth > r.length()) r = String.format("%" + minWidth + "s", r);
+            return r;
+        }
         String result = String.format(us, "%." + decimals + "f", value);
         if (upper.contains(",")) {
             String[] parts = result.split("\\.");
@@ -494,7 +513,31 @@ public class Evaluator {
         }
         if (upper.contains("(") && upper.contains(")") && value < 0)
             result = "(" + result.substring(1) + ")";
+        if (minWidth > result.length())
+            result = String.format("%" + minWidth + "s", result);
         return result;
+    }
+
+    /** Format a date/time string according to a Domino date format code. */
+    // TODO: @Text date format strings (D0-D3, T0-T1, S0-S3) — basic support
+    private static String formatDate(String dateStr, String format) {
+        java.time.ZonedDateTime zdt = parseDateToZoned(dateStr);
+        if (zdt == null) return dateStr;
+        String upper = format.toUpperCase().strip();
+        java.time.format.DateTimeFormatter fmt = switch (upper) {
+            case "D0" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy");
+            case "D1" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd");
+            case "D2" -> java.time.format.DateTimeFormatter.ofPattern("MM/yyyy");
+            case "D3" -> java.time.format.DateTimeFormatter.ofPattern("yyyy/MM");
+            case "T0" -> java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss");
+            case "T1" -> java.time.format.DateTimeFormatter.ofPattern("HH:mm");
+            case "S0" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy");
+            case "S1" -> java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss");
+            case "S2" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");
+            case "S3" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");
+            default -> null;
+        };
+        return fmt != null ? fmt.format(zdt) : dateStr;
     }
 
     // ---- Built-in function registration ----
@@ -502,11 +545,11 @@ public class Evaluator {
     private void registerBuiltins() {
         // Math functions
         functions.put("ABS", (ev, args, ctx) -> {
-            Object val = ev.eval(args.get(0), ctx);
+            Object val = ev.eval(args.getFirst(), ctx);
             List<Object> sources = toList(val);
             List<Object> result = new ArrayList<>();
             for (Object src : sources) result.add(Math.abs(toNumber(src)));
-            return result.size() == 1 ? result.get(0) : result;
+            return result.size() == 1 ? result.getFirst() : result;
         });
         functions.put("ACOS", (ev, args, ctx) -> map1(ev, args, ctx, Math::acos));
         functions.put("ASIN", (ev, args, ctx) -> map1(ev, args, ctx, Math::asin));
@@ -530,7 +573,7 @@ public class Evaluator {
                 double v = toNumber(src);
                 result.add(Math.round(v / factor) * factor);
             }
-            return result.size() == 1 ? result.get(0) : result;
+            return result.size() == 1 ? result.getFirst() : result;
         });
 
         // Calendar functions
@@ -550,12 +593,12 @@ public class Evaluator {
                 for (java.time.LocalDate d = s; !d.isAfter(e); d = d.plusDays(1)) days++;
                 result.add((double) days);
             }
-            return result.size() == 1 ? result.get(0) : result;
+            return result.size() == 1 ? result.getFirst() : result;
         });
 
         // String functions
         functions.put("ASCII", (ev, args, ctx) -> {
-            Object val = ev.eval(args.get(0), ctx);
+            Object val = ev.eval(args.getFirst(), ctx);
             boolean allInRange = args.size() > 1;
             List<Object> sources = toList(val);
             List<Object> result = new ArrayList<>();
@@ -720,6 +763,8 @@ public class Evaluator {
             for (Object src : sources) {
                 if (src instanceof Number n && format != null && !format.isEmpty()) {
                     result.add(formatNumber(n.doubleValue(), format));
+                } else if (format != null && !format.isEmpty() && (format.startsWith("D") || format.startsWith("T") || format.startsWith("S"))) {
+                    result.add(formatDate(toString(src), format));
                 } else {
                     result.add(toString(src));
                 }
@@ -749,12 +794,12 @@ public class Evaluator {
                 }
                 result.add(d);
             }
-            return result.size() == 1 ? result.get(0) : result;
+            return result.size() == 1 ? result.getFirst() : result;
         });
 
         // Type checking
         functions.put("ISNUMBER", (ev, args, ctx) -> {
-            Object v = ev.eval(args.get(0), ctx);
+            Object v = ev.eval(args.getFirst(), ctx);
             if (v instanceof Number) return 1.0;
             if (v instanceof List<?> list) {
                 for (Object elem : list) {
@@ -765,7 +810,7 @@ public class Evaluator {
             return 0.0;
         });
         functions.put("ISTEXT", (ev, args, ctx) -> {
-            Object v = ev.eval(args.get(0), ctx);
+            Object v = ev.eval(args.getFirst(), ctx);
             if (v instanceof String) return 1.0;
             if (v instanceof List<?> list) {
                 for (Object elem : list) {
@@ -779,11 +824,11 @@ public class Evaluator {
         // Existence
         functions.put("ISAUTHOR", (ev, args, ctx) -> 1.0);
         functions.put("ISAVAILABLE", (ev, args, ctx) -> {
-            String name = toString(ev.eval(args.get(0), ctx));
+            String name = toString(ev.eval(args.getFirst(), ctx));
             return boolToNum(ctx.resolve(name) != null);
         });
         functions.put("ISUNAVAILABLE", (ev, args, ctx) -> {
-            String name = toString(ev.eval(args.get(0), ctx));
+            String name = toString(ev.eval(args.getFirst(), ctx));
             return boolToNum(ctx.resolve(name) == null);
         });
         functions.put("ISNEWDOC", (ev, args, ctx) ->
@@ -800,7 +845,7 @@ public class Evaluator {
 // TODO: @Attachments returns 0; needs binary attachment support
         functions.put("ATTACHMENTS", (ev, args, ctx) -> 0.0); // no attachment support yet
         functions.put("ISAVAILABLE", (ev, args, ctx) -> {
-            if (args.get(0) instanceof Expr.Variable v) {
+            if (args.getFirst() instanceof Expr.Variable v) {
                 Object val = ctx.resolve(v.name());
                 return boolToNum(val != null);
             }
@@ -809,7 +854,7 @@ public class Evaluator {
 
         // List functions
         functions.put("ELEMENTS", (ev, args, ctx) -> {
-            Object val = ev.eval(args.get(0), ctx);
+            Object val = ev.eval(args.getFirst(), ctx);
             if (val instanceof List l) return (double) l.size();
             if (val == null || (val instanceof String s && s.isEmpty())) return 0.0;
             return 1.0;
@@ -856,7 +901,7 @@ public class Evaluator {
                 int idx = from.indexOf(src);
                 result.add(idx >= 0 && idx < to.size() ? to.get(idx) : src);
             }
-            return result.size() == 1 ? result.get(0) : result;
+            return result.size() == 1 ? result.getFirst() : result;
         });
 
         // Control flow
@@ -864,7 +909,7 @@ public class Evaluator {
             // @If(cond1; action1; cond2; action2; ...; else)
             int n = args.size();
             if (n == 0) return "";
-            if (n == 1) { ev.eval(args.get(0), ctx); return ""; } // cond only, no action
+            if (n == 1) { ev.eval(args.getFirst(), ctx); return ""; } // cond only, no action
             for (int i = 0; i + 1 < n; i += 2) {
                 boolean cond = isTruthy(ev.eval(args.get(i), ctx));
                 if (cond) return ev.eval(args.get(i + 1), ctx);
@@ -879,7 +924,7 @@ public class Evaluator {
             return last;
         });
         functions.put("RETURN", (ev, args, ctx) -> {
-            throw new ReturnValue(ev.eval(args.get(0), ctx));
+            throw new ReturnValue(ev.eval(args.getFirst(), ctx));
         });
 
         // Date construction
@@ -904,7 +949,7 @@ public class Evaluator {
                     result.add(DT_FMT.format(zdt.toLocalDate().atStartOfDay(zdt.getZone())));
                 } else result.add("");
             }
-            return result.size() == 1 ? result.get(0) : result;
+            return result.size() == 1 ? result.getFirst() : result;
         });
 
         // Date/time
@@ -938,7 +983,7 @@ public class Evaluator {
                        .plusDays(days).plusMonths(months).plusYears(years);
                 result.add(DT_FMT.format(dt));
             }
-            return result.size() == 1 ? result.get(0) : result;
+            return result.size() == 1 ? result.getFirst() : result;
         });
 
         // Security
@@ -958,7 +1003,7 @@ public class Evaluator {
 // TODO: @DocLock returns stubs; needs Couchbase document-level locking
         functions.put("DOCLOCK", (ev, args, ctx) -> {
             if (args.isEmpty()) return "";
-            String kw = toString(ev.eval(args.get(0), ctx));
+            String kw = toString(ev.eval(args.getFirst(), ctx));
             return switch (kw) {
                 case "LOCK", "UNLOCK" -> 1.0;
                 case "STATUS" -> "";
@@ -975,16 +1020,16 @@ public class Evaluator {
 
         // Validation
         functions.put("FAILURE", (ev, args, ctx) ->
-                args.isEmpty() ? "" : toString(ev.eval(args.get(0), ctx)));
+                args.isEmpty() ? "" : toString(ev.eval(args.getFirst(), ctx)));
 
         // Side-effects
         functions.put("DELETEFIELD", (ev, args, ctx) -> new Expr.DeleteField(
-                args.isEmpty() ? new Expr.Variable("") : args.get(0)));
+                args.isEmpty() ? new Expr.Variable("") : args.getFirst()));
 
         // Error handling
         functions.put("ERROR", (ev, args, ctx) -> ERROR_VALUE);
         functions.put("ISERROR", (ev, args, ctx) ->
-                boolToNum(ev.eval(args.get(0), ctx) == ERROR_VALUE));
+                boolToNum(ev.eval(args.getFirst(), ctx) == ERROR_VALUE));
 
         // ---- List aggregation ----
         functions.put("MAX", (ev, args, ctx) -> {
@@ -1008,7 +1053,7 @@ public class Evaluator {
             return r < 0 ? r + Math.abs(b) : r;
         }));
         functions.put("SIGN", (ev, args, ctx) -> {
-            double v = toNumber(ev.eval(args.get(0), ctx));
+            double v = toNumber(ev.eval(args.getFirst(), ctx));
             return v > 0 ? 1.0 : v < 0 ? -1.0 : 0.0;
         });
 
@@ -1018,15 +1063,15 @@ public class Evaluator {
             int n = (int) toNumber(ev.eval(args.get(1), ctx));
             List<Object> r = new java.util.ArrayList<>();
             if (n > 0) for (int i = 0; i < n && i < src.size(); i++) r.add(src.get(i));
-            else for (int i = src.size() - 1; i >= src.size() + n && i >= 0; i--) r.add(0, src.get(i));
-            return r.isEmpty() ? "" : r.size() == 1 ? r.get(0) : r;
+            else for (int i = src.size() - 1; i >= src.size() + n && i >= 0; i--) r.addFirst(src.get(i));
+            return r.isEmpty() ? "" : r.size() == 1 ? r.getFirst() : r;
         });
         functions.put("UNIQUE", (ev, args, ctx) -> {
-            List<Object> src = toList(ev.eval(args.get(0), ctx));
+            List<Object> src = toList(ev.eval(args.getFirst(), ctx));
             java.util.LinkedHashSet<Object> seen = new java.util.LinkedHashSet<>();
             for (Object o : src) seen.add(toString(o));
             List<Object> r = new java.util.ArrayList<>(seen);
-            return r.isEmpty() ? "" : r.size() == 1 ? r.get(0) : r;
+            return r.isEmpty() ? "" : r.size() == 1 ? r.getFirst() : r;
         });
         functions.put("MEMBER", (ev, args, ctx) -> {
             Object needle = ev.eval(args.get(0), ctx);
@@ -1404,17 +1449,17 @@ public class Evaluator {
         functions.put("CONTAINS", (ev, args, ctx) -> {
             Object a = ev.eval(args.get(0), ctx);
             Object b = ev.eval(args.get(1), ctx);
-            return boolToNum(anyPairMatch(a, b, (s1, s2) -> s1.contains(s2)));
+            return boolToNum(anyPairMatch(a, b, String::contains));
         });
         functions.put("BEGINS", (ev, args, ctx) -> {
             Object a = ev.eval(args.get(0), ctx);
             Object b = ev.eval(args.get(1), ctx);
-            return boolToNum(anyPairMatch(a, b, (s1, s2) -> s1.startsWith(s2)));
+            return boolToNum(anyPairMatch(a, b, String::startsWith));
         });
         functions.put("ENDS", (ev, args, ctx) -> {
             Object a = ev.eval(args.get(0), ctx);
             Object b = ev.eval(args.get(1), ctx);
-            return boolToNum(anyPairMatch(a, b, (s1, s2) -> s1.endsWith(s2)));
+            return boolToNum(anyPairMatch(a, b, String::endsWith));
         });
 
         functions.put("FILEDIR", (ev, args, ctx) -> {
