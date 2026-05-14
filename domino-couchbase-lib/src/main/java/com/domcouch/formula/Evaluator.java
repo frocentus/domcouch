@@ -127,6 +127,16 @@ public class Evaluator {
         Object right = eval(bo.right(), ctx);
 
         return switch (bo.op()) {
+            // Subscript: list[n] or string[n]
+            case "[]" -> {
+                List<Object> list = toList(left);
+                int idx = (int) toNumber(right) - 1; // 1-based
+                if (list.isEmpty()) yield "";
+                if (idx < 0) idx = 0;
+                if (idx >= list.size()) idx = list.size() - 1;
+                yield list.get(idx);
+            }
+
             case "+" -> pairwise(left, right, Evaluator::add);
             case "-" -> pairwise(left, right, Evaluator::subtract);
             case "*" -> pairwise(left, right, Evaluator::multiply);
@@ -149,16 +159,6 @@ public class Evaluator {
             case "*<=" -> boolToNum(anyPermuted(left, right, (a, b) -> compare(a, b) <= 0));
             case "*=" -> boolToNum(anyPermuted(left, right, (a, b) -> compare(a, b) == 0));
             case "*!=" -> boolToNum(anyPermuted(left, right, (a, b) -> compare(a, b) != 0));
-
-            // Subscript: list[n] or string[n]
-            case "[]" -> {
-                List<Object> list = toList(left);
-                int idx = (int) toNumber(right) - 1; // 1-based
-                if (list.isEmpty()) yield "";
-                if (idx < 0) idx = 0;
-                if (idx >= list.size()) idx = list.size() - 1;
-                yield list.get(idx);
-            }
 
             case "&" -> boolToNum(isTruthy(left) && isTruthy(right));
             case "|" -> boolToNum(isTruthy(left) || isTruthy(right));
