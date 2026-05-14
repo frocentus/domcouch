@@ -100,6 +100,8 @@ public final class Lexer {
                     tokens.add(new Token(TokenType.KEYWORD, ct.toUpperCase(), start));
                 }
                 else if (ct.matches("[A-Za-z]")) {
+                    // TODO: multi-letter variable names inside brackets (e.g., items[longName])
+                    // currently only handled as KEYWORD; may need [ + VARIABLE + ] token sequence
                     // Single letter: emit [ and ] for subscript support (e.g., items[n])
                     tokens.add(new Token(TokenType.OPERATOR, "[", start));
                     tokens.add(new Token(TokenType.VARIABLE, ct.toUpperCase(), start + 1));

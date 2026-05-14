@@ -542,6 +542,7 @@ public class Evaluator {
         });
 
         // Calendar functions
+// TODO: @BusinessDays missing daysToExclude and datesToExclude params
         functions.put("BUSINESSDAYS", (ev, args, ctx) -> {
             Object starts = ev.eval(args.get(0), ctx);
             Object ends = ev.eval(args.get(1), ctx);
@@ -602,6 +603,7 @@ public class Evaluator {
             }
             return result.size() == 1 ? result.get(0) : result;
         });
+// TODO: @Explode missing includeEmpties and newlineAsSeparator params
         functions.put("EXPLODE", (ev, args, ctx) -> {
             String s = toString(ev.eval(args.get(0), ctx));
             String sep = args.size() > 1 ? toString(ev.eval(args.get(1), ctx)) : " ,;";
@@ -685,6 +687,7 @@ public class Evaluator {
             }
             return result.size() == 1 ? result.get(0) : result;
         });
+// TODO: @Repeat third arg truncates string; Domino pads each repetition to maxChars
         functions.put("REPEAT", (ev, args, ctx) -> {
             Object val = ev.eval(args.get(0), ctx);
             int n = (int) toNumber(ev.eval(args.get(1), ctx));
@@ -701,6 +704,7 @@ public class Evaluator {
         });
 
         // ---- Pattern matching ----
+// TODO: @Matches missing ! (NOT), | (OR), & (AND), + (one-or-more) operators
         functions.put("MATCHES", (ev, args, ctx) -> {
             Object str = ev.eval(args.get(0), ctx);
             Object pat = ev.eval(args.get(1), ctx);
@@ -715,6 +719,7 @@ public class Evaluator {
         });
 
         // Conversion
+// TODO: @Text missing date format string support (currently number formats only)
         functions.put("TEXT", (ev, args, ctx) -> {
             Object val = ev.eval(args.get(0), ctx);
             String format = args.size() > 1 ? toString(ev.eval(args.get(1), ctx)) : null;
@@ -800,6 +805,7 @@ public class Evaluator {
         functions.put("INHERITEDDOCUMENTUNIQUEID", (ev, args, ctx) ->
                 ctx.resolve("PARENTUNID") != null ? toString(ctx.resolve("PARENTUNID")) : "");
         functions.put("AUTHOR", (ev, args, ctx) -> ctx.resolve("AUTHORS") != null ? ctx.resolve("AUTHORS") : "");
+// TODO: @Attachments returns 0; needs binary attachment support
         functions.put("ATTACHMENTS", (ev, args, ctx) -> 0.0); // no attachment support yet
         functions.put("ISAVAILABLE", (ev, args, ctx) -> {
             if (args.get(0) instanceof Expr.Variable v) {
@@ -912,13 +918,16 @@ public class Evaluator {
         // Date/time
         functions.put("CREATED", (ev, args, ctx) -> ctx.resolve("CREATED"));
         functions.put("MODIFIED", (ev, args, ctx) -> ctx.resolve("MODIFIED"));
+// TODO: @Accessed resolves from context; needs Couchbase document metadata
         functions.put("ACCESSED", (ev, args, ctx) -> ctx.resolve("ACCESSED"));
+// TODO: @AddedToThisFile resolves from context; needs Couchbase document metadata
         functions.put("ADDEDTOTHISFILE", (ev, args, ctx) -> ctx.resolve("ADDEDTOTHISFILE"));
         functions.put("NOW", (ev, args, ctx) -> DT_FMT.format(Instant.now()));
         functions.put("TODAY", (ev, args, ctx) ->
                 DT_FMT.format(java.time.ZonedDateTime.now().toLocalDate().atStartOfDay(java.time.ZoneId.systemDefault())));
 
         // @Adjust: apply adjustments in reverse order (seconds→years)
+// TODO: @Adjust missing [DST] keyword, [INLOCALTIME]/[INGMT], pair-wise list edge cases
         functions.put("ADJUST", (ev, args, ctx) -> {
             Object dateVal = ev.eval(args.get(0), ctx);
             int years = (int) toNumber(ev.eval(args.get(1), ctx));
@@ -951,8 +960,10 @@ public class Evaluator {
         functions.put("REPLICAID", (ev, args, ctx) -> ctx.getDatabaseName());
         functions.put("SERVERNAME", (ev, args, ctx) -> "");
         functions.put("DOCFIELDS", (ev, args, ctx) -> ctx.getFieldNames());
+// TODO: @DocLength returns placeholder 0; needs Couchbase document metadata
         functions.put("DOCLENGTH", (ev, args, ctx) -> 0.0);
         functions.put("DOCUMENTUNIQUEID", (ev, args, ctx) -> ctx.getDocumentUNID());
+// TODO: @DocLock returns stubs; needs Couchbase document-level locking
         functions.put("DOCLOCK", (ev, args, ctx) -> {
             if (args.isEmpty()) return "";
             String kw = toString(ev.eval(args.get(0), ctx));
@@ -1045,6 +1056,7 @@ public class Evaluator {
         });
 
         // ---- String: substring from end ----
+// TODO: @LeftBack with numeric arg should remove last N chars (currently takes first N)
         functions.put("LEFTBACK", (ev, args, ctx) -> {
             Object src = ev.eval(args.get(0), ctx);
             Object arg = ev.eval(args.get(1), ctx);
@@ -1063,6 +1075,7 @@ public class Evaluator {
             }
             return result.size() == 1 ? result.get(0) : result;
         });
+// TODO: @RightBack separator overload: returns rest after first separator; verify all edge cases
         functions.put("RIGHTBACK", (ev, args, ctx) -> {
             Object src = ev.eval(args.get(0), ctx);
             Object arg = ev.eval(args.get(1), ctx);
@@ -1081,6 +1094,7 @@ public class Evaluator {
             }
             return result.size() == 1 ? result.get(0) : result;
         });
+// TODO: @Middle complex overloads (off+n, off+sub, sub+n, sub+sub) — edge cases need review
         functions.put("MIDDLE", (ev, args, ctx) -> {
             String s = toString(ev.eval(args.get(0), ctx));
             Object fromObj = ev.eval(args.get(1), ctx);
@@ -1121,6 +1135,7 @@ public class Evaluator {
             }
             return s.substring(start);
         });
+// TODO: @MiddleBack complex overloads — edge cases need review
         functions.put("MIDDLEBACK", (ev, args, ctx) -> {
             String s = toString(ev.eval(args.get(0), ctx));
             Object fromObj = ev.eval(args.get(1), ctx);
@@ -1258,6 +1273,7 @@ public class Evaluator {
         functions.put("LN", (ev, args, ctx) -> map1(ev, args, ctx, Math::log));
 
         // ---- Pattern matching ----
+// TODO: @Like escape character handling needs refinement
         functions.put("LIKE", (ev, args, ctx) -> {
             Object str = ev.eval(args.get(0), ctx);
             Object pat = ev.eval(args.get(1), ctx);
@@ -1323,8 +1339,10 @@ public class Evaluator {
             return result.size() == 1 ? result.get(0) : result;
         });
         // Time-zone conversions: placeholder (defer)
+// TODO: @TimeToTextInZone placeholder: returns input string; needs proper timezone conversion
         functions.put("TIMETOTEXTINZONE", (ev, args, ctx) ->
                 toString(ev.eval(args.get(0), ctx)));
+// TODO: @TimeZoneToText placeholder: returns "UTC"; needs proper timezone formatting
         functions.put("TIMEZONETOTEXT", (ev, args, ctx) -> "UTC");
 
         // ---- Quick-win placeholders ----
@@ -1348,6 +1366,7 @@ public class Evaluator {
         functions.put("USERNAMELANGUAGE", (ev, args, ctx) -> "EN");
 
         // ---- Document lifecycle ----
+// TODO: @DeleteDocument/@UndeleteDocument/@HardDeleteDocument are stubs; need Couchbase doc lifecycle
         functions.put("DELETEDOCUMENT", (ev, args, ctx) -> 1.0);
         functions.put("UNDELETEDOCUMENT", (ev, args, ctx) -> 1.0);
         functions.put("HARDDELETEDOCUMENT", (ev, args, ctx) -> 1.0);
@@ -1366,6 +1385,7 @@ public class Evaluator {
             return val != null ? val : "";
         });
 
+// TODO: @Now missing [ServerTime] keyword and serverNames param support
         // Formula validation
         functions.put("CHECKFORMULASYNTAX", (ev, args, ctx) -> {
             String formula = toString(ev.eval(args.get(0), ctx));
