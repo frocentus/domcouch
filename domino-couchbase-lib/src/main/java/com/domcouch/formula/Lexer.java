@@ -96,8 +96,17 @@ public final class Lexer {
                 i++;
 
                 String ct = content.toString().trim();
-                if (BRACKET_KEYWORDS.contains(ct.toUpperCase())
-                        || ct.matches("[A-Za-z][A-Za-z]*")) {
+                if (BRACKET_KEYWORDS.contains(ct.toUpperCase())) {
+                    tokens.add(new Token(TokenType.KEYWORD, ct.toUpperCase(), start));
+                }
+                else if (ct.matches("[A-Za-z]")) {
+                    // Single letter: emit [ and ] for subscript support (e.g., items[n])
+                    tokens.add(new Token(TokenType.OPERATOR, "[", start));
+                    tokens.add(new Token(TokenType.VARIABLE, ct.toUpperCase(), start + 1));
+                    tokens.add(new Token(TokenType.OPERATOR, "]", start + ct.length() + 1));
+                }
+                else if (ct.matches("[A-Za-z][A-Za-z]*")) {
+                    // Multi-letter: treat as keyword (e.g., [EditClear])
                     tokens.add(new Token(TokenType.KEYWORD, ct.toUpperCase(), start));
                 }
                 else if (ct.matches("[+-]?\\d+")) {

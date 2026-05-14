@@ -1142,11 +1142,27 @@ class Phase2FunctionsTest {
         void counter() {
             assertEquals(3.0, eval("x := 0; @For(i := 1; i <= 3; i := i + 1; x := x + 1); x"));
         }
-        @Test @DisplayName("loop with @Do style")
+        @Test @DisplayName("loop and sum 1..5")
         void loopDo() {
-            // Accumulate with @Do inline
             Object r = eval("t := 0; @For(n := 1; n <= 5; n := n + 1; t := t + n); t");
-            assertEquals(15.0, r); // 1+2+3+4+5
+            assertEquals(15.0, r);
+        }
+        @Test @DisplayName("subscript items[1]")
+        void subscript1() {
+            vars.put("ITEMS", List.of("a","b","c"));
+            assertEquals("a", eval("items[1]"));
+        }
+        @Test @DisplayName("subscript in @For with literal index")
+        void subscriptForLiteral() {
+            vars.put("ITEMS", List.of("a","b","c"));
+            Object r = eval("t := \"\"; @For(n := 1; n <= 3; n := n + 1; t := t + items[1]); t");
+            assertEquals("aaa", r);
+        }
+        @Test @DisplayName("subscript in @For body with var index")
+        void subscriptBody() {
+            vars.put("ITEMS", List.of("a","b","c"));
+            Object r = eval("t := \"\"; @For(n := 1; n <= @Elements(items); n := n + 1; t := t + items[n]); t");
+            assertEquals("abc", r);
         }
     }
 
