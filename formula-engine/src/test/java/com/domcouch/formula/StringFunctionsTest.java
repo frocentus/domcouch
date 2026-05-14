@@ -223,9 +223,14 @@ class StringFunctionsTest extends BaseFormulaTest {
         @Test @DisplayName("list") void list() { assertEquals(List.of("Robert","Smith"), eval("@ProperCase(\"ROBERT\" : \"SMITH\")")); }
     }
 
-    @Nested @DisplayName("@Ascii/@Char")
+    @Nested @DisplayName("@Ascii/@Char/@FileDir")
     class AsciiCharTests {
         @Test @DisplayName("@Ascii basic") void ascii() { assertEquals("A", eval("@Ascii(\"A\")")); }
+        @Test @DisplayName("@Ascii replaces non-ASCII with ?") void asciiReplace() { assertEquals("H?llo", eval("@Ascii(\"Hällo\")")); }
+        @Test @DisplayName("@Ascii with ALLINRANGE returns empty if any non-ASCII") void asciiAllInRange() { assertEquals("", eval("@Ascii(\"Hällo\"; [ALLINRANGE])")); }
+        @Test @DisplayName("@Ascii with ALLINRANGE ok when all ASCII") void asciiAllInRangeOk() { assertEquals("Hello", eval("@Ascii(\"Hello\"; [ALLINRANGE])")); }
         @Test @DisplayName("@Char basic") void charFn() { assertEquals("A", eval("@Char(65)")); }
+        @Test @DisplayName("@FileDir extracts directory") void fileDir() { assertEquals("c:\\", eval("@FileDir(\"c:\\\\europe.dat\")")); }
+        @Test @DisplayName("@FileDir no directory returns empty") void fileDirNone() { assertEquals("", eval("@FileDir(\"europe.dat\")")); }
     }
 }

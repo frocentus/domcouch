@@ -44,8 +44,8 @@
 | `@NewLine` | ✅ | 📋 | Newline character `\n` |
 | `@Explode` | ✅ | 📋 | Split by separators; includeEmpties and newlineAsSeparator supported |
 | `@Implode` | ✅ | 📋 | Join list with separator |
-| `@FileDir` | ✅ | ⚠ | Extract directory from file path |
-| `@Ascii` | ✅ | ⚠ | Filter to ASCII range |
+| `@FileDir` | ✅ | 📋 | Extract directory from file path |
+| `@Ascii` | ✅ | 📋 | Filter to ASCII 32-127; [ALLINRANGE] supported |
 | `@Char` | ✅ | 📋 | Code page 850 code → character; list support |
 
 ---
