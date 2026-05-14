@@ -1166,6 +1166,30 @@ class Phase2FunctionsTest {
         }
     }
 
+    @Nested @DisplayName("@Transform")
+    class TransformTests {
+        @Test @DisplayName("sqrt of positive numbers")
+        void sqrtPos() {
+            assertEquals(List.of(2.0, 3.0, 4.0),
+                    eval("@Transform(4 : 9 : 16; \"x\"; @Sqrt(x))"));
+        }
+        @Test @DisplayName("negate list")
+        void negate() {
+            assertEquals(List.of(-1.0, -2.0, -3.0),
+                    eval("@Transform(1 : 2 : 3; \"v\"; -v)"));
+        }
+        @Test @DisplayName("prepend star")
+        void prependStar() {
+            assertEquals(List.of("*a","*b","*c"),
+                    eval("@Transform(\"a\" : \"b\" : \"c\"; \"var\"; \"*\" + var)"));
+        }
+        @Test @DisplayName("filter and sqrt")
+        void filterSqrt() {
+            assertEquals(List.of(2.0, 0.0, 3.0),
+                    eval("@Transform(4 : (-5) : 9; \"x\"; @If(x >= 0; @Sqrt(x); 0))"));
+        }
+    }
+
     // ================================================================
     // Pair-wise and permuted list operations (from official spec table)
     // ================================================================

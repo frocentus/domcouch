@@ -1490,6 +1490,23 @@ public class Evaluator {
             return last;
         });
 
+        // ---- @Transform: apply formula to each list element ----
+        functions.put("TRANSFORM", (ev, args, ctx) -> {
+            List<Object> list = toList(ev.eval(args.get(0), ctx));
+            String varName = toString(ev.eval(args.get(1), ctx)).toUpperCase();
+            Expr formula = args.get(2);
+            List<Object> result = new ArrayList<>();
+            for (Object elem : list) {
+                // Create a context that binds the variable to current element
+                FormulaContext elemCtx = name -> {
+                    if (name.equals(varName)) return elem;
+                    return ctx.resolve(name);
+                };
+                result.add(ev.eval(formula, elemCtx));
+            }
+            return result.isEmpty() ? "" : result.size() == 1 ? result.get(0) : result;
+        });
+
         // ---- Phase 2: Variable/field manipulation ----
         functions.put("SET", (ev, args, ctx) -> {
             String varName = toString(ev.eval(args.get(0), ctx)).toUpperCase();
