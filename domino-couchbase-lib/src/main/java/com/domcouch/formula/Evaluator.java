@@ -770,6 +770,27 @@ public class Evaluator {
         });
 
         // Existence
+        functions.put("ISAUTHOR", (ev, args, ctx) -> 1.0);
+        functions.put("ISAVAILABLE", (ev, args, ctx) -> {
+            String name = toString(ev.eval(args.get(0), ctx));
+            return boolToNum(ctx.resolve(name) != null);
+        });
+        functions.put("ISUNAVAILABLE", (ev, args, ctx) -> {
+            String name = toString(ev.eval(args.get(0), ctx));
+            return boolToNum(ctx.resolve(name) == null);
+        });
+        functions.put("ISNEWDOC", (ev, args, ctx) ->
+                boolToNum(ctx.getDocumentUNID().isEmpty()));
+        functions.put("ISRESPONSEDOC", (ev, args, ctx) -> {
+            Object parent = ctx.resolve("PARENTUNID");
+            return boolToNum(parent != null && !toString(parent).isEmpty());
+        });
+        functions.put("NOTEID", (ev, args, ctx) ->
+                "NT" + ctx.getDocumentUNID().substring(0, Math.min(8, ctx.getDocumentUNID().length())));
+        functions.put("INHERITEDDOCUMENTUNIQUEID", (ev, args, ctx) ->
+                ctx.resolve("PARENTUNID") != null ? toString(ctx.resolve("PARENTUNID")) : "");
+        functions.put("AUTHOR", (ev, args, ctx) -> ctx.resolve("AUTHORS") != null ? ctx.resolve("AUTHORS") : "");
+        functions.put("ATTACHMENTS", (ev, args, ctx) -> 0.0); // no attachment support yet
         functions.put("ISAVAILABLE", (ev, args, ctx) -> {
             if (args.get(0) instanceof Expr.Variable v) {
                 Object val = ctx.resolve(v.name());
