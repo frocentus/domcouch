@@ -1317,6 +1317,45 @@ public class Evaluator {
                 toString(ev.eval(args.get(0), ctx)));
         functions.put("TIMEZONETOTEXT", (ev, args, ctx) -> "UTC");
 
+        // ---- Quick-win placeholders ----
+        functions.put("CLIENTTYPE", (ev, args, ctx) -> "Notes");
+        functions.put("DBEXISTS", (ev, args, ctx) -> 1.0);
+        functions.put("GETCURRENTTIMEZONE", (ev, args, ctx) ->
+                java.time.ZoneId.systemDefault().getId());
+        functions.put("LANGUAGEPREFERENCE", (ev, args, ctx) -> "EN");
+        functions.put("LOCALE", (ev, args, ctx) -> java.util.Locale.getDefault().toString());
+        functions.put("KEYWORDS", (ev, args, ctx) -> List.of());
+        functions.put("THISNAME", (ev, args, ctx) -> "");
+        functions.put("THISVALUE", (ev, args, ctx) -> "");
+        functions.put("URLQUERYSTRING", (ev, args, ctx) -> "");
+        functions.put("V3USERNAME", (ev, args, ctx) -> currentUserName);
+        functions.put("V4USERACCESS", (ev, args, ctx) -> 1.0);
+        functions.put("UNAVAILABLE", (ev, args, ctx) ->
+                boolToNum(ctx.resolve(toString(ev.eval(args.get(0), ctx))) == null));
+        functions.put("ENVIRONMENT", (ev, args, ctx) -> "");
+        functions.put("REGQUERYVALUE", (ev, args, ctx) -> "");
+        functions.put("GETIMCONTACTLISTGROUPNAMES", (ev, args, ctx) -> List.of());
+        functions.put("USERNAMELANGUAGE", (ev, args, ctx) -> "EN");
+
+        // ---- Document lifecycle ----
+        functions.put("DELETEDOCUMENT", (ev, args, ctx) -> 1.0);
+        functions.put("UNDELETEDOCUMENT", (ev, args, ctx) -> 1.0);
+        functions.put("HARDDELETEDOCUMENT", (ev, args, ctx) -> 1.0);
+        functions.put("DOCOMMITTEDLENGTH", (ev, args, ctx) -> 0.0);
+
+        // ---- Folder operations (stubs) ----
+        functions.put("ADDTOFOLDER", (ev, args, ctx) -> 1.0);
+        functions.put("WHICHFOLDERS", (ev, args, ctx) -> List.of());
+        functions.put("NARROW", (ev, args, ctx) -> 1.0);
+        functions.put("WIDE", (ev, args, ctx) -> 1.0);
+
+        // ---- Field access ----
+        functions.put("GETFIELD", (ev, args, ctx) -> {
+            String name = toString(ev.eval(args.get(0), ctx));
+            Object val = ctx.resolve(name);
+            return val != null ? val : "";
+        });
+
         // Formula validation
         functions.put("CHECKFORMULASYNTAX", (ev, args, ctx) -> {
             String formula = toString(ev.eval(args.get(0), ctx));

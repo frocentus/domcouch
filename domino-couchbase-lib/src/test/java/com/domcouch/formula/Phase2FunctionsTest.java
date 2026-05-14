@@ -1101,6 +1101,41 @@ class Phase2FunctionsTest {
         @Test @DisplayName("@ToTime") void toTime() { assertNotNull(eval("@ToTime(\"2/29/08\")")); }
     }
 
+    @Nested @DisplayName("Quick-win placeholders")
+    class PlaceholderTests {
+        @Test @DisplayName("@ClientType") void clientType() { assertEquals("Notes", eval("@ClientType")); }
+        @Test @DisplayName("@DbExists") void dbExists() { assertEquals(1.0, eval("@DbExists(\"\"; \"\")")); }
+        @Test @DisplayName("@GetCurrentTimeZone") void tz() { assertNotNull(eval("@GetCurrentTimeZone")); }
+        @Test @DisplayName("@LanguagePreference") void lang() { assertEquals("EN", eval("@LanguagePreference")); }
+        @Test @DisplayName("@Locale") void locale() { assertNotNull(eval("@Locale")); }
+        @Test @DisplayName("@Keywords") void keywords() { assertEquals(List.of(), eval("@Keywords")); }
+        @Test @DisplayName("@ThisName/@ThisValue") void thisX() { assertEquals("", eval("@ThisName")); assertEquals("", eval("@ThisValue")); }
+        @Test @DisplayName("@UrlQueryString") void url() { assertEquals("", eval("@UrlQueryString")); }
+        @Test @DisplayName("@V3UserName") void v3() { assertEquals("Alice", eval("@V3UserName")); }
+        @Test @DisplayName("@V4UserAccess") void v4() { assertEquals(1.0, eval("@V4UserAccess")); }
+        @Test @DisplayName("@Unavailable") void unavail() { assertEquals(1.0, eval("@Unavailable(\"NoSuchField\")")); }
+        @Test @DisplayName("@Environment") void env() { assertEquals("", eval("@Environment(\"FOO\")")); }
+    }
+
+    @Nested @DisplayName("Document lifecycle")
+    class DocLifecycleTests {
+        @Test @DisplayName("@DeleteDocument") void del() { assertEquals(1.0, eval("@DeleteDocument")); }
+        @Test @DisplayName("@UndeleteDocument") void undel() { assertEquals(1.0, eval("@UndeleteDocument")); }
+        @Test @DisplayName("@HardDeleteDocument") void hardDel() { assertEquals(1.0, eval("@HardDeleteDocument")); }
+        @Test @DisplayName("@DocOmmittedLength") void omit() { assertEquals(0.0, eval("@DocOmmittedLength")); }
+    }
+
+    @Nested @DisplayName("Folder and misc ops")
+    class FolderTests {
+        @Test @DisplayName("@AddToFolder") void add() { assertEquals(1.0, eval("@AddToFolder(\"folder\")")); }
+        @Test @DisplayName("@WhichFolders") void which() { assertEquals(List.of(), eval("@WhichFolders")); }
+        @Test @DisplayName("@Narrow/@Wide") void narrowWide() { assertEquals(1.0, eval("@Narrow")); assertEquals(1.0, eval("@Wide")); }
+        @Test @DisplayName("@GetField") void getField() {
+            vars.put("TestField", "hello");
+            assertEquals("hello", eval("@GetField(\"TestField\")"));
+        }
+    }
+
     // ================================================================
     // Pair-wise and permuted list operations (from official spec table)
     // ================================================================
