@@ -213,30 +213,40 @@ Add new methods to the public interfaces (`com.domcouch.api.*`) **only** when:
 ```
 domcouch/
 ├── AGENTS.md
+├── README.md
 ├── pom.xml                            (parent Maven POM, Spring Boot 3.4.3)
 ├── docker-compose.yml                 (Couchbase 7.x)
-├── domino-couchbase-lib/
+├── docs/
+│   ├── api-coverage.md
+│   ├── formula-language-architecture.md
+│   ├── function-catalog.md
+│   └── notes_formula_documentation.md
+├── formula-engine/                    (Standalone module — 0 external deps)
+│   ├── pom.xml
+│   └── src/main/java/com/domcouch/formula/
+│       ├── Token.java, TokenType.java
+│       ├── Lexer.java
+│       ├── Expr.java
+│       ├── Parser.java
+│       ├── FormulaContext.java
+│       ├── Evaluator.java
+│       ├── CompiledFormula.java
+│       ├── FormulaTranslator.java
+│       ├── FormulaParseException.java
+│       └── FunctionHandler.java
+├── domino-couchbase-lib/              (Depends on formula-engine + Couchbase SDK)
+│   ├── pom.xml
 │   └── src/main/java/com/domcouch/
 │       ├── api/                       (Interfaces — the Domino contract)
 │       │   └── ...
-│       ├── impl/                      (Couchbase-backed implementations)
-│       │   ├── CouchbaseSession.java
-│       │   ├── CouchbaseDatabase.java
-│       │   ├── CouchbaseDocument.java
-│       │   ├── CouchbaseItem.java
-│       │   ├── CouchbaseView.java
-│       │   ├── DocumentFormulaContext.java
-│       │   └── ...
-│       └── formula/                   (Formula engine)
-│           ├── Token.java, TokenType.java
-│           ├── Lexer.java
-│           ├── Expr.java
-│           ├── Parser.java
-│           ├── FormulaContext.java
-│           ├── Evaluator.java
-│           ├── CompiledFormula.java
-│           ├── FormulaTranslator.java
-│           └── FormulaParseException.java
+│       └── impl/                      (Couchbase-backed implementations)
+│           ├── CouchbaseSession.java
+│           ├── CouchbaseDatabase.java
+│           ├── CouchbaseDocument.java
+│           ├── CouchbaseItem.java
+│           ├── CouchbaseView.java
+│           ├── DocumentFormulaContext.java
+│           └── ...
 └── springboot-demo/                   (Demo REST app + data generator)
     └── src/main/java/com/domcouch/demo/
         ├── config/                    (Spring beans: Session, Database)
@@ -340,11 +350,13 @@ documents and regenerates.
 | 2026-05-11 | `FTSearch` uses parameterized N1QL queries (`$q`)                   | Eliminates N1QL injection; user input never concatenated      |
 | 2026-05-11 | `getCollectionPath()` extracted; shared by DB + View                | Single source of truth for backtick-escaped path              |
 | 2026-05-11 | Reader check in `getDocumentByUNID` BEFORE deserialization          | Avoids full doc construction cost if user can't read          |
-| 2026-05-12 | Formula engine: Lexer → Parser → Evaluator pipeline        | Full Domino formula language support; 264 tests            |
+| 2026-05-12 | Formula engine: Lexer → Parser → Evaluator pipeline        | Full Domino formula language support; 579 tests            |
 | 2026-05-12 | Compiled formula caching with `compileFormula()`            | 16× speedup for batch document processing                   |
 | 2026-05-12 | `DocumentFormulaContext` bridges formula engine with Document | Computed fields evaluated directly against domcouch Documents |
 | 2026-05-12 | `@Command` / `@PostedCommand` treated as no-ops             | Matches Domino `NoExternalApps=1`; formulas with UI commands still evaluate |
-| 2026-05-13 | 35 @Functions verified against official Domino spec | 308 tests; function-catalog.md with per-function verification status |
+| 2026-05-13 | 150+ @Functions implemented (132 ✅ + 19 🟡) | 579 tests; function-catalog.md with per-function spec verification |
+| 2026-05-14 | Extracted `formula-engine` as standalone Maven module | Zero external deps; 3-module project (formula-engine → domino-couchbase-lib → springboot-demo) |
+| 2026-05-14 | Pair-wise + permuted list operators | All 12 permuted operators, list broadcasting, any-match semantics |
 
 ---
 

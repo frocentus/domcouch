@@ -184,7 +184,7 @@
 | `@Author`                          | ❌     |                                    |
 
 > **Note**: The formula engine (`com.domcouch.formula`) also supports full computed
-> evaluation of 35 @Functions (not N1QL translation).
+> evaluation of 150+ @Functions (not N1QL translation).
 > See `docs/function-catalog.md` for the complete matrix.
 
 ---
