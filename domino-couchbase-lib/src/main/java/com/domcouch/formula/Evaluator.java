@@ -122,26 +122,88 @@ public class Evaluator {
             return listCons(left, right);
         }
 
-        // Binary operators
+        // Binary operators with pair-wise list semantics
         Object left = eval(bo.left(), ctx);
         Object right = eval(bo.right(), ctx);
 
         return switch (bo.op()) {
-            case "+" -> add(left, right);
-            case "-" -> subtract(left, right);
-            case "*" -> multiply(left, right);
-            case "/" -> divide(left, right);
-            case "=" -> boolToNum(compare(left, right) == 0);
-            case "<>" , "!=", "><" -> boolToNum(compare(left, right) != 0);
-            case ">" -> boolToNum(compare(left, right) > 0);
-            case "<" -> boolToNum(compare(left, right) < 0);
-            case ">=" -> boolToNum(compare(left, right) >= 0);
-            case "<=" -> boolToNum(compare(left, right) <= 0);
+            case "+" -> pairwise(left, right, Evaluator::add);
+            case "-" -> pairwise(left, right, Evaluator::subtract);
+            case "*" -> pairwise(left, right, Evaluator::multiply);
+            case "/" -> pairwise(left, right, Evaluator::divide);
+            case "=" -> boolToNum(anyPairwise(left, right, (a, b) -> compare(a, b) == 0));
+            case "<>", "!=", "><" -> boolToNum(anyPairwise(left, right, (a, b) -> compare(a, b) != 0));
+            case ">" -> boolToNum(anyPairwise(left, right, (a, b) -> compare(a, b) > 0));
+            case "<" -> boolToNum(anyPairwise(left, right, (a, b) -> compare(a, b) < 0));
+            case ">=" -> boolToNum(anyPairwise(left, right, (a, b) -> compare(a, b) >= 0));
+            case "<=" -> boolToNum(anyPairwise(left, right, (a, b) -> compare(a, b) <= 0));
+
+            // Permuted operators
+            case "*+" -> permuted(left, right, Evaluator::add);
+            case "*-" -> permuted(left, right, Evaluator::subtract);
+            case "**" -> permuted(left, right, Evaluator::multiply);
+            case "*/" -> permuted(left, right, Evaluator::divide);
+            case "*>" -> boolToNum(anyPermuted(left, right, (a, b) -> compare(a, b) > 0));
+            case "*<" -> boolToNum(anyPermuted(left, right, (a, b) -> compare(a, b) < 0));
+            case "*>=" -> boolToNum(anyPermuted(left, right, (a, b) -> compare(a, b) >= 0));
+            case "*<=" -> boolToNum(anyPermuted(left, right, (a, b) -> compare(a, b) <= 0));
+            case "*=" -> boolToNum(anyPermuted(left, right, (a, b) -> compare(a, b) == 0));
+            case "*!=" -> boolToNum(anyPermuted(left, right, (a, b) -> compare(a, b) != 0));
+
             case "&" -> boolToNum(isTruthy(left) && isTruthy(right));
             case "|" -> boolToNum(isTruthy(left) || isTruthy(right));
             default -> throw new FormulaParseException(4502,
                     "Unknown operator: " + bo.op(), -1);
         };
+    }
+
+    // ---- Pair-wise and permuted list operations ----
+
+    @FunctionalInterface
+    interface BinaryOp { Object apply(Object a, Object b); }
+
+    /** Pair-wise: element-by-element, repeat last of shorter list. */
+    static Object pairwise(Object left, Object right, BinaryOp op) {
+        List<Object> l1 = toList(left);
+        List<Object> l2 = toList(right);
+        int size = Math.max(l1.size(), l2.size());
+        List<Object> result = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            Object a = l1.get(Math.min(i, l1.size() - 1));
+            Object b = l2.get(Math.min(i, l2.size() - 1));
+            result.add(op.apply(a, b));
+        }
+        return result.size() == 1 ? result.get(0) : result;
+    }
+
+    /** Permuted: every combination of elements from left × right. */
+    static Object permuted(Object left, Object right, BinaryOp op) {
+        List<Object> l1 = toList(left);
+        List<Object> l2 = toList(right);
+        List<Object> result = new ArrayList<>();
+        for (Object a : l1) for (Object b : l2) result.add(op.apply(a, b));
+        return result.size() == 1 ? result.get(0) : result;
+    }
+
+    /** Returns true if any pair-wise comparison yields truthy. */
+    static boolean anyPairwise(Object left, Object right, BinaryOp op) {
+        List<Object> l1 = toList(left);
+        List<Object> l2 = toList(right);
+        int size = Math.max(l1.size(), l2.size());
+        for (int i = 0; i < size; i++) {
+            Object a = l1.get(Math.min(i, l1.size() - 1));
+            Object b = l2.get(Math.min(i, l2.size() - 1));
+            if (isTruthy(op.apply(a, b))) return true;
+        }
+        return false;
+    }
+
+    /** Returns true if any permuted comparison yields truthy. */
+    static boolean anyPermuted(Object left, Object right, BinaryOp op) {
+        List<Object> l1 = toList(left);
+        List<Object> l2 = toList(right);
+        for (Object a : l1) for (Object b : l2) if (isTruthy(op.apply(a, b))) return true;
+        return false;
     }
 
     // ---- Assignment ----

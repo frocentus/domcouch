@@ -159,8 +159,24 @@ public final class Lexer {
                 case '(' -> { tokens.add(new Token(TokenType.LPAREN, "(", i)); i++; continue; }
                 case ')' -> { tokens.add(new Token(TokenType.RPAREN, ")", i)); i++; continue; }
                 case ';' -> { tokens.add(new Token(TokenType.SEMICOLON, ";", i)); i++; continue; }
-                case '+', '*', '/', '=', '>', '<', '&', '|', '!', ':' ->
+                case '+', '/', '=', '>', '<', '&', '|', '!', ':' ->
                     { tokens.add(new Token(TokenType.OPERATOR, String.valueOf(c), i)); i++; continue; }
+                case '*' -> {
+                    // Check for permuted operator: *+ *- ** */ *= *> *< *>= *<= *!=
+                    if (i + 1 < len) {
+                        char next = input.charAt(i + 1);
+                        if ("+-*/=><!" .indexOf(next) >= 0) {
+                            if (i + 2 < len && (next == '>' || next == '<' || next == '!')
+                                    && input.charAt(i + 2) == '=') {
+                                tokens.add(new Token(TokenType.OPERATOR, "*" + next + "=", i));
+                                i += 3; continue;
+                            }
+                            tokens.add(new Token(TokenType.OPERATOR, "*" + next, i));
+                            i += 2; continue;
+                        }
+                    }
+                    tokens.add(new Token(TokenType.OPERATOR, "*", i)); i++; continue;
+                }
             }
 
             if (c == '-') { tokens.add(new Token(TokenType.OPERATOR, "-", i)); i++; continue; }

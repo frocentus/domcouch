@@ -200,9 +200,10 @@ public class Parser {
         return switch (op) {
             case "[" -> 8;                                // subscript
             case ":" -> 7;                                // list constructor
-            case "*", "/" -> 5;                            // multiply/divide
-            case "+", "-" -> 4;                            // add/subtract
+            case "*", "/", "**", "*/" -> 5;              // multiply/divide + permuted
+            case "+", "-", "*+", "*-" -> 4;              // add/subtract + permuted
             case "=", "<>", "!=", "><", ">", "<", ">=", "<=" -> 3;  // comparison
+            case "*=", "*!=", "*>", "*<", "*>=", "*<=" -> 3;    // permuted comparison
             case "&", "|", "!" -> 2;                      // logical
             case ":=" -> 1;                               // assignment
             default -> -1;
