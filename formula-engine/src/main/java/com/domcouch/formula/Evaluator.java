@@ -808,7 +808,8 @@ public class Evaluator {
             }
             return result.size() == 1 ? result.get(0) : result;
         });
-// TODO: @Repeat third arg truncates string; Domino pads each repetition to maxChars
+// @Repeat(string; count; [maxChars]) — repeat string count times, then truncate to maxChars.
+// Result cannot exceed 1,024 characters per Domino spec.
         functions.put("REPEAT", (ev, args, ctx) -> {
             Object val = ev.eval(args.get(0), ctx);
             int n = (int) toNumber(ev.eval(args.get(1), ctx));
@@ -817,15 +818,17 @@ public class Evaluator {
             List<Object> result = new ArrayList<>();
             for (Object src : sources) {
                 String s = toString(src);
-                if (maxChars > 0) {
-                    // Pad each repetition to maxChars: @Repeat("Bye"; 2; 5) → "Bye  Bye  "
-                    String padded = String.format("%-" + maxChars + "s", s);
-                    result.add(padded.repeat(Math.max(0, n)));
-                } else {
-                    result.add(s.repeat(Math.max(0, n)));
+                String repeated = s.repeat(Math.max(0, n));
+                if (maxChars > 0 && repeated.length() > maxChars) {
+                    repeated = repeated.substring(0, maxChars);
                 }
+                // Domino enforces 1,024 character limit
+                if (repeated.length() > 1024) {
+                    repeated = repeated.substring(0, 1024);
+                }
+                result.add(repeated);
             }
-            return result.size() == 1 ? result.get(0) : result;
+            return result.size() == 1 ? result.getFirst() : result;
         });
 
         // ---- Pattern matching ----
