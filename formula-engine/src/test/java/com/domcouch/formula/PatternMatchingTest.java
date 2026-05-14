@@ -37,5 +37,15 @@ class PatternMatchingTest extends BaseFormulaTest {
         @Test @DisplayName("case insensitive") void caseIns() { assertEquals(1.0, eval("@Like(\"A big test\"; \"A BIG TEST\")")); }
         @Test @DisplayName("percent wildcard") void percent() { assertEquals(1.0, eval("@Like(\"A big test\"; \"%test\")")); }
         @Test @DisplayName("no match") void noMatch() { assertEquals(0.0, eval("@Like(\"A big test\"; \"xyz\")")); }
+        @Test @DisplayName("escape char: | makes % literal") void escapePercent() {
+            // Without escape, % is wildcard (both match). With |, % is literal.
+            // @Like("50% off"; "50|% off"; "|") → 1 (literal % matches literal %)
+            assertEquals(1.0, eval("@Like(\"50% off\"; \"50|% off\"; \"|\")"));
+        }
+        @Test @DisplayName("escape char: | makes _ literal") void escapeUnderscore() {
+            // Without escape, _ is any char (matches aXb). With |, _ is literal.
+            // @Like("aXb"; "a|_b"; "|") → 0 (literal _ doesn't match X)
+            assertEquals(0.0, eval("@Like(\"aXb\"; \"a|_b\"; \"|\")"));
+        }
     }
 }

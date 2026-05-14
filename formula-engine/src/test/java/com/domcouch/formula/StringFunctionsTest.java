@@ -173,9 +173,15 @@ class StringFunctionsTest extends BaseFormulaTest {
     @Nested @DisplayName("@LeftBack @RightBack")
     class BackSubstringTests {
         @Test @DisplayName("@LeftBack char count") void leftBackChars() { assertEquals("Lennard Wall", eval("@LeftBack(\"Lennard Wallace\"; 3)")); }
-        @Test @DisplayName("@LeftBack separator") void leftBackSep() { assertEquals("Lennard Wallace", eval("@LeftBack(\"Lennard Wallace\"; \"x\")")); }
+        @Test @DisplayName("@LeftBack separator excludes separator") void leftBackSep() { assertEquals("Lennard", eval("@LeftBack(\"Lennard Wallace\"; \" \")")); }
+        @Test @DisplayName("@LeftBack separator not found returns whole") void leftBackSepNotFound() { assertEquals("Lennard Wallace", eval("@LeftBack(\"Lennard Wallace\"; \"x\")")); }
+        @Test @DisplayName("@LeftBack list") void leftBackList() { assertEquals(java.util.List.of("Lenn", "Wall"), eval("@LeftBack(\"Lennard\" : \"Wallace\"; 3)")); }
         @Test @DisplayName("@RightBack char count") void rightBackChars() { assertEquals("ace", eval("@RightBack(\"Lennard Wallace\"; 3)")); }
-        @Test @DisplayName("@RightBack separator") void rightBackSep() { assertEquals("Wallace", eval("@RightBack(\"Lennard Wallace\"; \" \")")); }
+        @Test @DisplayName("@RightBack separator uses lastIndexOf") void rightBackSep() {
+            assertEquals("c", eval("@RightBack(\"a.b.c\"; \".\")"));
+        }
+        @Test @DisplayName("@RightBack separator single occurrence") void rightBackSepSingle() { assertEquals("Wallace", eval("@RightBack(\"Lennard Wallace\"; \" \")")); }
+        @Test @DisplayName("@RightBack separator not found returns whole") void rightBackSepNotFound() { assertEquals("Lennard Wallace", eval("@RightBack(\"Lennard Wallace\"; \"x\")")); }
     }
 
     @Nested @DisplayName("@ProperCase")

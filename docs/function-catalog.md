@@ -35,14 +35,14 @@
 | `@ReplaceSubstring` | ✅ | 📋 | Sequential string replacement; list support |
 | `@Word` | ✅ | 📋 | Extract word N by separator; list support |
 | `@Matches` | ✅ | 📋 | Pattern matching: ? * + {sets} ! \| & \\ escape; 24 tests |
-| `@Like` | 🟡 | 📋 | SQL-style pattern (_ any char, % any seq); escape char partial |
-| `@LeftBack` | 🟡 | 📋 | From end: numeric takes first N (should remove last N); separator overload |
-| `@RightBack` | ✅ | ⚠ | From end: numeric/substring overloads |
+| `@Like` | ✅ | 📋 | SQL-style pattern (_ any char, % any seq); escape char supported |
+| `@LeftBack` | ✅ | 📋 | From end: numeric removes last N; separator returns chars left of separator |
+| `@RightBack` | ✅ | 📋 | From end: numeric rightmost N; separator uses lastIndexOf |
 | `@Middle` | 🟡 | ⚠ | Middle substring; complex overloads (off/n, sub/n, off/sub, sub/sub) |
 | `@MiddleBack` | 🟡 | ⚠ | Middle from end; complex overloads |
 | `@ProperCase` | ✅ | 📋 | Capitalize first letter of each word; list support |
 | `@NewLine` | ✅ | 📋 | Newline character `\n` |
-| `@Explode` | 🟡 | 📋 | Split string by separators; missing includeEmpties/newlineAsSeparator |
+| `@Explode` | ✅ | 📋 | Split by separators; includeEmpties and newlineAsSeparator supported |
 | `@Implode` | ✅ | 📋 | Join list with separator |
 | `@FileDir` | ✅ | ⚠ | Extract directory from file path |
 | `@Ascii` | ✅ | ⚠ | Filter to ASCII range |

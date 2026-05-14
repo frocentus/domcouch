@@ -824,7 +824,6 @@ public class Evaluator {
             }
             return result.size() == 1 ? result.get(0) : result;
         });
-// TODO: @Explode missing includeEmpties and newlineAsSeparator params
         functions.put("EXPLODE", (ev, args, ctx) -> {
             Object src = ev.eval(args.get(0), ctx);
             List<Object> sources = toList(src);
@@ -1335,7 +1334,6 @@ public class Evaluator {
         });
 
         // ---- String: substring from end ----
-// TODO: @LeftBack with numeric arg should remove last N chars (currently takes first N)
         functions.put("LEFTBACK", (ev, args, ctx) -> {
             Object src = ev.eval(args.get(0), ctx);
             Object arg = ev.eval(args.get(1), ctx);
@@ -1345,17 +1343,17 @@ public class Evaluator {
                 String str = toString(item);
                 if (arg instanceof Number) {
                     int n = ((Number) arg).intValue();
-                    // Remove last N chars: @LeftBack("Lennard Wallace"; 3) → "Lennard Wal"
+                    // Remove last N chars: @LeftBack("Lennard Wallace"; 3) → "Lennard Wall"
                     result.add(n <= 0 ? str : str.substring(0, Math.max(0, str.length() - n)));
                 } else {
+                    // Search from right to left; exclude separator from result
                     String sep = toString(arg);
                     int idx = str.lastIndexOf(sep);
-                    result.add(idx < 0 ? str : str.substring(0, idx + sep.length()));
+                    result.add(idx < 0 ? str : str.substring(0, idx));
                 }
             }
             return result.size() == 1 ? result.get(0) : result;
         });
-// TODO: @RightBack separator overload: returns rest after first separator; verify all edge cases
         functions.put("RIGHTBACK", (ev, args, ctx) -> {
             Object src = ev.eval(args.get(0), ctx);
             Object arg = ev.eval(args.get(1), ctx);
@@ -1367,8 +1365,9 @@ public class Evaluator {
                     int n = ((Number) arg).intValue();
                     result.add(n <= 0 ? "" : str.substring(Math.max(0, str.length() - n)));
                 } else {
+                    // Search from right to left (lastIndexOf per Domino spec)
                     String sep = toString(arg);
-                    int idx = str.indexOf(sep);
+                    int idx = str.lastIndexOf(sep);
                     result.add(idx < 0 ? str : str.substring(idx + sep.length()));
                 }
             }
@@ -1473,7 +1472,6 @@ public class Evaluator {
         functions.put("LN", (ev, args, ctx) -> map1(ev, args, ctx, Math::log));
 
         // ---- Pattern matching ----
-// TODO: @Like escape character handling needs refinement
         functions.put("LIKE", (ev, args, ctx) -> {
             Object str = ev.eval(args.get(0), ctx);
             Object pat = ev.eval(args.get(1), ctx);
@@ -1483,19 +1481,19 @@ public class Evaluator {
                 regex.append("^(?i)"); // case-insensitive by default
                 for (int i = 0; i < pattern.length(); i++) {
                     char c = pattern.charAt(i);
-                    // Check escape character first
+                    // Check escape character first — skip both escape char and escaped char
                     if (escapeChar != null && !escapeChar.isEmpty()
                             && pattern.startsWith(escapeChar, i)) {
-                        i += escapeChar.length() - 1; // skip escape prefix
-                        if (i + 1 < pattern.length()) {
-                            regex.append(Pattern.quote(String.valueOf(pattern.charAt(i + 1))));
-                            i++;
+                        i += escapeChar.length(); // skip past escape char
+                        if (i < pattern.length()) {
+                            regex.append(java.util.regex.Pattern.quote(
+                                    String.valueOf(pattern.charAt(i))));
                         }
                         continue;
                     }
                     if (c == '_') regex.append('.');
                     else if (c == '%') regex.append(".*");
-                    else regex.append(Pattern.quote(String.valueOf(c)));
+                    else regex.append(java.util.regex.Pattern.quote(String.valueOf(c)));
                 }
                 regex.append("$");
                 return s.matches(regex.toString());
