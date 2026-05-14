@@ -5,25 +5,104 @@
 ## Architecture
 
 ```
-┌─────────────────────────────┐
-│   Spring Boot Demo App      │
-│   (REST API + Data Gen)     │
-└──────────┬──────────────────┘
-           │ uses
-┌──────────▼──────────────────┐
-│  domino-couchbase-lib       │
-│  com.domcouch.api.*         │
-│  (Session → DB → Doc → View)│
-│  com.domcouch.formula.*     │
-│  (Lexer → Parser → Eval)    │
-└──────────┬──────────────────┘
-           │ Couchbase Java SDK
-┌──────────▼──────────────────┐
-│  Couchbase 7.x (Docker)     │
-│  Bucket: domcouch           │
-│  Scope: contacts            │
-│  Collection: documents      │
-└─────────────────────────────┘
+┌──────────────────────────────────┐
+│   Spring Boot Demo App           │
+│   springboot-demo                │
+│   (REST API + Data Gen)          │
+└────────────┬─────────────────────┘
+             │ depends on
+┌────────────▼─────────────────────┐
+│   domino-couchbase-lib           │
+│   com.domcouch.api.*             │
+│   (Session → DB → Doc → View)    │
+└──────┬──────────────┬────────────┘
+       │ depends on   │ depends on
+┌──────▼──────┐ ┌─────▼───────────┐
+│  formula-   │ │ Couchbase Java  │
+│  engine     │ │ SDK 3.7.4       │
+│  (Lexer →   │ │ + Jackson       │
+│   Parser →  │ │                 │
+│   Evaluator)│ │                 │
+└─────────────┘ └─────┬───────────┘
+                      │ connects to
+             ┌────────▼───────────┐
+             │ Couchbase 7.x      │
+             │ (Docker)           │
+             └────────────────────┘
+```
+
+## Build & Install
+
+### Maven Dependency Chain
+
+```
+formula-engine ──────► domino-couchbase-lib ──────► springboot-demo
+(zero external deps)   (Couchbase SDK + Jackson)    (Spring Boot + REST)
+```
+
+The root `pom.xml` defines the three modules in build order. A single
+`mvn install` from the project root builds them sequentially and installs
+each JAR into your local Maven repository (`~/.m2`).
+
+### One-Command Full Build
+
+```bash
+cd domcouch
+mvn clean install
+```
+
+This runs all 579 tests and installs all three artifacts:
+
+| Module                 | Artifact                                           | Notes                           |
+| ---------------------- | -------------------------------------------------- | ------------------------------- |
+| `formula-engine`       | `com.domcouch:formula-engine:0.1.0-SNAPSHOT`       | Zero external deps              |
+| `domino-couchbase-lib` | `com.domcouch:domino-couchbase-lib:0.1.0-SNAPSHOT` | Depends on formula-engine       |
+| `springboot-demo`      | `com.domcouch:springboot-demo:0.1.0-SNAPSHOT`      | Depends on domino-couchbase-lib |
+
+### Build Without Tests
+
+```bash
+mvn clean install -DskipTests
+```
+
+### Build a Single Module (with dependencies)
+
+Maven resolves inter-module dependencies from the reactor or local `~/.m2`.
+Build the parent first, then the module you want:
+
+```bash
+# First install the dependencies
+mvn install -pl formula-engine -DskipTests
+mvn install -pl domino-couchbase-lib -DskipTests
+
+# Then build just the demo
+mvn install -pl springboot-demo
+```
+
+Or use `-am` (also-make) to automatically build required modules:
+
+```bash
+mvn install -pl springboot-demo -am
+```
+
+### Run Tests Only
+
+```bash
+mvn test -pl formula-engine           # 466 formula engine tests
+mvn test -pl domino-couchbase-lib     # domain-logic tests
+```
+
+### Using formula-engine as a Standalone Dependency
+
+Because `formula-engine` has **zero external dependencies** (only JUnit 5 for
+tests), you can use it in any Java project:
+
+```xml
+<dependency>
+    <groupId>com.domcouch</groupId>
+    <artifactId>formula-engine</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
 ```
 
 ## Quick Start
@@ -37,11 +116,10 @@ docker compose up -d
 Wait ~60s for the Couchbase cluster to initialize. Check the web console at
 http://localhost:8091 (user: `Administrator`, password: `password`).
 
-### 2. Build & test
+### 2. Build
 
 ```bash
-mvn clean package -DskipTests
-mvn test -pl domino-couchbase-lib   # 579 tests
+mvn clean install -DskipTests
 ```
 
 ### 3. Run the Spring Boot app
@@ -67,21 +145,23 @@ and creates 7 N1QL-backed views.
 ### Document-Level Security
 
 Reader and Author fields with Domino-compatible semantics:
+
 - **Reader fields**: documents invisible to unauthorized users (all read paths filtered)
 - **Author fields**: `save()` and `remove()` enforce edit permissions (`NotesException 4010`)
 - Centralized `canRead()` check shared by Document and View implementations
 
 ### Formula Engine
 
-Full Lexer → Parser → Evaluator pipeline supporting Domino's formula language:
+Full Lexer → Parser → Evaluator pipeline supporting Domino's formula language.
+Extracted as a standalone module (`formula-engine`) with zero external dependencies.
 
-| Component | Description |
-|-----------|-------------|
-| **Lexer** | Tokenizes formula strings (54 test cases) |
-| **Parser** | Pratt-style recursive descent → AST (39 test cases) |
-| **Evaluator** | Tree-walks AST against `FormulaContext` (57 + 280 test cases) |
-| **CompiledFormula** | Pre-parsed AST — evaluate without re-parsing (8 cache tests) |
-| **Performance** | ~1.3M ops/sec uncached, ~5.7M ops/sec cached (16× speedup) |
+| Component           | Description                                                   |
+| ------------------- | ------------------------------------------------------------- |
+| **Lexer**           | Tokenizes formula strings (54 test cases)                     |
+| **Parser**          | Pratt-style recursive descent → AST (39 test cases)           |
+| **Evaluator**       | Tree-walks AST against `FormulaContext` (57 + 280 test cases) |
+| **CompiledFormula** | Pre-parsed AST — evaluate without re-parsing (8 cache tests)  |
+| **Performance**     | ~1.3M ops/sec uncached, ~5.7M ops/sec cached (16× speedup)    |
 
 #### @Functions: 132 ✅ + 19 🟡 = 151 total
 
@@ -89,18 +169,18 @@ See `docs/function-catalog.md` for the complete matrix with per-function status,
 
 **Category breakdown:**
 
-| Category | ✅ | 🟡 | |
-|----------|----|-----|---|
-| String | 16 | 7 | Trim, Upper/Lower, Length, Left/Right, Repeat, Contains, Begins/Ends, ReplaceSubstring, Word, Matches, Like, LeftBack/RightBack, Middle/MiddleBack, ProperCase, NewLine, Explode, Implode, FileDir, Ascii, Char |
-| Math | 23 | 0 | Abs, ACos/ASin/ATan/ATan2, Cos/Sin/Tan, Exp, Log/Ln, Sqrt, Pi, Power, Integer/Round, Sign, Max/Min/Sum, Modulo, FloatEq, Random |
-| Date/Time | 17 | 4 | Created/Modified/Accessed, Now/Today/Tomorrow/Yesterday, Date/Time/TimeMerge, Month/Day/Year/Hour/Minute/Second, Weekday, Adjust, BusinessDays, Zone |
-| Type Conversion | 5 | 1 | Text, TextToNumber/ToNumber, IsNumber/IsText/IsTime |
-| List | 11 | 0 | Elements, Count, IsMember/IsNotMember, Member, Replace, Subset, Unique, Sort, Compare, Transform |
-| Control Flow | 14 | 0 | If, Do, Return, While/DoWhile, For, Set/SetField/DeleteField, Eval, CheckFormulaSyntax, IfError, Error/IsError |
-| Boolean | 8 | 0 | True/False/All, Yes/No/Nothing, Success/Failure |
-| Document | 11 | 7 | DocFields, DocumentUniqueID/Inherited, DocLength, DocLock, NoteID, IsAvailable/IsUnavailable, IsNewDoc/IsResponseDoc, Author, Attachments, GetField, DeleteDocument |
-| Database/View | 5 | 0 | DbName/DbTitle/ReplicaID/ServerName, DbExists |
-| Security/User | 11 | 0 | UserName/UserNamesList/UserRoles, Domain, Version, ClientType, LanguagePreference, Locale |
+| Category        | ✅  | 🟡  |                                                                                                                                                                                                                 |
+| --------------- | --- | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| String          | 16  | 7   | Trim, Upper/Lower, Length, Left/Right, Repeat, Contains, Begins/Ends, ReplaceSubstring, Word, Matches, Like, LeftBack/RightBack, Middle/MiddleBack, ProperCase, NewLine, Explode, Implode, FileDir, Ascii, Char |
+| Math            | 23  | 0   | Abs, ACos/ASin/ATan/ATan2, Cos/Sin/Tan, Exp, Log/Ln, Sqrt, Pi, Power, Integer/Round, Sign, Max/Min/Sum, Modulo, FloatEq, Random                                                                                 |
+| Date/Time       | 17  | 4   | Created/Modified/Accessed, Now/Today/Tomorrow/Yesterday, Date/Time/TimeMerge, Month/Day/Year/Hour/Minute/Second, Weekday, Adjust, BusinessDays, Zone                                                            |
+| Type Conversion | 5   | 1   | Text, TextToNumber/ToNumber, IsNumber/IsText/IsTime                                                                                                                                                             |
+| List            | 11  | 0   | Elements, Count, IsMember/IsNotMember, Member, Replace, Subset, Unique, Sort, Compare, Transform                                                                                                                |
+| Control Flow    | 14  | 0   | If, Do, Return, While/DoWhile, For, Set/SetField/DeleteField, Eval, CheckFormulaSyntax, IfError, Error/IsError                                                                                                  |
+| Boolean         | 8   | 0   | True/False/All, Yes/No/Nothing, Success/Failure                                                                                                                                                                 |
+| Document        | 11  | 7   | DocFields, DocumentUniqueID/Inherited, DocLength, DocLock, NoteID, IsAvailable/IsUnavailable, IsNewDoc/IsResponseDoc, Author, Attachments, GetField, DeleteDocument                                             |
+| Database/View   | 5   | 0   | DbName/DbTitle/ReplicaID/ServerName, DbExists                                                                                                                                                                   |
+| Security/User   | 11  | 0   | UserName/UserNamesList/UserRoles, Domain, Version, ClientType, LanguagePreference, Locale                                                                                                                       |
 
 #### Operators
 
@@ -164,38 +244,83 @@ domcouch/
 │   ├── formula-language-architecture.md   (Complete formula language spec)
 │   ├── function-catalog.md                (All @Functions with status + spec verification)
 │   └── notes_formula_documentation.md     (Official HCL Domino 14.5.1 @Function docs)
-├── domino-couchbase-lib/
+├── formula-engine/                        (Standalone — 0 external deps)
 │   ├── pom.xml
 │   └── src/
-│       ├── main/java/com/domcouch/
-│       │   ├── api/                       (Interfaces — the Domino contract)
-│       │   ├── impl/                      (Couchbase-backed implementations)
-│       │   └── formula/                   (Formula engine)
-│       └── test/java/com/domcouch/
-│           └── formula/                   (579 unit tests)
-└── springboot-demo/                       (REST app + data generator)
+│       ├── main/java/com/domcouch/formula/
+│       │   ├── Token.java, TokenType.java
+│       │   ├── Lexer.java
+│       │   ├── Expr.java
+│       │   ├── Parser.java
+│       │   ├── FormulaContext.java
+│       │   ├── Evaluator.java
+│       │   ├── CompiledFormula.java
+│       │   ├── FormulaTranslator.java
+│       │   ├── FormulaParseException.java
+│       │   └── FunctionHandler.java
+│       └── test/java/com/domcouch/formula/
+│           ├── LexerTest.java             (54 tests)
+│           ├── ParserTest.java            (39 tests)
+│           ├── EvaluatorTest.java         (57 tests)
+│           ├── FormulaExamplesTest.java   (97 tests)
+│           ├── CachedEvaluationTest.java  (8 tests)
+│           ├── PerformanceComparisonTest.java (9 tests)
+│           └── Phase2FunctionsTest.java   (280 tests)
+├── domino-couchbase-lib/                  (Depends on formula-engine + Couchbase SDK)
+│   ├── pom.xml
+│   └── src/main/java/com/domcouch/
+│       ├── api/                           (Interfaces — the Domino contract)
+│       │   ├── Session.java
+│       │   ├── Database.java
+│       │   ├── Document.java
+│       │   ├── DocumentCollection.java
+│       │   ├── View.java
+│       │   ├── ViewEntry.java
+│       │   ├── ViewEntryCollection.java
+│       │   ├── Item.java
+│       │   ├── DateTime.java
+│       │   └── NotesException.java
+│       └── impl/                          (Couchbase-backed implementations)
+│           ├── CouchbaseSession.java
+│           ├── CouchbaseDatabase.java
+│           ├── CouchbaseDocument.java
+│           ├── CouchbaseDocumentCollection.java
+│           ├── CouchbaseView.java
+│           ├── CouchbaseViewEntry.java
+│           ├── CouchbaseViewEntryCollection.java
+│           ├── CouchbaseItem.java
+│           ├── CouchbaseDateTime.java
+│           └── DocumentFormulaContext.java
+└── springboot-demo/                       (Depends on domino-couchbase-lib)
+    ├── pom.xml
     └── src/main/java/com/domcouch/demo/
+        ├── DomcouchDemoApplication.java
+        ├── DatabaseInitializer.java
+        ├── config/                        (Spring beans: Session, Database)
+        ├── controller/                    (REST endpoints)
+        ├── model/                         (Person POJO)
+        └── service/                       (Business logic + data gen)
 ```
 
 ## Test Suite
 
-| Test class | Tests | Coverage |
-|-----------|-------|----------|
-| `LexerTest` | 54 | All token types, escapes, numbers, brackets, comments |
-| `ParserTest` | 39 | Precedence, operators, FIELD/DEFAULT/ENVIRONMENT, @Functions |
-| `EvaluatorTest` | 57 | Arithmetic, comparison, coercion, @Functions, assignment |
-| `FormulaExamplesTest` | 97 | Real Domino spec examples — all formula categories |
-| `CachedEvaluationTest` | 8 | Compile-once, evaluate-many |
-| `PerformanceComparisonTest` | 9 | Throughput, cached vs uncached |
-| `Phase2FunctionsTest` | 280 | Per-function tests for 130+ @Functions |
-| **Total** | **579** | |
+| Test class                  | Module         | Tests   | Coverage                                                     |
+| --------------------------- | -------------- | ------- | ------------------------------------------------------------ |
+| `LexerTest`                 | formula-engine | 54      | All token types, escapes, numbers, brackets, comments        |
+| `ParserTest`                | formula-engine | 39      | Precedence, operators, FIELD/DEFAULT/ENVIRONMENT, @Functions |
+| `EvaluatorTest`             | formula-engine | 57      | Arithmetic, comparison, coercion, @Functions, assignment     |
+| `FormulaExamplesTest`       | formula-engine | 97      | Real Domino spec examples — all formula categories           |
+| `CachedEvaluationTest`      | formula-engine | 8       | Compile-once, evaluate-many                                  |
+| `PerformanceComparisonTest` | formula-engine | 9       | Throughput, cached vs uncached                               |
+| `Phase2FunctionsTest`       | formula-engine | 280     | Per-function tests for 130+ @Functions                       |
+| **Total**                   |                | **579** |                                                              |
 
 ## Documentation
 
-| Document | Purpose |
-|----------|---------|
-| `AGENTS.md` | Architecture decisions, security model, code conventions, decision log |
-| `docs/api-coverage.md` | Domino API compatibility matrix + domcouch extensions |
-| `docs/formula-language-architecture.md` | Complete formula language grammar, AST design, @Function catalog |
-| `docs/function-catalog.md` | 151 @Functions with status, spec verification, and descriptions |
-| `docs/notes_formula_documentation.md` | Official HCL Domino 14.5.1 formula language reference |
+| Document                                | Purpose                                                                |
+| --------------------------------------- | ---------------------------------------------------------------------- |
+| `AGENTS.md`                             | Architecture decisions, security model, code conventions, decision log |
+| `docs/api-coverage.md`                  | Domino API compatibility matrix + domcouch extensions                  |
+| `docs/formula-language-architecture.md` | Complete formula language grammar, AST design, @Function catalog       |
+| `docs/function-catalog.md`              | 151 @Functions with status, spec verification, and descriptions        |
+| `docs/notes_formula_documentation.md`   | Official HCL Domino 14.5.1 formula language reference                  |
