@@ -127,16 +127,6 @@ public class Evaluator {
         Object right = eval(bo.right(), ctx);
 
         return switch (bo.op()) {
-            // Subscript: list[n] or string[n]
-            case "[]" -> {
-                List<Object> list = toList(left);
-                int idx = (int) toNumber(right) - 1; // 1-based
-                if (list.isEmpty()) yield "";
-                if (idx < 0) idx = 0;
-                if (idx >= list.size()) idx = list.size() - 1;
-                yield list.get(idx);
-            }
-
             case "+" -> pairwise(left, right, Evaluator::add);
             case "-" -> pairwise(left, right, Evaluator::subtract);
             case "*" -> pairwise(left, right, Evaluator::multiply);
@@ -431,7 +421,9 @@ public class Evaluator {
     private static Object subscript(Object list, Object idx) {
         int i = (int) Math.round(toNumber(idx));
         if (list instanceof List l) {
-            if (i < 1 || i > l.size()) return "";
+            if (l.isEmpty()) return "";
+            if (i < 1) i = 1;
+            if (i > l.size()) i = l.size();
             return l.get(i - 1); // 1-based
         }
         if (i == 1) return list; // scalar treated as 1-element list
