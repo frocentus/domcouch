@@ -514,12 +514,22 @@ public class Evaluator {
         functions.put("SIN", (ev, args, ctx) -> map1(ev, args, ctx, Math::sin));
         functions.put("TAN", (ev, args, ctx) -> map1(ev, args, ctx, Math::tan));
         functions.put("EXP", (ev, args, ctx) -> map1(ev, args, ctx, Math::exp));
-        functions.put("LOG", (ev, args, ctx) -> map1(ev, args, ctx, Math::log));
+        functions.put("LOG", (ev, args, ctx) -> map1(ev, args, ctx, Math::log10));
         functions.put("SQRT", (ev, args, ctx) -> map1(ev, args, ctx, Math::sqrt));
         functions.put("PI", (ev, args, ctx) -> Math.PI);
         functions.put("POWER", (ev, args, ctx) -> map2(ev, args, ctx, Math::pow));
         functions.put("INTEGER", (ev, args, ctx) -> map1(ev, args, ctx, v -> (double) (long) v));
-        functions.put("ROUND", (ev, args, ctx) -> map1(ev, args, ctx, v -> (double) Math.round(v)));
+        functions.put("ROUND", (ev, args, ctx) -> {
+            Object val = ev.eval(args.get(0), ctx);
+            double factor = args.size() > 1 ? toNumber(ev.eval(args.get(1), ctx)) : 1.0;
+            List<Object> sources = toList(val);
+            List<Object> result = new ArrayList<>();
+            for (Object src : sources) {
+                double v = toNumber(src);
+                result.add(Math.round(v / factor) * factor);
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
 
         // Calendar functions
         functions.put("BUSINESSDAYS", (ev, args, ctx) -> {

@@ -993,8 +993,8 @@ class Phase2FunctionsTest {
         void sqrt16() { assertEquals(4.0, eval("@Sqrt(16)")); }
         @Test @DisplayName("@Exp 1.25")
         void exp() { assertEquals(3.49034295746184, (Double) eval("@Exp(1.25)"), 0.0001); }
-        @Test @DisplayName("@Log 4")
-        void log() { assertEquals(Math.log(4), (Double) eval("@Log(4)"), 0.0001); }
+        @Test @DisplayName("@Log 4 (base 10)")
+        void log() { assertEquals(Math.log10(4), (Double) eval("@Log(4)"), 0.0001); }
         @Test @DisplayName("@Cos(2*@Pi) = 1")
         void cos() { assertEquals(1.0, (Double) eval("@Cos(2 * @Pi)"), 0.0001); }
         @Test @DisplayName("@Sin(@Pi/2) = 1")
