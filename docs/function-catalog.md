@@ -187,21 +187,24 @@
 | `@DocFields` | ✅ | 📋 | List all field names |
 | `@DocumentUniqueID` | ✅ | 📋 | Document universal ID (32-char hex) |
 | `@InheritedDocumentUniqueID` | ✅ | 📋 | Parent document UNID |
-| `@DocLength` | 🟡 | 📋 | Approximate doc size (placeholder 0) |
-| `@DocLock` | 🟡 | 📋 | Document locking (stubs) |
-| `@DocOmmittedLength` | 🟡 | ⚠ | Omitted length (placeholder 0) |
-| `@NoteID` | ✅ | 📋 | "NT" + first 8 chars of UNID |
-| `@IsAvailable` | ✅ | 📋 | True if field exists |
-| `@IsUnavailable` | ✅ | 📋 | True if field does not exist |
-| `@IsNewDoc` | ✅ | 📋 | True if document is new (no UNID) |
-| `@IsResponseDoc` | ✅ | 📋 | True if document is a response |
+| `@DocLength` | 🟡 | 📋 | Delegates to `getDocumentSize()`; Couchbase: placeholder 0 |
+| `@DocLock` | 🟡 | 📋 | Delegates to `lockDocument()`/`unlockDocument()` etc.; Couchbase: stubs |
+| `@DocCommittedLength` | 🟡 | ⚠ | Delegates to `getDocumentSize()`; Couchbase: placeholder 0 |
+| `@NoteID` | ✅ | 📋 | Delegates to `getDocumentUNID()` ("NT" + first 8 chars of UNID) |
+| `@IsAvailable` | ✅ | 📋 | Delegates to `resolve()` — true if field exists |
+| `@IsUnavailable` | ✅ | 📋 | Delegates to `resolve()` — true if field does not exist |
+| `@IsNewDoc` | ✅ | 📋 | Delegates to `getDocumentUNID()` — true if empty |
+| `@IsResponseDoc` | ✅ | 📋 | Delegates to `resolve("PARENTUNID")` |
 | `@IsAuthor` | ✅ | ⚠ | True (always author) |
-| `@Author` | ✅ | ⚠ | Returns AUTHORS field value |
-| `@Attachments` | 🟡 | ⚠ | Attachment count (placeholder 0) |
-| `@GetField` | ✅ | 📋 | Get field value by name |
-| `@DeleteDocument` | 🟡 | ⚠ | Document delete (stub) |
-| `@UndeleteDocument` | 🟡 | ⚠ | Document undelete (stub) |
-| `@HardDeleteDocument` | 🟡 | ⚠ | Permanent delete (stub) |
+| `@Author` | ✅ | ⚠ | Delegates to `resolve("AUTHORS")` |
+| `@Attachments` | 🟡 | ⚠ | Delegates to `getAttachmentCount()`; Couchbase: 0 |
+| `@GetField` | ✅ | 📋 | Delegates to `resolve()` |
+| `@DeleteDocument` | 🟡 | ⚠ | Delegates to `markForDeletion()`; Couchbase: no-op |
+| `@UndeleteDocument` | 🟡 | ⚠ | Delegates to `unmarkForDeletion()`; Couchbase: no-op |
+| `@HardDeleteDocument` | 🟡 | ⚠ | Delegates to `hardDelete()`; Couchbase: calls `document.remove()` |
+| `@IsValid` | ✅ | ⚠ | Delegates to `isDocumentValid()`; Couchbase: always true |
+| `@WhichFolders` | ✅ | 📋 | Delegates to `getFolderNames()` |
+| `@AddToFolder` | ✅ | ⚠ | Delegates to `addToFolder()`; writes to `folders[]` |
 
 ---
 
@@ -209,10 +212,10 @@
 
 | Function | Status | Spec | Description |
 |----------|--------|------|-------------|
-| `@DbName` | ✅ | ⚠ | 2-element list [server, dbname] |
-| `@DbTitle` | ✅ | ⚠ | Database title |
-| `@ReplicaID` | ✅ | ⚠ | Replica ID |
-| `@ServerName` | ✅ | ⚠ | Server name (empty) |
+| `@DbName` | ✅ | 📋 | Delegates to `getServerName()` + `getDatabaseName()` |
+| `@DbTitle` | ✅ | ⚠ | Delegates to `getDatabaseTitle()` |
+| `@ReplicaID` | ✅ | ⚠ | Delegates to `getReplicaID()` |
+| `@ServerName` | ✅ | ⚠ | Delegates to `getServerName()` |
 | `@DbExists` | ✅ | ⚠ | True (always exists) |
 | `@DbManager` | ❌ | — | Not yet (ACL-based) |
 | `@ViewTitle` | ❌ | — | Not yet (view-specific) |
@@ -226,7 +229,7 @@
 | `@UserName` | ✅ | 📋 | Current user name |
 | `@UserNamesList` | ✅ | ⚠ | List of user names/roles |
 | `@UserRoles` | ✅ | ⚠ | ACL roles (empty) |
-| `@Domain` | ✅ | ⚠ | Mail domain (empty) |
+| `@Domain` | ✅ | ⚠ | Delegates to `getDomain()`; Couchbase: empty |
 | `@Version` | ✅ | 📋 | "Domino 14.5 / Couchbase" |
 | `@V3UserName` | ✅ | ⚠ | Legacy user name (delegates to @UserName) |
 | `@V4UserAccess` | ✅ | ⚠ | Legacy access (returns 1) |
@@ -250,7 +253,7 @@
 | Assignment (`:=`) | ✅ | 📋 | Temporary variable |
 | `FIELD x := expr` | ✅ | 📋 | Field assignment |
 | `DEFAULT x := expr` | ✅ | 📋 | Default value |
-| `ENVIRONMENT x := expr` | ✅ | 📋 | Environment value |
+| `ENVIRONMENT x := expr` | ✅ | 📋 | Environment value (delegates to `getEnvironmentValue()`) |
 | `SELECT formula` | ✅ | 📋 | Selection formula marker |
 | `REM { ... }` | ✅ | 📋 | Comments |
 

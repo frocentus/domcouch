@@ -377,13 +377,16 @@ Date parsing uses the JVM's default locale unless overridden.
 ```
 com.domcouch.formula/
 ├── Token.java            (type + lexeme + position)
-├── Lexer.java            (CharSequence → List<Token>; uppercases variables/keywords/function names)
-├── Expr.java             (sealed interface + record subtypes; names in uppercase)
-├── Parser.java           (recursive descent: List<Token> → List<Expr>)
-├── Evaluator.java        (Expr × FormulaContext → Object)
-├── FormulaContext.java   (resolve(VARIABLE) → Object; expects uppercase names)
-├── FormulaTranslator.java (existing — moves to this package, gains evaluate())
-└── @Functions.java        (registry keyed by uppercase function name)
+├── Lexer.java               (CharSequence → List<Token>; uppercases variables/keywords/function names)
+├── Expr.java                (sealed interface + record subtypes; names in uppercase)
+├── Parser.java              (recursive descent: List<Token> → List<Expr>)
+├── Evaluator.java           (Expr × FormulaContext → Object; 150+ @Function handlers)
+├── FormulaContext.java      (23-method interface: fields, doc metadata, locking, database, lifecycle)
+├── ContextNotSupportedException.java (thrown by unsupported context methods; caught by Evaluator)
+├── FormulaTranslator.java   (existing — moved to this package, gained evaluate() + compile())
+├── CompiledFormula.java     (pre-parsed AST for cached evaluation, ~16× speedup)
+├── FunctionHandler.java     (@FunctionalInterface for @Function implementations)
+└── FormulaParseException.java (thrown by Lexer/Parser on syntax errors)
 ```
 
 ### 3.2 Expression AST (`Expr.java`)
@@ -420,31 +423,63 @@ The inner `Assignment` returns `"London"` as its value after storing it in the t
 
 ### 3.3 FormulaContext
 
+The evaluator does not know about Couchbase or Domino. All interaction with
+the outside world goes through `FormulaContext`. Every method defaults to
+throwing `ContextNotSupportedException` — the evaluator catches this and
+returns a sensible default (`""`, `0.0`, `[]`, `1.0`).
+
 ```java
 public interface FormulaContext {
-    /** Resolve a variable name to its value, or null if not found. */
+    // Fields
     Object resolve(String name);
+    void setField(String name, Object value);   // FIELD assignment
+    void deleteField(String name);               // @DeleteField, REM {}
+    List<String> getFieldNames();                // @DocFields
 
-    /** Write a value to a document field. Used by FIELD assignments. */
-    default void setField(String name, Object value) {
-        throw new UnsupportedOperationException("setField not supported in this context");
-    }
+    // Document identity
+    String getDocumentUNID();                    // @DocumentUniqueID, @NoteID, @IsNewDoc
+    boolean isDocumentValid();                   // @IsValid
 
-    /** Delete a field from the document. Used by FIELD x := @DeleteField. */
-    default void deleteField(String name) {
-        throw new UnsupportedOperationException("deleteField not supported in this context");
-    }
+    // Document metadata
+    long getDocumentSize();                      // @DocLength, @DocCommittedLength
+    int getAttachmentCount();                    // @Attachments
+    List<String> getFolderNames();               // @WhichFolders
+
+    // Document locking
+    boolean lockDocument();                      // @DocLock("LOCK")
+    boolean unlockDocument();                    // @DocLock("UNLOCK")
+    String getDocumentLockStatus();              // @DocLock("STATUS")
+    boolean isDocumentLockingEnabled();          // @DocLock("LOCKINGENABLED")
+
+    // Database
+    String getDatabaseName();                    // @DbName[1] (file path)
+    String getServerName();                      // @DbName[0], @ServerName
+    String getDatabaseTitle();                   // @DbTitle
+    String getReplicaID();                       // @ReplicaID
+
+    // Session
+    String getDomain();                          // @Domain
+    String getEnvironmentValue(String name);     // @Environment
+
+    // Lifecycle
+    void markForDeletion();                      // @DeleteDocument
+    void unmarkForDeletion();                    // @UndeleteDocument
+    void hardDelete();                           // @HardDeleteDocument
+    void addToFolder(String folderName);         // @AddToFolder
 }
 ```
 
 Built-in implementations:
 
-- `DocumentContext(Document)` — resolves field names via `doc.getFirstItem(name)`;
-  `setField` calls `doc.replaceItemValue(name, value)`; `deleteField` removes the item
-- `MapContext(Map<String,Object>)` — temp variables only; throws on `setField`/`deleteField`
-- `StackedContext(ctx, override)` — layers temp-vars over a document scope; delegates
-  writes to the underlying context
-- `SessionContext(Session)` — for `@UserName`, etc.; read-only
+- `DocumentFormulaContext(Document)` — resolves fields via `doc.getFirstItem()`;
+  `setField`/`deleteField` modify items; `getFolderNames` reads `folders[]`;
+  `addToFolder` writes to `folders[]`; database-level properties (`getDatabaseName`,
+  `getServerName`, etc.) accept builder-method values or throw
+  `ContextNotSupportedException`
+- Lambda `fields::get` — implements only `resolve()`; all other methods throw
+  `ContextNotSupportedException` → evaluator returns defaults safely
+- Domino-backed context — wraps `lotus.domino.Document` + `lotus.domino.Database`;
+  all 23 methods map directly to Domino API calls
 
 ---
 
@@ -751,7 +786,7 @@ import com.domcouch.formula.FormulaTranslator;
 | 2. AST types                                   | `Expr.java`                | ~40          |
 | 3. Parser (recursive descent)                  | `Parser.java`              | ~150         |
 | 4. Evaluator (tree walker)                     | `Evaluator.java`           | ~100         |
-| 5. FormulaContext + DocumentContext            | `FormulaContext.java`      | ~60          |
+| 5. FormulaContext + DocumentFormulaContext         | `FormulaContext.java`  | ~80          |
 | 6. @Function registry (Phase 1 functions)      | `@Functions.java`          | ~200         |
 | 7. FormulaTranslator: add `evaluate()`         | Modify existing            | ~20          |
 | 8. Integration: computed field API on Document | `CouchbaseDocument`        | ~30          |
@@ -766,7 +801,7 @@ import com.domcouch.formula.FormulaTranslator;
 | ------------------------------------------ | ----------------------------------------------------------------------------------------------- |
 | Sealed interface for AST                   | Exhaustive pattern matching; compiler-enforced completeness                                     |
 | Recursive descent parser                   | Simple, readable, no dependencies                                                               |
-| FormulaContext as `@FunctionalInterface`   | Callers can pass lambda or named implementation                                                 |
+| FormulaContext as pluggable interface         | Callers implement only needed methods; `ContextNotSupportedException` → evaluator returns safe defaults |
 | Keep `toN1ql()` regex-based, not AST-based | Selection formulas are structurally simpler; regex avoids parser overhead for query translation |
 | Move to `com.domcouch.formula` package     | Clean separation from `api` and `impl`                                                          |
 | Two-mode entry through `FormulaTranslator` | Single class for both modes; users don't pick Lexer/Parser directly                             |
