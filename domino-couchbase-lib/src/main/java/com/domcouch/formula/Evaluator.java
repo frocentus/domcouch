@@ -884,7 +884,8 @@ public class Evaluator {
         functions.put("ACCESSED", (ev, args, ctx) -> ctx.resolve("ACCESSED"));
         functions.put("ADDEDTOTHISFILE", (ev, args, ctx) -> ctx.resolve("ADDEDTOTHISFILE"));
         functions.put("NOW", (ev, args, ctx) -> DT_FMT.format(Instant.now()));
-        functions.put("TODAY", (ev, args, ctx) -> DT_FMT.format(Instant.now()));
+        functions.put("TODAY", (ev, args, ctx) ->
+                DT_FMT.format(java.time.ZonedDateTime.now().toLocalDate().atStartOfDay(java.time.ZoneId.systemDefault())));
 
         // @Adjust: apply adjustments in reverse order (seconds→years)
         functions.put("ADJUST", (ev, args, ctx) -> {
@@ -1169,6 +1170,8 @@ public class Evaluator {
                 DT_FMT.format(java.time.ZonedDateTime.now().plusDays(1)));
         functions.put("YESTERDAY", (ev, args, ctx) ->
                 DT_FMT.format(java.time.ZonedDateTime.now().minusDays(1)));
+        functions.put("ZONE", (ev, args, ctx) ->
+                java.time.ZoneId.systemDefault().getId());
         functions.put("TIME", (ev, args, ctx) -> {
             if (args.size() >= 3 && ev.eval(args.get(0), ctx) instanceof Number) {
                 int h = (int) toNumber(ev.eval(args.get(0), ctx));
