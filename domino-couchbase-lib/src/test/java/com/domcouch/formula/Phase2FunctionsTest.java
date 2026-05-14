@@ -1091,6 +1091,16 @@ class Phase2FunctionsTest {
         void twoDigitYear() { assertTrue(((String)eval("@Date(95; 6; 23)")).startsWith("06/23")); }
     }
 
+    @Nested @DisplayName("@IsTime @TextToTime @ToNumber @ToTime")
+    class DataConversionTests {
+        @Test @DisplayName("@IsTime date string") void isTimeTrue() { assertEquals(1.0, eval("@IsTime(\"12/31/2025\")")); }
+        @Test @DisplayName("@IsTime number") void isTimeNum() { assertEquals(0.0, eval("@IsTime(123)")); }
+        @Test @DisplayName("@ToNumber strings") void toNumber() { assertEquals(List.of(20.0,40.0), eval("@ToNumber(\"20\" : \"40\")")); }
+        @Test @DisplayName("@ToNumber non-numeric") void toNumberNan() { assertEquals(0.0, eval("@ToNumber(\"abc\")")); }
+        @Test @DisplayName("@TextToTime") void textToTime() { assertNotNull(eval("@TextToTime(\"12/31/2025\")")); }
+        @Test @DisplayName("@ToTime") void toTime() { assertNotNull(eval("@ToTime(\"2/29/08\")")); }
+    }
+
     // ================================================================
     // Pair-wise and permuted list operations (from official spec table)
     // ================================================================

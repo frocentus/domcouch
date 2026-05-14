@@ -1239,6 +1239,42 @@ public class Evaluator {
             }
         });
 
+        // ---- Data conversion ----
+        functions.put("ISTIME", (ev, args, ctx) -> {
+            Object val = ev.eval(args.get(0), ctx);
+            List<Object> sources = toList(val);
+            for (Object src : sources) {
+                if (src instanceof Number) return 0.0;
+                if (parseDateToZoned(toString(src)) == null) return 0.0;
+            }
+            return 1.0;
+        });
+        functions.put("TEXTTOTIME", (ev, args, ctx) -> {
+            List<Object> sources = toList(ev.eval(args.get(0), ctx));
+            List<Object> result = new ArrayList<>();
+            for (Object src : sources) {
+                java.time.ZonedDateTime zdt = parseDateToZoned(toString(src));
+                result.add(zdt == null ? "" : DT_FMT.format(zdt));
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
+        functions.put("TONUMBER", (ev, args, ctx) -> map1(ev, args, ctx, s -> {
+            try { return toNumber(s); } catch (Exception e) { return 0.0; }
+        }));
+        functions.put("TOTIME", (ev, args, ctx) -> {
+            List<Object> sources = toList(ev.eval(args.get(0), ctx));
+            List<Object> result = new ArrayList<>();
+            for (Object src : sources) {
+                java.time.ZonedDateTime zdt = parseDateToZoned(toString(src));
+                result.add(zdt == null ? "" : DT_FMT.format(zdt));
+            }
+            return result.size() == 1 ? result.get(0) : result;
+        });
+        // Time-zone conversions: placeholder (defer)
+        functions.put("TIMETOTEXTINZONE", (ev, args, ctx) ->
+                toString(ev.eval(args.get(0), ctx)));
+        functions.put("TIMEZONETOTEXT", (ev, args, ctx) -> "UTC");
+
         // Formula validation
         functions.put("CHECKFORMULASYNTAX", (ev, args, ctx) -> {
             String formula = toString(ev.eval(args.get(0), ctx));
