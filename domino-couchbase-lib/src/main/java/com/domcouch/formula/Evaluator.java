@@ -915,6 +915,10 @@ public class Evaluator {
         functions.put("USERNAMESLIST", (ev, args, ctx) -> List.of(currentUserName));
         functions.put("DOMAIN", (ev, args, ctx) -> ""); // no Domino domain
         functions.put("VERSION", (ev, args, ctx) -> "Domino 14.5 / Couchbase");
+        functions.put("DBNAME", (ev, args, ctx) -> List.of("", ctx.getDatabaseName()));
+        functions.put("DBTITLE", (ev, args, ctx) -> ctx.getDatabaseName());
+        functions.put("REPLICAID", (ev, args, ctx) -> ctx.getDatabaseName());
+        functions.put("SERVERNAME", (ev, args, ctx) -> "");
         functions.put("DOCFIELDS", (ev, args, ctx) -> ctx.getFieldNames());
         functions.put("DOCLENGTH", (ev, args, ctx) -> 0.0);
         functions.put("DOCUMENTUNIQUEID", (ev, args, ctx) -> ctx.getDocumentUNID());

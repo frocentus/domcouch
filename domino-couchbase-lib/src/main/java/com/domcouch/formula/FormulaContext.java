@@ -30,4 +30,9 @@ public interface FormulaContext {
     default String getDocumentUNID() {
         return "";
     }
+
+    /** Return the current database name. Default: empty string. */
+    default String getDatabaseName() {
+        return "";
+    }
 }
