@@ -1314,6 +1314,12 @@ public class Evaluator {
             return boolToNum(anyPairMatch(a, b, (s1, s2) -> s1.endsWith(s2)));
         });
 
+        functions.put("FILEDIR", (ev, args, ctx) -> {
+            String path = toString(ev.eval(args.get(0), ctx));
+            int lastSep = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+            return lastSep < 0 ? "" : path.substring(0, lastSep + 1);
+        });
+
         // ---- Phase 2: String manipulation ----
         functions.put("REPLACESUBSTRING", (ev, args, ctx) -> {
             Object source = ev.eval(args.get(0), ctx);
