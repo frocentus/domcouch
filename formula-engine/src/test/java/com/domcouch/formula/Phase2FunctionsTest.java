@@ -423,6 +423,46 @@ class Phase2FunctionsTest {
         void listNoMatch() {
             assertEquals(0.0, eval("@Matches(\"one\" : \"two\" : \"three\"; \"four\" : \"five\" : \"six\")"));
         }
+
+        // ---- + (prefix zero-or-more) ----
+        @Test @DisplayName("+? matches any string")
+        void plusAny() { assertEquals(1.0, eval("@Matches(\"anything\"; \"+?\")")); }
+        @Test @DisplayName("+? matches empty string")
+        void plusAnyEmpty() { assertEquals(1.0, eval("@Matches(\"\"; \"+?\")")); }
+        @Test @DisplayName("+A matches zero or more A")
+        void plusLiteral() { assertEquals(1.0, eval("@Matches(\"AAA\"; \"+A\")")); }
+        @Test @DisplayName("+A matches empty (zero occurrences)")
+        void plusLiteralEmpty() { assertEquals(1.0, eval("@Matches(\"\"; \"+A\")")); }
+        @Test @DisplayName("+{A-F} matches zero or more hex chars")
+        void plusSet() { assertEquals(1.0, eval("@Matches(\"ABC\"; \"+{A-F}\")")); }
+
+        // ---- | (OR) ----
+        @Test @DisplayName("| OR operator: first alternative")
+        void orFirst() { assertEquals(1.0, eval("@Matches(\"Central\"; \"Central | Midwest\")")); }
+        @Test @DisplayName("| OR operator: second alternative")
+        void orSecond() { assertEquals(1.0, eval("@Matches(\"Midwest\"; \"Central | Midwest\")")); }
+        @Test @DisplayName("| OR operator: no match")
+        void orNoMatch() { assertEquals(0.0, eval("@Matches(\"East\"; \"Central | Midwest\")")); }
+        @Test @DisplayName("| with wildcards")
+        void orWithWildcards() { assertEquals(1.0, eval("@Matches(\"prefixABC\"; \"A* | *BC\")")); }
+
+        // ---- & (AND) ----
+        @Test @DisplayName("& AND operator: both patterns match")
+        void andBoth() { assertEquals(1.0, eval("@Matches(\"abc123\"; \"abc & 123\")")); }
+        @Test @DisplayName("& AND operator: only first matches")
+        void andFirstOnly() { assertEquals(0.0, eval("@Matches(\"abc\"; \"abc & 123\")")); }
+        @Test @DisplayName("& AND operator: neither matches")
+        void andNeither() { assertEquals(0.0, eval("@Matches(\"xyz\"; \"abc & 123\")")); }
+
+        // ---- ! (NOT) ----
+        @Test @DisplayName("!A matches any char except A")
+        void notLiteral() { assertEquals(1.0, eval("@Matches(\"B\"; \"!A\")")); }
+        @Test @DisplayName("!A rejects matching char")
+        void notLiteralFail() { assertEquals(0.0, eval("@Matches(\"A\"; \"!A\")")); }
+        @Test @DisplayName("!{A-F} matches any char outside range")
+        void notSet() { assertEquals(1.0, eval("@Matches(\"Z\"; \"!{A-F}\")")); }
+        @Test @DisplayName("!? matches nothing (no single char matches NOT any-char)")
+        void notAny() { assertEquals(0.0, eval("@Matches(\"A\"; \"!?\")")); }
     }
 
     // ================================================================

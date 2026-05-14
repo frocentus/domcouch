@@ -28,13 +28,13 @@
 | `@Length` | ✅ | 📋 | String length in characters; list support |
 | `@Left` | ✅ | 📋 | Leftmost N chars or up to substring; list support |
 | `@Right` | ✅ | 📋 | Rightmost N chars or after substring; list support |
-| `@Repeat` | 🟡 | 📋 | Repeat string N times; third arg truncates (should pad) |
+| `@Repeat` | ✅ | 📋 | Repeat string N times; third arg truncates to maxChars; 1,024 char limit |
 | `@Contains` | ✅ | 📋 | Substring contained? pair-wise list support |
 | `@Begins` | ✅ | 📋 | String begins with? pair-wise list support |
 | `@Ends` | ✅ | 📋 | String ends with? pair-wise list support |
 | `@ReplaceSubstring` | ✅ | 📋 | Sequential string replacement; list support |
 | `@Word` | ✅ | 📋 | Extract word N by separator; list support |
-| `@Matches` | 🟡 | 📋 | Pattern matching (*, ?, {sets}, \); missing !, \\|, &, + |
+| `@Matches` | ✅ | 📋 | Pattern matching: ? * + {sets} ! \| & \\ escape; 24 tests |
 | `@Like` | 🟡 | 📋 | SQL-style pattern (_ any char, % any seq); escape char partial |
 | `@LeftBack` | 🟡 | 📋 | From end: numeric takes first N (should remove last N); separator overload |
 | `@RightBack` | ✅ | ⚠ | From end: numeric/substring overloads |
