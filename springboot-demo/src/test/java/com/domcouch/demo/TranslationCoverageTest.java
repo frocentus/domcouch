@@ -131,7 +131,7 @@ class TranslationCoverageTest {
         assertEquals("123", string(e, 3).replace(".0", ""));
         // N1QL: '' IS NULL is false (empty string != SQL NULL)
         assertFalse(isTruthy(e, 4), "N1QL: empty string IS NOT NULL");
-        assertTrue(isTruthy(e, 5));
+        assertFalse(isTruthy(e, 5), "N1QL: MISSING IS NOT NULL");
     }
 
     @Test @Order(6) @DisplayName("View: math functions")
