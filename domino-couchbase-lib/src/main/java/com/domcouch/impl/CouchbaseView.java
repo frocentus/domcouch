@@ -163,7 +163,7 @@ public class CouchbaseView implements View {
                     } catch (Exception ignored) { /* fall through to Java eval */ }
                     needsDocStar = true;
                 } else {
-                    sb.append(", doc.items.").append(escapeBacktick(col.getExpression()))
+                    sb.append(", doc.items.").append(escapeBacktick(col.getExpression().toUpperCase()))
                             .append(".`values`[0] AS `").append(col.getName()).append("`");
                 }
             }
