@@ -135,6 +135,41 @@ public interface Database {
      */
     void recycle();
 
+    // ---- folders ----
+
+    /**
+     * Create a shared folder. Folders are views whose selection formula
+     * is automatically generated as {@code 'folderName' IN doc.folders}.
+     *
+     * @param name folder name
+     * @return a View representing the folder
+     */
+    View createFolder(String name) throws NotesException;
+
+    /**
+     * Open a folder by name.
+     *
+     * @param name folder name
+     * @return the folder as a View, or null if not found
+     */
+    View getFolder(String name) throws NotesException;
+
+    /**
+     * @return all folder names in this database
+     */
+    List<String> getFolderNames() throws NotesException;
+
+    /**
+     * Delete a shared folder.
+     * @param name folder name
+     */
+    void removeFolder(String name) throws NotesException;
+
+    /**
+     * @return true if the named element is a folder (not a view)
+     */
+    boolean isFolder(String name) throws NotesException;
+
     // ---- Not applicable in Couchbase ----
 
     /**

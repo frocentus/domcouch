@@ -17,6 +17,7 @@ import com.domcouch.formula.translate.FormulaTranslator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -45,6 +46,7 @@ public class CouchbaseDatabase implements Database {
     private String title;
     private boolean open;
     private final Map<String, CouchbaseView> views;
+    private final Set<String> folderNames;
 
     public CouchbaseDatabase(Cluster cluster, String bucketName, String scopeName) {
         this.cluster = cluster;
@@ -56,6 +58,7 @@ public class CouchbaseDatabase implements Database {
         this.open = true;
         this.title = scopeName;
         this.views = new ConcurrentHashMap<>();
+        this.folderNames = ConcurrentHashMap.newKeySet();
 
         // Ensure the collection exists by performing a lightweight query that creates the primary index
         ensurePrimaryIndex();
@@ -388,5 +391,45 @@ public class CouchbaseDatabase implements Database {
                 + "   AND LOWER(TO_STRING(val)) LIKE $q"
                 + " )"
                 + " LIMIT $limit";
+    }
+
+    // ---- folders ----
+
+    @Override
+    public View createFolder(String name) throws NotesException {
+        if (name == null || name.isEmpty()) {
+            throw new NotesException(4000, "Folder name cannot be null or empty");
+        }
+        folderNames.add(name);
+        // Folders are views whose selection formula is auto-generated
+        String n1ql = "'" + name.replace("'", "\\'") + "' IN doc.folders";
+        CouchbaseView folder = new CouchbaseView(this, scope, name, n1ql, (List<String>) null, (List<ViewColumn>) null);
+        views.put(name, folder);
+        return folder;
+    }
+
+    @Override
+    public View getFolder(String name) throws NotesException {
+        if (!folderNames.contains(name)) return null;
+        return views.computeIfAbsent(name, n -> {
+            String n1ql = "'" + n.replace("'", "\\'") + "' IN doc.folders";
+            return new CouchbaseView(this, scope, n, n1ql, (List<String>) null, (List<ViewColumn>) null);
+        });
+    }
+
+    @Override
+    public List<String> getFolderNames() throws NotesException {
+        return List.copyOf(folderNames);
+    }
+
+    @Override
+    public void removeFolder(String name) throws NotesException {
+        folderNames.remove(name);
+        views.remove(name);
+    }
+
+    @Override
+    public boolean isFolder(String name) throws NotesException {
+        return folderNames.contains(name);
     }
 }
