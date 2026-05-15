@@ -323,6 +323,12 @@ public class Evaluator {
             java.time.format.DateTimeFormatter.ofPattern("M/d/yy[ hh:mm:ss a]"),
             java.time.format.DateTimeFormatter.ofPattern("M/d/yyyy['T'HH:mm:ss'Z']"),
             java.time.format.DateTimeFormatter.ISO_LOCAL_DATE,
+            // Time-only patterns (tried after full date-time patterns)
+            java.time.format.DateTimeFormatter.ofPattern("hh:mm:ss a"),
+            java.time.format.DateTimeFormatter.ofPattern("H:mm:ss"),
+            java.time.format.DateTimeFormatter.ofPattern("hh:mm a"),
+            java.time.format.DateTimeFormatter.ofPattern("h:mm a"),
+            java.time.format.DateTimeFormatter.ofPattern("H:mm"),
     };
 
     /** Extract a date field (month, day, year) from a date string or object. */
@@ -335,7 +341,8 @@ public class Evaluator {
                 var parsed = fmt.parseBest(s,
                         java.time.ZonedDateTime::from,
                         java.time.LocalDateTime::from,
-                        java.time.LocalDate::from);
+                        java.time.LocalDate::from,
+                        java.time.LocalTime::from);
                 return ((java.time.temporal.TemporalAccessor) parsed).get(field);
             } catch (Exception e) { /* try next format */ }
         }
@@ -349,12 +356,16 @@ public class Evaluator {
                 var parsed = fmt.parseBest(s,
                         java.time.ZonedDateTime::from,
                         java.time.LocalDateTime::from,
-                        java.time.LocalDate::from);
+                        java.time.LocalDate::from,
+                        java.time.LocalTime::from);
                 if (parsed instanceof java.time.ZonedDateTime zdt) return zdt;
                 if (parsed instanceof java.time.LocalDateTime ldt)
                     return ldt.atZone(java.time.ZoneId.systemDefault());
                 if (parsed instanceof java.time.LocalDate ld)
                     return ld.atStartOfDay(java.time.ZoneId.systemDefault());
+                if (parsed instanceof java.time.LocalTime lt)
+                    return lt.atDate(java.time.LocalDate.now())
+                            .atZone(java.time.ZoneId.systemDefault());
             } catch (Exception e) { /* try next */ }
         }
         return null;
@@ -1452,17 +1463,17 @@ public class Evaluator {
         functions.put("RANDOM", (ev, args, ctx) -> Math.random());
 
         // ---- Time part extraction ----
-        functions.put("SECOND", (ev, args, ctx) -> map1(ev, args, ctx, s ->
-                (double) extractDateField(s, java.time.temporal.ChronoField.SECOND_OF_MINUTE)));
-        functions.put("MINUTE", (ev, args, ctx) -> map1(ev, args, ctx, s ->
-                (double) extractDateField(s, java.time.temporal.ChronoField.MINUTE_OF_HOUR)));
-        functions.put("HOUR", (ev, args, ctx) -> map1(ev, args, ctx, s ->
-                (double) extractDateField(s, java.time.temporal.ChronoField.HOUR_OF_DAY)));
-        functions.put("WEEKDAY", (ev, args, ctx) -> map1(ev, args, ctx, s -> {
-            long v = extractDateField(s, java.time.temporal.ChronoField.DAY_OF_WEEK);
+        functions.put("SECOND", (ev, args, ctx) ->
+                (double) extractDateField(ev.eval(args.get(0), ctx), java.time.temporal.ChronoField.SECOND_OF_MINUTE));
+        functions.put("MINUTE", (ev, args, ctx) ->
+                (double) extractDateField(ev.eval(args.get(0), ctx), java.time.temporal.ChronoField.MINUTE_OF_HOUR));
+        functions.put("HOUR", (ev, args, ctx) ->
+                (double) extractDateField(ev.eval(args.get(0), ctx), java.time.temporal.ChronoField.HOUR_OF_DAY));
+        functions.put("WEEKDAY", (ev, args, ctx) -> {
+            long v = extractDateField(ev.eval(args.get(0), ctx), java.time.temporal.ChronoField.DAY_OF_WEEK);
             // Domino: Sunday=1, Saturday=7. Java: Monday=1, Sunday=7. Convert.
             return v == 7 ? 1.0 : (double) (v + 1);
-        }));
+        });
         functions.put("TOMORROW", (ev, args, ctx) ->
                 DT_FMT.format(java.time.ZonedDateTime.now().plusDays(1)));
         functions.put("YESTERDAY", (ev, args, ctx) ->

@@ -50,6 +50,10 @@ class DateTimeFunctionsTest extends BaseFormulaTest {
         @Test @DisplayName("@Minute") void minute() { assertNotNull(eval("@Minute(@Now)")); }
         @Test @DisplayName("@Hour") void hour() { assertNotNull(eval("@Hour(@Now)")); }
         @Test @DisplayName("@Weekday") void weekday() { assertNotNull(eval("@Weekday(@Now)")); }
+        @Test @DisplayName("@Hour from [5:30]") void hourFromTime() { assertEquals(5.0, eval("@Hour([5:30])")); }
+        @Test @DisplayName("@Minute from [5:30 PM]") void minuteFromTime() { assertEquals(30.0, eval("@Minute([5:30 PM])")); }
+        @Test @DisplayName("@Second from [5:30:45]") void secondFromTime() { assertEquals(45.0, eval("@Second([5:30:45])")); }
+        @Test @DisplayName("@Time from [5:30]") void timeFromConstant() { assertNotNull(eval("@Time([5:30])")); }
     }
 
     @Nested @DisplayName("@Today/@Now")
