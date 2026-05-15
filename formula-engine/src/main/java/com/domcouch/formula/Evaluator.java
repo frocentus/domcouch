@@ -1453,8 +1453,10 @@ public class Evaluator {
         });
 
         // ---- Type checking ----
-        functions.put("ISNULL", (ev, args, ctx) ->
-                boolToNum(ev.eval(args.get(0), ctx) == null || "".equals(toString(ev.eval(args.get(0), ctx)))));
+        functions.put("ISNULL", (ev, args, ctx) -> {
+            Object val = ev.eval(args.get(0), ctx);
+            return boolToNum(val == null || "".equals(toString(val)));
+        });
         functions.put("ISVALID", (ev, args, ctx) -> {
             try { return boolToNum(ctx.isDocumentValid()); }
             catch (ContextNotSupportedException e) { return 1.0; }
