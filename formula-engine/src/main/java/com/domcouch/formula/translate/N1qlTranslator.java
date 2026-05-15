@@ -100,42 +100,42 @@ final class N1qlTranslator {
         String op = bo.op();
         if ("&".equals(op)) {
             sb.append("(");
-            walkExpr(bo.left(), sb, currentUserName);
+            walkExpr(bo.left(), sb, currentUserName, valueMode);
             sb.append(" AND ");
-            walkExpr(bo.right(), sb, currentUserName);
+            walkExpr(bo.right(), sb, currentUserName, valueMode);
             sb.append(")");
         } else if ("|".equals(op)) {
             sb.append("(");
-            walkExpr(bo.left(), sb, currentUserName);
+            walkExpr(bo.left(), sb, currentUserName, valueMode);
             sb.append(" OR ");
-            walkExpr(bo.right(), sb, currentUserName);
+            walkExpr(bo.right(), sb, currentUserName, valueMode);
             sb.append(")");
         } else if ("!".equals(op) && bo.left() == null) {
             sb.append("NOT (");
-            walkExpr(bo.right(), sb, currentUserName);
+            walkExpr(bo.right(), sb, currentUserName, valueMode);
             sb.append(")");
         } else if ("=".equals(op)) {
-            walkExpr(bo.left(), sb, currentUserName);
+            walkExpr(bo.left(), sb, currentUserName, valueMode);
             sb.append(" = ");
-            walkExpr(bo.right(), sb, currentUserName);
+            walkExpr(bo.right(), sb, currentUserName, valueMode);
         } else if ("+".equals(op)) {
             String n1qlOp = valueMode ? "||" : "+";
             sb.append("(");
-            walkExpr(bo.left(), sb, currentUserName);
+            walkExpr(bo.left(), sb, currentUserName, valueMode);
             sb.append(" ").append(n1qlOp).append(" ");
-            walkExpr(bo.right(), sb, currentUserName);
+            walkExpr(bo.right(), sb, currentUserName, valueMode);
             sb.append(")");
         } else if ("-".equals(op) || "*".equals(op) || "/".equals(op)) {
             sb.append("(");
-            walkExpr(bo.left(), sb, currentUserName);
+            walkExpr(bo.left(), sb, currentUserName, valueMode);
             sb.append(" ").append(op).append(" ");
-            walkExpr(bo.right(), sb, currentUserName);
+            walkExpr(bo.right(), sb, currentUserName, valueMode);
             sb.append(")");
         } else {
             String n1qlOp = (op.equals("<>") || op.equals("><")) ? "!=" : op;
-            walkExpr(bo.left(), sb, currentUserName);
+            walkExpr(bo.left(), sb, currentUserName, valueMode);
             sb.append(" ").append(n1qlOp).append(" ");
-            walkExpr(bo.right(), sb, currentUserName);
+            walkExpr(bo.right(), sb, currentUserName, valueMode);
         }
     }
 
