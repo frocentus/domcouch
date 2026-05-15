@@ -51,7 +51,7 @@ cd domcouch
 mvn clean install
 ```
 
-This runs all 562 tests and installs all three artifacts:
+This runs all 637 tests and installs all three artifacts:
 
 | Module                 | Artifact                                           | Notes                           |
 | ---------------------- | -------------------------------------------------- | ------------------------------- |
@@ -259,23 +259,24 @@ domcouch/
 │       │   ├── FormulaParseException.java
 │       │   └── FunctionHandler.java
 │       └── test/java/com/domcouch/formula/
-│           ├── BaseFormulaTest.java       (shared setup)
-│           ├── LexerTest.java             (54 tests)
-│           ├── ParserTest.java            (39 tests)
-│           ├── EvaluatorTest.java         (57 tests)
-│           ├── FormulaExamplesTest.java   (97 tests)
-│           ├── CachedEvaluationTest.java  (8 tests)
+│           ├── BaseFormulaTest.java        (shared setup)
+│           ├── LexerTest.java              (63 tests)
+│           ├── ParserTest.java             (43 tests)
+│           ├── EvaluatorTest.java          (63 tests)
+│           ├── FormulaExamplesTest.java    (97 tests)
+│           ├── CachedEvaluationTest.java   (8 tests)
 │           ├── PerformanceComparisonTest.java (9 tests)
-│           ├── StringFunctionsTest.java   (107 tests)
-│           ├── MathFunctionsTest.java     (33 tests)
-│           ├── DateTimeFunctionsTest.java (28 tests)
-│           ├── ListFunctionsTest.java     (24 tests)
-│           ├── ControlFlowTest.java       (17 tests)
-│           ├── DocumentFunctionsTest.java (15 tests)
-│           ├── OperatorsTest.java         (14 tests)
-│           ├── PatternMatchingTest.java   (25 tests)
-│           ├── DataConversionTest.java    (20 tests)
-│           └── ValidationTest.java        (25 tests)
+│           ├── FormulaTranslatorTest.java  (27 tests)
+│           ├── StringFunctionsTest.java    (114 tests)
+│           ├── MathFunctionsTest.java      (33 tests)
+│           ├── DateTimeFunctionsTest.java  (33 tests)
+│           ├── ListFunctionsTest.java      (24 tests)
+│           ├── ControlFlowTest.java        (18 tests)
+│           ├── DocumentFunctionsTest.java  (15 tests)
+│           ├── OperatorsTest.java          (14 tests)
+│           ├── PatternMatchingTest.java    (27 tests)
+│           ├── DataConversionTest.java     (24 tests)
+│           └── ValidationTest.java         (25 tests)
 ├── domino-couchbase-lib/                  (Depends on formula-engine + Couchbase SDK)
 │   ├── pom.xml
 │   └── src/main/java/com/domcouch/
@@ -316,23 +317,24 @@ domcouch/
 
 | Test class                  | Module         | Tests   | Coverage                                                     |
 | --------------------------- | -------------- | ------- | ------------------------------------------------------------ |
-| `LexerTest`                 | formula-engine | 54      | All token types, escapes, numbers, brackets, comments        |
-| `ParserTest`                | formula-engine | 39      | Precedence, operators, FIELD/DEFAULT/ENVIRONMENT, @Functions |
-| `EvaluatorTest`             | formula-engine | 57      | Arithmetic, comparison, coercion, @Functions, assignment     |
+| `LexerTest`                 | formula-engine | 63      | All token types, escapes, numbers, brackets, comments        |
+| `ParserTest`                | formula-engine | 43      | Precedence, operators, FIELD/DEFAULT/ENVIRONMENT, @Functions |
+| `EvaluatorTest`             | formula-engine | 63      | Arithmetic, comparison, coercion, @Functions, assignment     |
 | `FormulaExamplesTest`       | formula-engine | 97      | Real Domino spec examples — all formula categories           |
 | `CachedEvaluationTest`      | formula-engine | 8       | Compile-once, evaluate-many                                  |
 | `PerformanceComparisonTest` | formula-engine | 9       | Throughput, cached vs uncached                               |
-| `StringFunctionsTest`       | formula-engine | 107     | @Contains @Matches @Repeat @ReplaceSubstring @Word @Trim ... |
+| `FormulaTranslatorTest`     | formula-engine | 27      | N1QL translation correctness — AST-based walker              |
+| `StringFunctionsTest`       | formula-engine | 114     | @Contains @Matches @Repeat @ReplaceSubstring @Word @Trim ... |
 | `MathFunctionsTest`         | formula-engine | 33      | @Pi @Power @Sqrt @Abs @Max @Min @Sum @Modulo ...             |
-| `DateTimeFunctionsTest`     | formula-engine | 28      | @Month @Day @Year @Date @Adjust @TimeMerge ...               |
+| `DateTimeFunctionsTest`     | formula-engine | 33      | @Month @Day @Year @Date @Adjust @TimeMerge ...               |
 | `ListFunctionsTest`         | formula-engine | 24      | @IsMember @Replace @Count @Subset @Unique @Transform ...     |
-| `ControlFlowTest`           | formula-engine | 17      | @While @For @DoWhile @Eval @Error @CheckFormulaSyntax        |
+| `ControlFlowTest`           | formula-engine | 18      | @While @For @DoWhile @Eval @Error @CheckFormulaSyntax        |
 | `DocumentFunctionsTest`     | formula-engine | 15      | @DocFields @DocLength @DocLock lifecycle folders ...         |
 | `OperatorsTest`             | formula-engine | 14      | Pair-wise and permuted list operations                       |
-| `PatternMatchingTest`       | formula-engine | 25      | @Matches (24) + @Like (4) — pattern matching                 |
-| `DataConversionTest`        | formula-engine | 20      | @Text @TextToNumber @IsNumber @IsTime @ToNumber ...          |
+| `PatternMatchingTest`       | formula-engine | 27      | @Matches (24) + @Like (6) — pattern matching                 |
+| `DataConversionTest`        | formula-engine | 24      | @Text @TextToNumber @IsNumber @IsTime @ToNumber ...          |
 | `ValidationTest`            | formula-engine | 25      | @Success @Failure @IsNull @IfError placeholders constants    |
-| **Total**                   |                | **562** |                                                              |
+| **Total**                   |                | **637** |                                                              |
 
 ## Documentation
 
