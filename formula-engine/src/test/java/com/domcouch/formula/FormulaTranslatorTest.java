@@ -128,6 +128,12 @@ class FormulaTranslatorTest {
                 translator.toN1ql("SELECT Form = \"Person\""));
     }
 
+    @Test @DisplayName("arithmetic in @If is parenthesized")
+    void arithmeticParenthesized() {
+        assertEquals("doc.items.TOTAL.`values`[0] = ((doc.items.PRICE.`values`[0] + doc.items.TAX.`values`[0]) * doc.items.QTY.`values`[0])",
+                translator.toN1ql("Total = (Price + Tax) * Qty"));
+    }
+
     @Test @DisplayName("null returns null")
     void nullInput() {
         assertNull(translator.toN1ql(null));

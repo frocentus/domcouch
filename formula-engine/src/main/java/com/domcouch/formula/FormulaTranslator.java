@@ -227,6 +227,13 @@ public class FormulaTranslator {
             walkForN1ql(bo.left(), sb);
             sb.append(" = ");
             walkForN1ql(bo.right(), sb);
+        } else if ("+".equals(op) || "-".equals(op) || "*".equals(op) || "/".equals(op)) {
+            // Arithmetic: parenthesize to prevent N1QL precedence mismatch
+            sb.append("(");
+            walkForN1ql(bo.left(), sb);
+            sb.append(" ").append(op).append(" ");
+            walkForN1ql(bo.right(), sb);
+            sb.append(")");
         } else {
             // Comparison operators: <>, ><, !=, >, <, >=, <=
             String n1qlOp = (op.equals("<>") || op.equals("><")) ? "!=" : op;
