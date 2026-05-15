@@ -213,32 +213,32 @@ public class DominoDatabaseService {
                 "Form = {Person}");
 
         database.createView(VIEW_BY_LASTNAME,
-                "Form = {Person} AND LastName IS NOT MISSING",
+                "Form = {Person} & @IsAvailable(LastName)",
                 "LastName");
 
         database.createView(VIEW_BY_DEPARTMENT,
-                "Form = {Person} AND Department IS NOT MISSING",
+                "Form = {Person} & @IsAvailable(Department)",
                 "Department");
 
         database.createView(VIEW_BY_COMPANY,
-                "Form = {Person} AND Company IS NOT MISSING",
+                "Form = {Person} & @IsAvailable(Company)",
                 "Company");
 
         database.createView(VIEW_BY_SALARY_RANGE,
-                "Form = {Person} AND Salary IS NOT MISSING",
+                "Form = {Person} & @IsAvailable(Salary)",
                 "Salary");
 
         database.createView(VIEW_BY_CITY,
-                "Form = {Person} AND City IS NOT MISSING",
+                "Form = {Person} & @IsAvailable(City)",
                 "City");
 
         database.createView(VIEW_HIGH_EARNERS,
-                "Form = {Person} AND Salary > 100000",
+                "Form = {Person} & Salary > 100000",
                 "Salary");
 
         // View with formula columns: income > 50K, computed fullName and age
         database.createView("IncomeOver50K",
-                "Form = {Person} AND Income > 50000",
+                "Form = {Person} & Income > 50000",
                 java.util.List.of(
                         com.domcouch.api.ViewColumn.field("FirstName", "FirstName"),
                         com.domcouch.api.ViewColumn.field("LastName", "LastName"),
