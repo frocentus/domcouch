@@ -311,6 +311,30 @@ class LexerTest {
     }
 
     @Test
+    @DisplayName("REM1 is an identifier, not a comment")
+    void rem1IsIdentifier() {
+        List<Token> tokens = Lexer.tokenize("REM1");
+        assertEquals(1, tokens.size());
+        assertToken(tokens.get(0), TokenType.VARIABLE, "REM1", 0);
+    }
+
+    @Test
+    @DisplayName("REM_ is an identifier, not a comment")
+    void remUnderscoreIsIdentifier() {
+        List<Token> tokens = Lexer.tokenize("REM_");
+        assertEquals(1, tokens.size());
+        assertToken(tokens.get(0), TokenType.VARIABLE, "REM_", 0);
+    }
+
+    @Test
+    @DisplayName("REM followed by space+string is a comment")
+    void remSpaceStringIsComment() {
+        List<Token> tokens = Lexer.tokenize("REM \"comment\"");
+        assertEquals(1, tokens.size());
+        assertToken(tokens.get(0), TokenType.COMMENT, "comment", 0);
+    }
+
+    @Test
     @DisplayName("bracket keyword [OK]")
     void bracketKeyword() {
         List<Token> tokens = Lexer.tokenize("[OK]");

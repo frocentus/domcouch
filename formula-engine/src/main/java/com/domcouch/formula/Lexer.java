@@ -266,6 +266,10 @@ public final class Lexer {
         if (rem < word.length()) return false;
         if (!input.regionMatches(true, pos, word, 0, word.length())) return false;
         int after = pos + word.length();
-        return after >= input.length() || !Character.isLetter(input.charAt(after));
+        if (after >= input.length()) return true;
+        char next = input.charAt(after);
+        // Reject if the next character could be part of an identifier
+        // (letter, digit, underscore, or $)
+        return !Character.isLetterOrDigit(next) && next != '_' && next != '$';
     }
 }
