@@ -16,13 +16,15 @@ public class CouchbaseViewEntry implements ViewEntry {
     private final String unid;
     private final Vector<Object> columnValues;
     private final int position;
+    private final JsonObject rawDoc; // cached from view query to avoid N+1 point read
 
     public CouchbaseViewEntry(CouchbaseView parentView, String unid,
-                              List<Object> columnValues, int position) {
+                              List<Object> columnValues, int position, JsonObject rawDoc) {
         this.parentView = parentView;
         this.unid = unid;
         this.columnValues = columnValues != null ? new Vector<>(columnValues) : new Vector<>();
         this.position = position;
+        this.rawDoc = rawDoc;
     }
 
     @Override
@@ -39,6 +41,10 @@ public class CouchbaseViewEntry implements ViewEntry {
     @Override
     public Document getDocument() {
         try {
+            // Reuse raw document from view query if available, otherwise point read
+            if (rawDoc != null) {
+                return new CouchbaseDocument(parentView.getDatabase(), rawDoc);
+            }
             return parentView.getDatabase().getDocumentByUNID(unid);
         } catch (Exception e) {
             return null;

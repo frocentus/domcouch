@@ -178,7 +178,7 @@ public class CouchbaseView implements View {
             pos++;
             String unid = row.getString("unid");
             List<Object> cols = extractColumnValues(row);
-            entries.add(new CouchbaseViewEntry(this, unid, cols, pos));
+            entries.add(new CouchbaseViewEntry(this, unid, cols, pos, row));
         }
         return new CouchbaseViewEntryCollection(entries);
     }

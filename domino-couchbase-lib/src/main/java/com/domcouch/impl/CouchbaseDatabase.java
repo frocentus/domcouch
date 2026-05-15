@@ -130,19 +130,25 @@ public class CouchbaseDatabase implements Database {
         try {
             String collectionPath = getCollectionPath();
             String indexName = "idx_view_" + name.replaceAll("[^a-zA-Z0-9]", "_");
-            String createIndex;
-            if (keyItemName != null) {
-                // Create an index on the key column for fast key lookups
-                createIndex = "CREATE INDEX `" + indexName + "` ON " + collectionPath
-                        + "((items.Form.`values`[0]), (items." + keyItemName + ".`values`[0]))"
-                        + " WHERE _type = 'domcouch.document'";
-            } else {
-                createIndex = "CREATE INDEX `" + indexName + "` ON " + collectionPath
-                        + "((items.Form.`values`[0])) WHERE _type = 'domcouch.document'";
+            // Check if index already exists to avoid redundant DDL on every start
+            boolean exists = false;
+            try {
+                scope.query("SELECT COUNT(*) FROM system:indexes WHERE name = '" + indexName + "'");
+                exists = true;
+            } catch (Exception ignored) { /* query failed, assume doesn't exist */ }
+            if (!exists) {
+                String createIndex;
+                if (keyItemName != null) {
+                    createIndex = "CREATE INDEX `" + indexName + "` ON " + collectionPath
+                            + "((items.Form.`values`[0]), (items." + keyItemName + ".`values`[0]))"
+                            + " WHERE _type = 'domcouch.document'";
+                } else {
+                    createIndex = "CREATE INDEX `" + indexName + "` ON " + collectionPath
+                            + "((items.Form.`values`[0])) WHERE _type = 'domcouch.document'";
+                }
+                scope.query(createIndex);
             }
-            scope.query(createIndex);
         } catch (Exception e) {
-            // Index may already exist — that's OK, or keyItemName may have special chars
             log.warn("Could not create index for view '{}': {}", name, e.getMessage());
         }
         return view;
@@ -158,14 +164,14 @@ public class CouchbaseDatabase implements Database {
         List<Document> docs = new ArrayList<>();
         try {
             String stmt = buildSearchStatement();
+            String userName = getCurrentUserName();
             QueryResult result = scope.query(stmt,
                     QueryOptions.queryOptions().parameters(JsonObject.create()
                             .put("q", "%" + query.toLowerCase() + "%")
                             .put("limit", maxDocs)));
             for (JsonObject row : result.rowsAsObject()) {
-                CouchbaseDocument doc = new CouchbaseDocument(this, row);
-                if (doc.isReadableBy(getCurrentUserName())) {
-                    docs.add(doc);
+                if (canRead(row, userName)) {
+                    docs.add(new CouchbaseDocument(this, row));
                 }
             }
         } catch (Exception e) {
@@ -185,10 +191,10 @@ public class CouchbaseDatabase implements Database {
             String stmt = "SELECT doc.* FROM " + getCollectionPath() + " AS doc"
                     + " WHERE doc._type = 'domcouch.document' AND (" + n1qlFormula + ")";
             QueryResult result = scope.query(stmt);
+            String userName = getCurrentUserName();
             for (JsonObject row : result.rowsAsObject()) {
-                CouchbaseDocument doc = new CouchbaseDocument(this, row);
-                if (doc.isReadableBy(getCurrentUserName())) {
-                    docs.add(doc);
+                if (canRead(row, userName)) {
+                    docs.add(new CouchbaseDocument(this, row));
                 }
             }
             return new CouchbaseDocumentCollection(docs);
@@ -204,10 +210,10 @@ public class CouchbaseDatabase implements Database {
             String stmt = "SELECT doc.* FROM " + getCollectionPath() + " AS doc"
                     + " WHERE doc._type = 'domcouch.document'";
             QueryResult result = scope.query(stmt);
+            String userName = getCurrentUserName();
             for (JsonObject row : result.rowsAsObject()) {
-                CouchbaseDocument doc = new CouchbaseDocument(this, row);
-                if (doc.isReadableBy(getCurrentUserName())) {
-                    docs.add(doc);
+                if (canRead(row, userName)) {
+                    docs.add(new CouchbaseDocument(this, row));
                 }
             }
         } catch (Exception e) {
@@ -273,7 +279,7 @@ public class CouchbaseDatabase implements Database {
      */
     public CompiledFormula compileFormula(String name, String formula) {
         CompiledFormula cf = formulaTranslator.compile(formula);
-        formulaCache.put(name, cf);
+        formulaCache.put(formula, cf); // key by formula string, not name
         return cf;
     }
 
