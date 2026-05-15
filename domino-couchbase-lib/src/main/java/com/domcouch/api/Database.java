@@ -89,6 +89,12 @@ public interface Database {
     View createView(String name, String selectionFormula, String keyItemName, List<ViewColumn> columns);
 
     /**
+     * Create a categorized view with multiple key columns for multi-level categorization.
+     * @param keyColumns column names for categorization levels (empty or null = flat view)
+     */
+    View createView(String name, String selectionFormula, List<String> keyColumns, List<ViewColumn> columns);
+
+    /**
      * Full-text search across all documents in the database.
      * Delegates to Couchbase FTS.
      *

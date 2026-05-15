@@ -118,24 +118,32 @@ public class CouchbaseDatabase implements Database {
 
     @Override
     public View createView(String name, String selectionFormula) {
-        return createView(name, selectionFormula, null, (List<ViewColumn>) null);
+        return createView(name, selectionFormula, (List<String>) null, (List<ViewColumn>) null);
     }
 
     public View createView(String name, String selectionFormula, String keyItemName) {
-        return createView(name, selectionFormula, keyItemName, (List<ViewColumn>) null);
+        return createView(name, selectionFormula,
+                keyItemName != null ? List.of(keyItemName) : null, (List<ViewColumn>) null);
     }
 
     @Override
     public View createView(String name, String selectionFormula, List<ViewColumn> columns) {
-        return createView(name, selectionFormula, null, columns);
+        return createView(name, selectionFormula, (String) null, columns);
     }
 
     @Override
-    public View createView(String name, String selectionFormula, String keyItemName, List<ViewColumn> columns) {
+    public View createView(String name, String selectionFormula,
+                           String keyItemName, List<ViewColumn> columns) {
+        return createView(name, selectionFormula,
+                keyItemName != null ? List.of(keyItemName) : (List<String>) null, columns);
+    }
+
+    @Override
+    public View createView(String name, String selectionFormula, List<String> keyColumns, List<ViewColumn> columns) {
         String n1qlFormula = formulaTranslator.toN1ql(selectionFormula);
-        CouchbaseView view = new CouchbaseView(this, scope, name, n1qlFormula, keyItemName, columns);
+        CouchbaseView view = new CouchbaseView(this, scope, name, n1qlFormula, keyColumns, columns);
         views.put(name, view);
-        createViewIndex(name, keyItemName);
+        createViewIndex(name, keyColumns != null && !keyColumns.isEmpty() ? keyColumns.get(0) : null);
         return view;
     }
 

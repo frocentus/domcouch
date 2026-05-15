@@ -20,33 +20,46 @@ public class CouchbaseView implements View {
     private final String name;
     private final String selectionFormula;
     private final String keyColumnN1ql;
+    private final List<String> keyColumns; // for multi-level categorization
     private final List<ViewColumn> columns; // null = legacy extract-all-items mode
     private final com.domcouch.formula.translate.FormulaTranslator formulaTranslator;
 
     /** Legacy 3-arg constructor for views without explicit columns. */
     public CouchbaseView(CouchbaseDatabase database, Scope scope, String name) {
-        this(database, scope, name, null, null, null);
+        this(database, scope, name, null, null, null, null);
     }
 
     public CouchbaseView(CouchbaseDatabase database, Scope scope,
                          String name, String selectionFormula, String keyItemName) {
-        this(database, scope, name, selectionFormula, keyItemName, null);
+        this(database, scope, name, selectionFormula, keyItemName != null ? List.of(keyItemName) : null, null);
     }
 
     public CouchbaseView(CouchbaseDatabase database, Scope scope,
                          String name, String selectionFormula, String keyItemName,
                          List<ViewColumn> columns) {
+        this(database, scope, name, selectionFormula,
+                keyItemName != null ? List.of(keyItemName) : null, columns);
+    }
+
+    /** Full constructor with multi-key column support for categorization. */
+    public CouchbaseView(CouchbaseDatabase database, Scope scope,
+                         String name, String selectionFormula, List<String> keyColumns,
+                         List<ViewColumn> columns) {
         this.database = database;
         this.scope = scope;
         this.name = name;
         this.selectionFormula = selectionFormula;
-        this.keyColumnN1ql = keyItemName != null
-                ? "doc.items." + keyItemName + "[0].`values`[0]"
-                : null;
+        this.keyColumns = keyColumns != null ? List.copyOf(keyColumns) : List.of();
+        this.keyColumnN1ql = buildKeyColumnN1ql();
         this.columns = columns;
         this.formulaTranslator = hasFormulaColumns()
                 ? new com.domcouch.formula.translate.FormulaTranslator()
                 : null;
+    }
+
+    private String buildKeyColumnN1ql() {
+        if (keyColumns == null || keyColumns.isEmpty()) return null;
+        return buildKeyColumnRef(keyColumns.get(0));
     }
 
     private boolean hasFormulaColumns() {
@@ -140,9 +153,92 @@ public class CouchbaseView implements View {
         // nothing to release for a view
     }
 
-    // ---- internal ----
+    // ---- ViewNavigator factory methods ----
 
-    private String buildSelectStatement(boolean countOnly) {
+    @Override
+    public ViewNavigator createViewNav() {
+        return new CouchbaseViewNavigator(this, 64, 0);
+    }
+
+    @Override
+    public ViewNavigator createViewNav(int cacheSize) {
+        return new CouchbaseViewNavigator(this, cacheSize, 0);
+    }
+
+    @Override
+    public ViewNavigator createViewNavFrom(ViewEntry entry) {
+        var nav = createViewNav();
+        try { nav.gotoEntry(entry); } catch (NotesException ignored) {}
+        return nav;
+    }
+
+    @Override
+    public ViewNavigator createViewNavFromCategory(String category) {
+        if (!isCategorized()) return createViewNav();
+        // Create navigator and seek to category
+        var nav = new CouchbaseViewNavigator(this, 64, 1);
+        // Find the category entry by value
+        try {
+            for (int i = 0; i < nav.getCount(); i++) {
+                ViewEntry e = nav.getNth(i + 1);
+                if (e.isCategory() && !e.getColumnValues().isEmpty()
+                        && category.equals(e.getColumnValues().get(0))) {
+                    nav.gotoEntry(e);
+                    return nav;
+                }
+            }
+        } catch (NotesException ignored) {}
+        return nav;
+    }
+
+    @Override
+    public ViewNavigator createViewNavFromChildren(ViewEntry entry) {
+        var nav = createViewNav();
+        try {
+            nav.gotoEntry(entry);
+            ViewEntry child = nav.getChild();
+            if (child != null) {
+                return ((CouchbaseViewNavigator) nav).createSubset(
+                        child.getPosition() - 1, entry.getPosition() - 1 + entry.getChildCount());
+            }
+        } catch (NotesException ignored) {}
+        return nav;
+    }
+
+    @Override
+    public ViewNavigator createViewNavFromDescendants(ViewEntry entry) {
+        var nav = createViewNav();
+        try {
+            nav.gotoEntry(entry);
+            int startPos = entry.getPosition() - 1;
+            int endPos = startPos + entry.getDescendantCount();
+            return ((CouchbaseViewNavigator) nav).createSubset(startPos, endPos);
+        } catch (RuntimeException ignored) {}
+        return nav;
+    }
+
+    @Override
+    public ViewNavigator createViewNavMaxLevel(int maxLevel) {
+        return new CouchbaseViewNavigator(this, 64, maxLevel);
+    }
+
+    @Override
+    public boolean isCategorized() {
+        return keyColumns != null && !keyColumns.isEmpty();
+    }
+
+    @Override
+    public List<String> getCategoryColumns() {
+        return keyColumns != null ? keyColumns : List.of();
+    }
+
+    // ---- package-private helpers for CouchbaseViewNavigator ----
+
+    Scope getScope() {
+        return scope;
+    }
+
+    String buildSelectStatement(boolean countOnly) {
         String cp = database.getCollectionPath();
         String selectClause;
         if (countOnly) {
@@ -231,7 +327,13 @@ public class CouchbaseView implements View {
         return new CouchbaseViewEntryCollection(entries);
     }
 
-    private List<Object> extractColumnValues(JsonObject row) {
+    /** Build N1QL field reference for a key column name. */
+    String buildKeyColumnRef(String colName) {
+        return "doc.items." + colName + "[0].`values`[0]";
+    }
+
+    /** Extract column values from a query result row (package-private for navigator). */
+    List<Object> extractColumnValues(JsonObject row) {
         if (columns == null || columns.isEmpty()) {
             // Legacy mode: extract all items
             List<Object> cols = new ArrayList<>();
@@ -304,7 +406,7 @@ public class CouchbaseView implements View {
      * Check if the current user can read the document represented by this query row.
      * Delegates to {@link CouchbaseDatabase#canRead} for centralized enforcement.
      */
-    private boolean isReadableRow(JsonObject row) {
+    boolean isReadableRow(JsonObject row) {
         return CouchbaseDatabase.canRead(row, database.getCurrentUserName());
     }
 }
