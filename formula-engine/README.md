@@ -528,3 +528,35 @@ for (Document doc : docs) {
     String name = (String) translator.evaluate(fullName, ctx);
 }
 ```
+
+---
+
+## N1QL Translation Coverage
+
+67 @Functions are translated to Couchbase N1QL expressions by
+`N1qlTranslator`. The remaining functions are evaluated via the
+Java formula engine (`Evaluator`).
+
+### Translated to N1QL (67)
+
+| Category | @Functions |
+|----------|-----------|
+| **String** | @UpperCase, @LowerCase, @Trim, @Length, @Left, @Right, @Contains, @Begins, @Ends, @ReplaceSubstring, @Repeat, @ProperCase, @NewLine, @Word, @Middle, @MiddleBack, @Explode, @Implode |
+| **Math** | @Abs, @Sqrt, @Power, @Exp, @Log, @Ln, @Cos, @Sin, @Tan, @Pi, @Integer, @Round, @Modulo, @Sign, @Max, @Min |
+| **Date** | @Date, @Adjust, @Month, @Day, @Year, @Hour, @Minute, @Second, @Weekday, @Today, @Now, @Tomorrow, @Yesterday, @Created, @Modified |
+| **Type** | @Text, @TextToNumber, @IsNumber, @IsText, @IsNull |
+| **List** | @Elements, @Count, @IsMember, @IsNotMember, @Explode, @Implode |
+| **Logic** | @If, @IsAvailable, @IsUnavailable, @IsNewDoc |
+| **Boolean** | @True, @False, @Yes, @No, @All, @Success |
+| **Document** | @IsResponseDoc, @UserName |
+
+### Evaluated in Java (remaining)
+
+| Category | @Functions |
+|----------|-----------|
+| **Complex date** | @BusinessDays, @Time, @TimeMerge, @TimeToTextInZone, @TimeZoneToText |
+| **Security** | @UserRoles, @Domain, @IsAuthor, @V4UserAccess |
+| **Document** | @DocFields, @DocLength, @DocLock, @DocumentUniqueID, @NoteID, @Author, @Attachments, @DeleteDocument, @UndeleteDocument, @HardDeleteDocument, @AddToFolder, @WhichFolders, @IsValid, @GetField |
+| **Control flow** | @While, @For, @DoWhile, @Eval, @Return, @Set, @SetField, @DeleteField, @Do, @Transform |
+| **Misc** | @Ascii, @Char, @Compare, @FileDir, @Like, @Matches, @Prompt, @PickList, @Environment, @Random, @CheckFormulaSyntax, @IfError, @Error, @IsError, @Failure, @Unavailable, @IsResponseDoc, @ThisName, @ThisValue, @URLQueryString, @GetCurrentTimeZone, @Locale, @LanguagePreference, @ClientType, @Version, @Keywords, @RegQueryValue, @Narrow, @Wide, @DbExists, @DbName, @DbTitle, @ReplicaID, @ServerName |
+
