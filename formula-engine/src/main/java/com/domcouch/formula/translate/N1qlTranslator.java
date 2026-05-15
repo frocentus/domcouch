@@ -71,7 +71,7 @@ final class N1qlTranslator {
 
     /** Emit a field reference with .values (full array, not .values[0]) for array functions. */
     private static void walkFieldRef(Expr.Variable v, StringBuilder sb) {
-        sb.append("doc.items.").append(escapeBacktick(v.name())).append(".`values`");
+        sb.append("doc.items.").append(escapeBacktick(v.name())).append("[0].`values`");
     }
 
     /** Emit array-aware argument: .values for Variables, .values[0] for others. */
@@ -83,7 +83,7 @@ final class N1qlTranslator {
     private static void walkExpr(Expr expr, StringBuilder sb, String currentUserName, boolean valueMode) {
         switch (expr) {
             case Expr.Variable v -> sb.append("doc.items.").append(escapeBacktick(v.name()))
-                    .append(".`values`[0]");
+                    .append("[0].`values`[0]");
             case Expr.StringConst s -> sb.append("'").append(s.value().replace("'", "''")).append("'");
             case Expr.NumberConst n -> sb.append(formatNumber(n.value()));
             case Expr.DateTimeConst d -> sb.append("'").append(d.raw().replace("'", "''")).append("'");
@@ -163,7 +163,7 @@ final class N1qlTranslator {
             case FunctionNames.USERNAME -> sb.append("'").append(currentUserName.replace("'", "''")).append("'");
             case FunctionNames.ISAVAILABLE -> {
                 if (args.get(0) instanceof Expr.StringConst s) {
-                    sb.append("doc.items.").append(escapeBacktick(s.value().toUpperCase())).append(".`values`[0]");
+                    sb.append("doc.items.").append(escapeBacktick(s.value().toUpperCase())).append("[0].`values`[0]");
                 } else walkExpr(args.get(0), sb, currentUserName, valueMode);
                 sb.append(" IS NOT MISSING");
             }

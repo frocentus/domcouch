@@ -32,7 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CouchbaseDocument implements Document {
 
     private final CouchbaseDatabase database;
-    private final Map<String, CouchbaseItem> items;
+    private final Map<String, List<CouchbaseItem>> items;
     private String unid;
     private String form;
     private boolean dirty;
@@ -71,17 +71,21 @@ public class CouchbaseDocument implements Document {
 
     @Override
     public Item getFirstItem(String name) {
-        return items.get(name.toUpperCase());
+        var list = items.get(name.toUpperCase());
+        return (list != null && !list.isEmpty()) ? list.get(0) : null;
     }
 
     @Override
     public Vector<Item> getItems() {
-        return new Vector<>(items.values());
+        var all = new Vector<Item>();
+        for (var list : items.values()) all.addAll(list);
+        return all;
     }
 
     @Override
     public boolean hasItem(String name) {
-        return items.containsKey(name.toUpperCase());
+        var list = items.get(name.toUpperCase());
+        return list != null && !list.isEmpty();
     }
 
     @Override
@@ -94,7 +98,7 @@ public class CouchbaseDocument implements Document {
             item = new CouchbaseItem(normalizedName, inferType(value), value);
         }
         item.setParent(this);
-        items.put(normalizedName, item);
+        items.put(normalizedName, List.of(item));
         dirty = true;
         return item;
     }
@@ -172,8 +176,10 @@ public class CouchbaseDocument implements Document {
     public Document copyToDatabase(Database targetDb) throws NotesException {
         Document copy = targetDb.createDocument();
         copy.replaceItemValue("Form", form);
-        for (Map.Entry<String, CouchbaseItem> entry : items.entrySet()) {
-            copy.replaceItemValue(entry.getKey(), entry.getValue().getValues());
+        for (var entry : items.entrySet()) {
+            for (var item : entry.getValue()) {
+                copy.replaceItemValue(entry.getKey(), item.getValues());
+            }
         }
         copy.save();
         return copy;
@@ -236,10 +242,9 @@ public class CouchbaseDocument implements Document {
         attachments.add(eo);
         // Document-level attachments: map to $FILE items for Domino API compatibility
         if (itemName == null) {
-            var existing = items.get("$FILE");
-            if (existing != null) {
-                // Append to existing multi-value $FILE
-                var vals = new java.util.ArrayList<>(existing.getValues());
+            var fileList = items.get("$FILE");
+            if (fileList != null && !fileList.isEmpty()) {
+                var vals = new java.util.ArrayList<>(fileList.get(0).getValues());
                 vals.add(name);
                 replaceItemValue("$FILE", new Vector<>(vals));
             } else {
@@ -284,12 +289,14 @@ public class CouchbaseDocument implements Document {
      */
     public boolean isReadableBy(String userName) {
         boolean hasReaderField = false;
-        for (CouchbaseItem item : items.values()) {
-            if (item.isReaders()) {
-                hasReaderField = true;
-                for (Object val : item.getValues()) {
-                    if (val != null && val.toString().equals(userName)) {
-                        return true;
+        for (var itemList : items.values()) {
+            for (CouchbaseItem item : itemList) {
+                if (item.isReaders()) {
+                    hasReaderField = true;
+                    for (Object val : item.getValues()) {
+                        if (val != null && val.toString().equals(userName)) {
+                            return true;
+                        }
                     }
                 }
             }
@@ -313,12 +320,14 @@ public class CouchbaseDocument implements Document {
      */
     public boolean isEditableBy(String userName) {
         boolean hasAuthorField = false;
-        for (CouchbaseItem item : items.values()) {
-            if (item.isAuthors()) {
-                hasAuthorField = true;
-                for (Object val : item.getValues()) {
-                    if (val != null && val.toString().equals(userName)) {
-                        return true;
+        for (var itemList : items.values()) {
+            for (CouchbaseItem item : itemList) {
+                if (item.isAuthors()) {
+                    hasAuthorField = true;
+                    for (Object val : item.getValues()) {
+                        if (val != null && val.toString().equals(userName)) {
+                            return true;
+                        }
                     }
                 }
             }
@@ -393,17 +402,31 @@ public class CouchbaseDocument implements Document {
         JsonObject itemsObj = doc.getObject("items");
         if (itemsObj != null) {
             for (String name : itemsObj.getNames()) {
-                JsonObject itemObj = itemsObj.getObject(name);
-                if (itemObj == null) continue;
-                int type = itemObj.getInt("type");
-                List<Object> rawValues = itemObj.getArray("values") != null
-                        ? itemObj.getArray("values").toList()
-                        : List.of();
-                var item = new CouchbaseItem(name, type, rawValues);
-                item.setParent(this);
-                this.items.put(name, item);
+                var itemList = new ArrayList<CouchbaseItem>();
+                // Handle both single-object and array formats
+                var array = itemsObj.getArray(name);
+                if (array != null) {
+                    // Array format: multiple items with same name
+                    for (Object o : array.toList()) {
+                        if (o instanceof JsonObject io) itemList.add(parseItem(name, io));
+                    }
+                } else {
+                    // Single-object format: one item
+                    var io = itemsObj.getObject(name);
+                    if (io != null) itemList.add(parseItem(name, io));
+                }
+                if (!itemList.isEmpty()) this.items.put(name, itemList);
             }
         }
+    }
+
+    private CouchbaseItem parseItem(String name, JsonObject io) {
+        int type = io.getInt("type");
+        List<Object> rawValues = io.getArray("values") != null
+                ? io.getArray("values").toList() : List.of();
+        var item = new CouchbaseItem(name, type, rawValues);
+        item.setParent(this);
+        return item;
     }
 
     JsonObject toJson() {
@@ -414,17 +437,23 @@ public class CouchbaseDocument implements Document {
         // Derive top-level form from the Form item if not explicitly set
         String effectiveForm = form;
         if ((effectiveForm == null || effectiveForm.isEmpty()) && items.containsKey("Form")) {
-            effectiveForm = items.get("Form").getValueString();
+            var formList = items.get("Form");
+            if (formList != null && !formList.isEmpty()) effectiveForm = formList.get(0).getValueString();
         }
         json.put("form", effectiveForm != null ? effectiveForm : "");
 
         JsonObject itemsJson = JsonObject.create();
-        for (Map.Entry<String, CouchbaseItem> entry : items.entrySet()) {
-            CouchbaseItem item = entry.getValue();
-            JsonObject itemObj = JsonObject.create();
-            itemObj.put("type", item.getType());
-            itemObj.put("values", item.getValues());
-            itemsJson.put(entry.getKey(), itemObj);
+        for (var entry : items.entrySet()) {
+            var itemList = entry.getValue();
+            // Store as JSON array: always wrap in array for multi-instance support
+            var itemArray = com.couchbase.client.java.json.JsonArray.create();
+            for (var item : itemList) {
+                JsonObject itemObj = JsonObject.create();
+                itemObj.put("type", item.getType());
+                itemObj.put("values", item.getValues());
+                itemArray.add(itemObj);
+            }
+            itemsJson.put(entry.getKey(), itemArray.size() == 1 ? itemArray.get(0) : itemArray);
         }
         json.put("items", itemsJson);
 

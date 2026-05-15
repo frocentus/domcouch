@@ -41,7 +41,7 @@ public class CouchbaseView implements View {
         this.name = name;
         this.selectionFormula = selectionFormula;
         this.keyColumnN1ql = keyItemName != null
-                ? "doc.items." + keyItemName + ".`values`[0]"
+                ? "doc.items." + keyItemName + "[0].`values`[0]"
                 : null;
         this.columns = columns;
         this.formulaTranslator = hasFormulaColumns()
@@ -164,7 +164,7 @@ public class CouchbaseView implements View {
                     needsDocStar = true;
                 } else {
                     sb.append(", doc.items.").append(escapeBacktick(col.getExpression().toUpperCase()))
-                            .append(".`values`[0] AS `").append(col.getName()).append("`");
+                            .append("[0].`values`[0] AS `").append(col.getName()).append("`");
                 }
             }
             if (needsDocStar) sb.append(", doc.*");
@@ -201,7 +201,7 @@ public class CouchbaseView implements View {
                 }
                 if (end > start) {
                     String fieldName = selectionFormula.substring(start, end);
-                    return "doc.items." + fieldName + ".`values`[0]";
+                    return "doc.items." + fieldName + "[0].`values`[0]";
                 }
             }
         }
@@ -286,7 +286,7 @@ public class CouchbaseView implements View {
         String cp = database.getCollectionPath();
         String stmt = "SELECT doc.unid, doc.* FROM " + cp + " AS doc"
                 + " WHERE doc._type = 'domcouch.document'"
-                + " AND LOWER(doc.items.FirstName.`values`[0]) LIKE $q"
+                + " AND LOWER(doc.items.FirstName[0].`values`[0]) LIKE $q"
                 + " LIMIT $max";
         try {
             QueryResult result = scope.query(stmt,
