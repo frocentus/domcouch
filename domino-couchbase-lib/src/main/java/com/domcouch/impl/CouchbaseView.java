@@ -157,7 +157,6 @@ public class CouchbaseView implements View {
                     try {
                         String n1ql = database.formulaTranslator.toN1qlValue(col.getExpression());
                         if (n1ql != null) {
-                            System.out.println("[DEBUG] Formula '" + col.getExpression() + "' -> N1QL: " + n1ql);
                             sb.append(", (").append(n1ql).append(") AS `").append(col.getName()).append("`");
                             continue;
                         }
