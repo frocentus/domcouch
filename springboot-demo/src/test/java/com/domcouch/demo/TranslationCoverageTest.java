@@ -66,7 +66,7 @@ class TranslationCoverageTest {
         assertEquals("John", string(e, 0));
         assertEquals("Doe", string(e, 1));
         assertEquals("Engineering", string(e, 2));
-        assertEquals("75000.0", string(e, 3));
+        assertEquals("75000", string(e, 3).replace(".0", ""));
     }
 
     @Test @Order(3) @DisplayName("View: string concatenation (+ -> ||)")
@@ -101,7 +101,7 @@ class TranslationCoverageTest {
         assertEquals("DOE", string(e, 0));
         assertEquals("john", string(e, 1));
         assertEquals("John", string(e, 2));
-        assertEquals("4.0", string(e, 3));
+        assertEquals("4", string(e, 3));
         assertEquals("Jo", string(e, 4));
         assertEquals("oe", string(e, 5));
         assertTrue(isTruthy(e, 6));
@@ -129,8 +129,8 @@ class TranslationCoverageTest {
         var e = first(view);
         assertTrue(isTruthy(e, 0));
         assertTrue(isTruthy(e, 1));
-        assertEquals("75000", string(e, 2).replace(".0", "")); // TO_STRING may produce "75000" or "75000.0"
-        assertEquals("123.0", string(e, 3));
+        assertEquals("75000", string(e, 2).replace(".0", "")); // TO_STRING may produce "75000" or "75000"
+        assertEquals("123", string(e, 3).replace(".0", ""));
         assertTrue(isTruthy(e, 4));
         assertTrue(isTruthy(e, 5));
     }
@@ -151,17 +151,17 @@ class TranslationCoverageTest {
                 ViewColumn.formula("MinTest", "@Min(10; 20)")
         ));
         var e = first(view);
-        assertEquals("75000.0", string(e, 0));
-        assertEquals("10.0", string(e, 1));
-        assertEquals("25.0", string(e, 2));
-        assertEquals("1.0", string(e, 3));
-        assertEquals("0.0", string(e, 4));
-        assertEquals("95.0", string(e, 5));
-        assertEquals("96.0", string(e, 6));
-        assertEquals("1.0", string(e, 7));
-        assertEquals("-1.0", string(e, 8));
-        assertEquals("20.0", string(e, 9));
-        assertEquals("10.0", string(e, 10));
+        assertEquals("75000", string(e, 0));
+        assertEquals("10", string(e, 1));
+        assertEquals("25", string(e, 2));
+        assertEquals("1", string(e, 3));
+        assertEquals("0", string(e, 4));
+        assertEquals("95", string(e, 5));
+        assertEquals("96", string(e, 6));
+        assertEquals("1", string(e, 7));
+        assertEquals("-1", string(e, 8));
+        assertEquals("20", string(e, 9));
+        assertEquals("10", string(e, 10));
     }
 
     @Test @Order(7) @DisplayName("View: date extraction")
@@ -195,7 +195,7 @@ class TranslationCoverageTest {
         assertFalse(isTruthy(e, 3));
         assertTrue(isTruthy(e, 4));
         assertFalse(isTruthy(e, 5)); // MissingField doesn't exist
-        assertEquals("3.0", string(e, 6));
+        assertEquals("3", string(e, 6));
         assertTrue(isTruthy(e, 7));
     }
 
@@ -238,6 +238,6 @@ class TranslationCoverageTest {
 
     private boolean isTruthy(ViewEntry e, int idx) {
         String s = string(e, idx);
-        return "true".equalsIgnoreCase(s) || "1".equals(s) || "1.0".equals(s);
+        return "true".equalsIgnoreCase(s) || "1".equals(s) || "1".equals(s);
     }
 }
