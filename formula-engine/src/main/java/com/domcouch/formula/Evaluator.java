@@ -75,8 +75,7 @@ public class Evaluator {
 
     /** Evaluate a single expression in the given context. */
     public Object eval(Expr expr, FormulaContext ctx) {
-        try {
-            return switch (expr) {
+        return switch (expr) {
                 case Expr.Variable v -> {
                     // Check temp scope first, then context
                     Map<String, Object> ts = tempScope.get();
@@ -110,9 +109,6 @@ public class Evaluator {
                 }
                 case Expr.Comment c -> "";
             };
-        } catch (ReturnValue rv) {
-            throw rv; // propagate to top-level handler
-        }
     }
 
     // ---- Binary operators ----
@@ -399,8 +395,6 @@ public class Evaluator {
         return zdt != null ? zdt.toLocalDate() : null;
     }
 
-    static boolean isFalsy(Object val) { return !isTruthy(val); }
-
     /** Check if a string represents a valid number. */
     public static boolean isNumeric(String s) {
         if (s == null || s.isEmpty()) return false;
@@ -645,11 +639,5 @@ public class Evaluator {
     public static class ReturnValue extends RuntimeException {
         public final Object value;
         public ReturnValue(Object value) { this.value = value; }
-
-        /** Unwrap a ReturnValue or re-throw other RuntimeExceptions. */
-        static Object unwrap(RuntimeException e) {
-            if (e instanceof ReturnValue rv) return rv.value;
-            throw e;
-        }
     }
 }
