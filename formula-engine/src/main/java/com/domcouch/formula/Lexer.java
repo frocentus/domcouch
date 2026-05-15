@@ -248,9 +248,16 @@ public final class Lexer {
         if (i < len && input.charAt(i) == '.') { num.append('.'); i++;
             while (i < len && Character.isDigit(input.charAt(i))) { num.append(input.charAt(i)); i++; hasDigits = true; } }
         if (!hasDigits) return null;
-        if (i < len && (input.charAt(i) == 'e' || input.charAt(i) == 'E')) { num.append(input.charAt(i)); i++;
+        if (i < len && (input.charAt(i) == 'e' || input.charAt(i) == 'E')) {
+            int expStart = i;
+            num.append(input.charAt(i)); i++;
             if (i < len && (input.charAt(i) == '+' || input.charAt(i) == '-')) { num.append(input.charAt(i)); i++; }
-            while (i < len && Character.isDigit(input.charAt(i))) { num.append(input.charAt(i)); i++; } }
+            boolean hasExpDigits = false;
+            while (i < len && Character.isDigit(input.charAt(i))) { num.append(input.charAt(i)); i++; hasExpDigits = true; }
+            if (!hasExpDigits)
+                throw new FormulaParseException(4502,
+                        "Malformed number: exponent missing digits at " + start, start);
+        }
         return new Token(TokenType.CONST_NUMBER, num.toString(), start);
     }
 

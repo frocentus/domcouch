@@ -160,6 +160,24 @@ class LexerTest {
     }
 
     @Test
+    @DisplayName("malformed scientific: 1e (no exponent digits)")
+    void malformedScientificNoDigits() {
+        assertThrows(FormulaParseException.class, () -> Lexer.tokenize("1e"));
+    }
+
+    @Test
+    @DisplayName("malformed scientific: 1e+ (sign but no exponent digits)")
+    void malformedScientificSignNoDigits() {
+        assertThrows(FormulaParseException.class, () -> Lexer.tokenize("1e+"));
+    }
+
+    @Test
+    @DisplayName("malformed scientific: -2E- (sign but no exponent digits)")
+    void malformedScientificNegativeNoDigits() {
+        assertThrows(FormulaParseException.class, () -> Lexer.tokenize("-2E-"));
+    }
+
+    @Test
     @DisplayName("number in quotes is string, not number")
     void numberInQuotesIsString() {
         List<Token> tokens = Lexer.tokenize("\"42\"");
