@@ -388,7 +388,8 @@ public class Evaluator {
 
     static String toString(Object val) {
         if (val == null) return "";
-        if (val instanceof Double d && d == Math.floor(d) && !Double.isInfinite(d))
+        if (val instanceof Double d && d == Math.floor(d) && !Double.isInfinite(d)
+                && d >= Long.MIN_VALUE && d <= Long.MAX_VALUE)
             return String.valueOf((long) d.doubleValue());
         return val.toString();
     }
