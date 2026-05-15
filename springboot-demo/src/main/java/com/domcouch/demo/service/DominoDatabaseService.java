@@ -62,14 +62,10 @@ public class DominoDatabaseService {
     public void reinitialize() throws NotesException {
         log.warn("Clearing all documents...");
         int removed = 0;
-        View allView = database.getView(VIEW_ALL);
-        ViewEntryCollection entries = allView.getAllEntries();
-        for (ViewEntry entry : entries) {
-            Document doc = entry.getDocument();
-            if (doc != null) {
-                doc.remove();
-                removed++;
-            }
+        DocumentCollection allDocs = database.getAllDocuments();
+        for (Document doc : allDocs) {
+            doc.remove();
+            removed++;
         }
         log.info("Removed {} documents.", removed);
 
