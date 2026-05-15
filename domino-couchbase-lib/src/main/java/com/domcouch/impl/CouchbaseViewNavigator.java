@@ -93,11 +93,10 @@ public class CouchbaseViewNavigator implements ViewNavigator {
         }
 
         String baseStmt = parentView.buildSelectStatement(false);
-        // Insert ORDER BY before WHERE clause or append at end
+        // Append ORDER BY after the WHERE clause (N1QL requires WHERE before ORDER BY)
         String stmt;
-        int whereIdx = baseStmt.indexOf("WHERE");
-        if (whereIdx >= 0) {
-            stmt = baseStmt.substring(0, whereIdx) + "ORDER BY " + orderBy + " " + baseStmt.substring(whereIdx);
+        if (baseStmt.contains("WHERE")) {
+            stmt = baseStmt + " ORDER BY " + orderBy;
         } else {
             stmt = baseStmt + " ORDER BY " + orderBy;
         }
@@ -123,7 +122,8 @@ public class CouchbaseViewNavigator implements ViewNavigator {
 
             // Determine which levels have key changes
             int changeLevel = -1; // level where category change starts (0-based)
-            for (int lvl = 0; lvl < keyCols.size() && lvl < maxLevel; lvl++) {
+            for (int lvl = 0; lvl < keyCols.size(); lvl++) {
+                if (maxLevel > 0 && lvl >= maxLevel) break;
                 String currentKey = extractKeyValue(row, keyCols.get(lvl), lvl, cols);
                 String prevKey = prevKeys.get(lvl);
                 if (!Objects.equals(currentKey, prevKey)) {
@@ -156,18 +156,18 @@ public class CouchbaseViewNavigator implements ViewNavigator {
                             parentView, globalPos, keyVal, lvl + 1, 0);
                     // Set parent
                     if (!categoryStack.isEmpty()) {
-                        catEntry.setParentEntry(categoryStack.peek());
+                        catEntry.parentEntry = categoryStack.peek();
                     }
                     // Link siblings
                     CouchbaseViewEntry parent = categoryStack.isEmpty() ? null : categoryStack.peek();
                     if (parent != null && parent.firstChild == null) {
-                        parent.setFirstChild(catEntry);
+                        parent.firstChild = catEntry;
                     } else if (parent != null) {
                         // Find last child and set as prev sibling
                         CouchbaseViewEntry lastChild = parent.firstChild;
-                        while (lastChild.nextSibling != null) lastChild = lastChild.nextSibling();
-                        lastChild.setNextSibling(catEntry);
-                        catEntry.setPrevSibling(lastChild);
+                        while (lastChild.nextSibling != null) lastChild = lastChild.nextSibling;
+                        lastChild.nextSibling = catEntry;
+                        catEntry.prevSibling = lastChild;
                     }
                     categoryStack.push(catEntry);
                     index.add(catEntry);
@@ -181,14 +181,14 @@ public class CouchbaseViewNavigator implements ViewNavigator {
             // Link to parent category
             if (!categoryStack.isEmpty()) {
                 CouchbaseViewEntry cat = categoryStack.peek();
-                docEntry.setParentEntry(cat);
+                docEntry.parentEntry = cat;
                 if (cat.firstChild == null) {
-                    cat.setFirstChild(docEntry);
+                    cat.firstChild = docEntry;
                 } else {
                     CouchbaseViewEntry lastChild = cat.firstChild;
                     while (lastChild.nextSibling != null) lastChild = lastChild.nextSibling;
-                    lastChild.setNextSibling(docEntry);
-                    docEntry.setPrevSibling(lastChild);
+                    lastChild.nextSibling = docEntry;
+                    docEntry.prevSibling = lastChild;
                 }
             }
             index.add(docEntry);
@@ -196,7 +196,7 @@ public class CouchbaseViewNavigator implements ViewNavigator {
 
             // Increment child counts up the stack
             for (var cat : categoryStack) {
-                cat.setChildCount(cat.getChildCount() + 1);
+                cat.childCount = cat.childCount + 1;
             }
         }
 
@@ -235,13 +235,14 @@ public class CouchbaseViewNavigator implements ViewNavigator {
      */
     private int computeDescendantCounts(int start, int end, String prefix) {
         int posInLevel = 0;
-        for (int i = start; i <= end; ) {
+        int i = start;
+        for (; i <= end; ) {
             CouchbaseViewEntry entry = index.get(i);
             if (!entry.isCategoryRaw()) {
                 // Document entry
                 String ps = prefix.isEmpty() ? String.valueOf(posInLevel + 1)
                         : prefix + "." + (posInLevel + 1);
-                entry.setPositionString(ps);
+                entry.positionString = ps;
                 posInLevel++;
                 i++;
             } else {
@@ -257,10 +258,10 @@ public class CouchbaseViewNavigator implements ViewNavigator {
 
                 String ps = prefix.isEmpty() ? String.valueOf(posInLevel + 1)
                         : prefix + "." + (posInLevel + 1);
-                entry.setPositionString(ps);
+                entry.positionString = ps;
 
                 int descendantTotal = computeDescendantCounts(i + 1, catEnd, ps);
-                entry.setDescendantCount(descendantTotal);
+                entry.descendantCount = descendantTotal;
                 posInLevel++;
                 i = catEnd + 1;
             }
@@ -282,7 +283,7 @@ public class CouchbaseViewNavigator implements ViewNavigator {
                     sib = (CouchbaseViewEntry) sib.getNextSibling();
                 }
                 for (CouchbaseViewEntry e : index) {
-                    if (e.getParentEntry() == null) e.setSiblingCount(count);
+                    if (e.getParentEntry() == null) e.siblingCount = count;
                 }
             } else {
                 int count = 0;
@@ -292,7 +293,7 @@ public class CouchbaseViewNavigator implements ViewNavigator {
                 }
                 for (CouchbaseViewEntry child = (CouchbaseViewEntry) parent.getChild();
                      child != null; child = (CouchbaseViewEntry) child.getNextSibling()) {
-                    child.setSiblingCount(count);
+                    child.siblingCount = count;
                 }
             }
         }
@@ -756,10 +757,12 @@ public class CouchbaseViewNavigator implements ViewNavigator {
 
     /**
      * Create a sub-navigator from a subset of this navigator's index.
+     * @param startInclusive 0-based inclusive start index
+     * @param endExclusive   0-based exclusive end index (matches List.subList semantics)
      */
-    CouchbaseViewNavigator createSubset(int startPos, int endPos) {
+    CouchbaseViewNavigator createSubset(int startInclusive, int endExclusive) {
         CouchbaseViewNavigator nav = new CouchbaseViewNavigator(parentView, cacheSize, maxLevel, false);
-        nav.loadSubset(new ArrayList<>(index.subList(startPos + 1, endPos + 1)));
+        nav.loadSubset(new ArrayList<>(index.subList(startInclusive, endExclusive)));
         return nav;
     }
 }

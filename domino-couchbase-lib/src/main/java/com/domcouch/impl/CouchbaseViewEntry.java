@@ -21,7 +21,7 @@ public class CouchbaseViewEntry implements ViewEntry {
     // hierarchy / category fields — package-private for CouchbaseViewNavigator
     private final boolean category;
     private final int level;
-    private final int childCount;
+    int childCount;
     int descendantCount;
     int siblingCount;
     String positionString;

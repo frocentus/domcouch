@@ -26,19 +26,22 @@ public class CouchbaseView implements View {
 
     /** Legacy 3-arg constructor for views without explicit columns. */
     public CouchbaseView(CouchbaseDatabase database, Scope scope, String name) {
-        this(database, scope, name, null, null, null, null);
+        this(database, scope, name, null,
+                (java.util.List<String>) null, (List<ViewColumn>) null);
     }
 
     public CouchbaseView(CouchbaseDatabase database, Scope scope,
                          String name, String selectionFormula, String keyItemName) {
-        this(database, scope, name, selectionFormula, keyItemName != null ? List.of(keyItemName) : null, null);
+        this(database, scope, name, selectionFormula,
+                keyItemName != null ? List.of(keyItemName) : (java.util.List<String>) null,
+                (List<ViewColumn>) null);
     }
 
     public CouchbaseView(CouchbaseDatabase database, Scope scope,
                          String name, String selectionFormula, String keyItemName,
                          List<ViewColumn> columns) {
         this(database, scope, name, selectionFormula,
-                keyItemName != null ? List.of(keyItemName) : null, columns);
+                keyItemName != null ? List.of(keyItemName) : (java.util.List<String>) null, columns);
     }
 
     /** Full constructor with multi-key column support for categorization. */
@@ -198,8 +201,9 @@ public class CouchbaseView implements View {
             nav.gotoEntry(entry);
             ViewEntry child = nav.getChild();
             if (child != null) {
-                return ((CouchbaseViewNavigator) nav).createSubset(
-                        child.getPosition() - 1, entry.getPosition() - 1 + entry.getChildCount());
+                int startInclusive = child.getPosition() - 1;
+                int endExclusive = startInclusive + entry.getChildCount();
+                return ((CouchbaseViewNavigator) nav).createSubset(startInclusive, endExclusive);
             }
         } catch (NotesException ignored) {}
         return nav;
@@ -211,9 +215,9 @@ public class CouchbaseView implements View {
         try {
             nav.gotoEntry(entry);
             int startPos = entry.getPosition() - 1;
-            int endPos = startPos + entry.getDescendantCount();
+            int endPos = startPos + 1 + entry.getDescendantCount(); // +1 for entry itself
             return ((CouchbaseViewNavigator) nav).createSubset(startPos, endPos);
-        } catch (RuntimeException ignored) {}
+        } catch (Exception ignored) {}
         return nav;
     }
 
