@@ -305,6 +305,20 @@ class EvaluatorTest {
         assertEquals(0.0, eval("@If(s = 5; 1; 0)")); // "10" != "5.0"
     }
 
+    @Test @DisplayName("DEFAULT assignment applies when value is empty list")
+    void defaultOnEmptyList() {
+        MapFormulaContext mctx = new MapFormulaContext(
+                java.util.Map.of("MYLIST", List.of()));
+        assertEquals("fallback", evaluator.evalExpr("DEFAULT MyList := \"fallback\"; MyList", mctx));
+    }
+
+    @Test @DisplayName("DEFAULT assignment keeps non-empty list")
+    void defaultOnNonEmptyList() {
+        MapFormulaContext mctx = new MapFormulaContext(
+                java.util.Map.of("MYLIST", List.of("a", "b")));
+        assertEquals(List.of("a", "b"), evaluator.evalExpr("DEFAULT MyList := \"fallback\"; MyList", mctx));
+    }
+
     // ---- Helpers ----
 
     /** A context backed by a map that also tracks setField calls. */

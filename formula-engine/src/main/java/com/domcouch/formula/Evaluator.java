@@ -245,10 +245,21 @@ public class Evaluator {
     private Object evalDefaultAssign(Expr.DefaultAssign da, FormulaContext ctx) {
         String name = ((Expr.Variable) da.target()).name();
         Object existing = ctx.resolve(name);
-        if (existing != null && !existing.toString().isEmpty() && !"0".equals(String.valueOf(existing))) {
+        // Apply default if absent, empty, or zero
+        if (existing != null && !isEmptyValue(existing)) {
             return existing;
         }
-        return eval(da.value(), ctx);
+        Object defVal = eval(da.value(), ctx);
+        try { ctx.setField(name, defVal); } catch (ContextNotSupportedException e) { /* no-op */ }
+        return defVal;
+    }
+
+    /** True if the value is absent/empty/zero per Domino DEFAULT semantics. */
+    private static boolean isEmptyValue(Object val) {
+        if (val == null) return true;
+        if (val instanceof List<?> l) return l.isEmpty();
+        String s = toString(val);
+        return s.isEmpty() || "0".equals(s);
     }
 
     // ---- @Function dispatch ----
