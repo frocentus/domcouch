@@ -17,17 +17,39 @@ class DataConversionTest extends BaseFormulaTest {
             String result = (String) eval("@Text(@Created; \"D0\")");
             assertTrue(result.matches("\\d{2}/\\d{2}/\\d{4}"), "Expected MM/dd/yyyy, got: " + result);
         }
-        @Test @DisplayName("date format D1 (MM/dd)") void dateD1() {
-            String result = (String) eval("@Text(@Created; \"D1\")");
+        @Test @DisplayName("date format D1 (MM/dd, no year for current year)") void dateD1ThisYear() {
+            // @Text(@Now; "D1") — current year, should omit year
+            String result = (String) eval("@Text(@Now; \"D1\")");
             assertTrue(result.matches("\\d{2}/\\d{2}"), "Expected MM/dd, got: " + result);
+            assertFalse(result.contains("/" + java.time.LocalDate.now().getYear()), "Should omit current year");
+        }
+        @Test @DisplayName("date format D1 (MM/dd/yyyy, year differs)") void dateD1OtherYear() {
+            String result = (String) eval("@Text(@Created; \"D1\")");
+            assertTrue(result.matches("\\d{2}/\\d{2}/\\d{4}"), "Expected MM/dd/yyyy for different year, got: " + result);
+        }
+        @Test @DisplayName("date format D2 (MM/dd)") void dateD2() {
+            String result = (String) eval("@Text(@Created; \"D2\")");
+            assertEquals("01/15", result);
+        }
+        @Test @DisplayName("date format D3 (yyyy/MM)") void dateD3() {
+            String result = (String) eval("@Text(@Created; \"D3\")");
+            assertEquals("2024/01", result);
         }
         @Test @DisplayName("date format T0 (HH:mm:ss)") void timeT0() {
             String result = (String) eval("@Text(@Created; \"T0\")");
             assertTrue(result.matches("\\d{2}:\\d{2}:\\d{2}"), "Expected HH:mm:ss, got: " + result);
         }
+        @Test @DisplayName("date format T1 (HH:mm)") void timeT1() {
+            String result = (String) eval("@Text(@Created; \"T1\")");
+            assertTrue(result.matches("\\d{2}:\\d{2}"), "Expected HH:mm, got: " + result);
+        }
         @Test @DisplayName("date format S0 (MM/dd/yyyy)") void dateS0() {
             String result = (String) eval("@Text(@Created; \"S0\")");
             assertTrue(result.matches("\\d{2}/\\d{2}/\\d{4}"), "Expected MM/dd/yyyy, got: " + result);
+        }
+        @Test @DisplayName("date format S3 shows Today for today's date") void dateS3Today() {
+            String result = (String) eval("@Text(@Now; \"S3\")");
+            assertTrue(result.startsWith("Today "), "Expected 'Today HH:mm:ss', got: " + result);
         }
     }
 

@@ -605,26 +605,38 @@ public class Evaluator {
     }
 
     /** Format a date/time string according to a Domino date format code. */
-    // TODO: @Text date format strings (D0-D3, T0-T1, S0-S3) — basic support
     public static String formatDate(String dateStr, String format) {
         java.time.ZonedDateTime zdt = parseDateToZoned(dateStr);
         if (zdt == null) return dateStr;
+        java.time.LocalDate date = zdt.toLocalDate();
+        java.time.LocalDate today = java.time.LocalDate.now();
         String upper = format.toUpperCase().strip();
-        java.time.format.DateTimeFormatter fmt = switch (upper) {
-            case "D0" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy");
-            case "D1" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd");
-            case "D2" -> java.time.format.DateTimeFormatter.ofPattern("MM/yyyy");
-            case "D3" -> java.time.format.DateTimeFormatter.ofPattern("yyyy/MM");
-            case "T0" -> java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss");
-            case "T1" -> java.time.format.DateTimeFormatter.ofPattern("HH:mm");
-            // S0-S3 share patterns with D0/T0 but are semantically distinct per Domino spec
-            case "S0" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy");  // Date only
-            case "S1" -> java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss");  // Time only
-            case "S2" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");  // Date and time
-            case "S3" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");  // Today/Yesterday (simplified)
-            default -> null;
+
+        return switch (upper) {
+            case "D0" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy").format(zdt);
+            case "D1" -> {
+                // Month and day; year only if different from current year
+                if (date.getYear() != today.getYear())
+                    yield java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy").format(zdt);
+                yield java.time.format.DateTimeFormatter.ofPattern("MM/dd").format(zdt);
+            }
+            case "D2" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd").format(zdt);
+            case "D3" -> java.time.format.DateTimeFormatter.ofPattern("yyyy/MM").format(zdt);
+            case "T0" -> java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(zdt);
+            case "T1" -> java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(zdt);
+            case "S0" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy").format(zdt);
+            case "S1" -> java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(zdt);
+            case "S2" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss").format(zdt);
+            case "S3" -> {
+                // Date, time, Today, or Yesterday per Domino spec
+                java.time.format.DateTimeFormatter s3fmt = java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");
+                String full = s3fmt.format(zdt);
+                if (date.equals(today)) yield "Today " + java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(zdt);
+                if (date.equals(today.minusDays(1))) yield "Yesterday " + java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss").format(zdt);
+                yield full;
+            }
+            default -> dateStr;
         };
-        return fmt != null ? fmt.format(zdt) : dateStr;
     }
 
     // ---- Built-in function registration ----
