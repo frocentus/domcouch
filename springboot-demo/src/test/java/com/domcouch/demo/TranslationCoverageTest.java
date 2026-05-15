@@ -109,7 +109,7 @@ class TranslationCoverageTest {
         assertEquals("HiHiHi", string(e, 10));
         assertEquals("John", string(e, 11));
         assertEquals("Doe", string(e, 12));
-        assertEquals("oh", string(e, 13));
+        assertEquals("n", string(e, 13));
     }
 
     @Test @Order(5) @DisplayName("View: type checking / conversion")

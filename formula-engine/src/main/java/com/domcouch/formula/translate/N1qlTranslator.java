@@ -143,7 +143,7 @@ final class N1qlTranslator {
         String name = fc.name();
         List<Expr> args = fc.args();
         switch (name) {
-            case FunctionNames.ALL, FunctionNames.TRUE, FunctionNames.SUCCESS -> sb.append("true");
+            case FunctionNames.ALL, FunctionNames.TRUE, FunctionNames.SUCCESS, FunctionNames.YES -> sb.append("true");
             case FunctionNames.FALSE, FunctionNames.NO -> sb.append("false");
             case FunctionNames.ISRESPONSEDOC -> sb.append("doc.parentUNID IS NOT MISSING");
             case FunctionNames.TODAY, FunctionNames.NOW -> sb.append("NOW_STR()");

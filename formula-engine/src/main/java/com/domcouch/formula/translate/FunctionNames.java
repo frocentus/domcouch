@@ -79,4 +79,5 @@ final class FunctionNames {
     static final String WORD = "WORD";
     static final String YEAR = "YEAR";
     static final String YESTERDAY = "YESTERDAY";
+    static final String YES = "YES";
 }
