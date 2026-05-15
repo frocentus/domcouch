@@ -268,7 +268,7 @@ public class CouchbaseDatabase implements Database {
 
     // ---- private ----
 
-    private final FormulaTranslator formulaTranslator = new FormulaTranslator();
+    final FormulaTranslator formulaTranslator = new FormulaTranslator();
     private final Map<String, CompiledFormula> formulaCache = new ConcurrentHashMap<>();
 
     /** Set the current username for @UserName resolution in formulas. */

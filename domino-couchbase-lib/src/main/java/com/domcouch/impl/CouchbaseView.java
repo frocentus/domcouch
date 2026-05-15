@@ -148,17 +148,26 @@ public class CouchbaseView implements View {
         if (countOnly) {
             selectClause = "COUNT(*) AS cnt";
         } else if (columns != null && !columns.isEmpty()) {
-            // Build explicit column SELECT for defined columns
+            // Build explicit column SELECT — push translatable formulas to N1QL
             StringBuilder sb = new StringBuilder("unid");
+            boolean needsDocStar = false;
             for (ViewColumn col : columns) {
-                if (!col.isFormula()) {
-                    // Direct field: SELECT items.FIELD.values[0] AS COLNAME
+                if (col.isFormula()) {
+                    // Try N1QL value translation via the database's translator
+                    try {
+                        String n1ql = database.formulaTranslator.toN1qlValue(col.getExpression());
+                        if (n1ql != null) {
+                            sb.append(", (").append(n1ql).append(") AS `").append(col.getName()).append("`");
+                            continue;
+                        }
+                    } catch (Exception ignored) { /* fall through to Java eval */ }
+                    needsDocStar = true;
+                } else {
                     sb.append(", doc.items.").append(escapeBacktick(col.getExpression()))
                             .append(".`values`[0] AS `").append(col.getName()).append("`");
                 }
             }
-            // Also fetch doc.* for formula columns and reader filtering
-            if (hasFormulaColumns()) sb.append(", doc.*");
+            if (needsDocStar) sb.append(", doc.*");
             selectClause = sb.toString();
         } else {
             selectClause = "unid, doc.*";
@@ -258,6 +267,11 @@ public class CouchbaseView implements View {
     }
 
     private Object evaluateFormulaColumn(JsonObject row, ViewColumn col) {
+        // Check if value was already fetched via N1QL translation in SELECT
+        Object n1qlValue = row.get(col.getName());
+        if (n1qlValue != null) return n1qlValue;
+
+        // Fall back to Java formula evaluation
         try {
             CouchbaseDocument doc = new CouchbaseDocument(database, row);
             DocumentFormulaContext ctx = new DocumentFormulaContext(doc);

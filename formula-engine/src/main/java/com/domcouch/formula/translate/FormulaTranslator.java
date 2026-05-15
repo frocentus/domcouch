@@ -100,6 +100,19 @@ public class FormulaTranslator {
         return translate(formula);
     }
 
+    /**
+     * Translate a Domino value formula (column expression) to a N1QL value expression.
+     * String concatenation ({@code +}) maps to N1QL {@code ||}.
+     *
+     * @param formula the Domino value formula (e.g., {@code "FirstName + \" \" + LastName"})
+     * @return the N1QL value expression, or null if input is null
+     * @throws FormulaParseException if the formula cannot be parsed
+     */
+    public String toN1qlValue(String formula) {
+        if (formula == null) return null;
+        return N1qlTranslator.translateValue(formula, currentUserName);
+    }
+
     // ---- Evaluation mode (Lexer → Parser → Evaluator) ----
 
     /**
