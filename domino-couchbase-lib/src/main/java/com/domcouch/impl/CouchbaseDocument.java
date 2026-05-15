@@ -68,7 +68,7 @@ public class CouchbaseDocument implements Document {
 
     @Override
     public Item getFirstItem(String name) {
-        return items.get(name);
+        return items.get(name.toUpperCase());
     }
 
     @Override
@@ -78,19 +78,19 @@ public class CouchbaseDocument implements Document {
 
     @Override
     public boolean hasItem(String name) {
-        return items.containsKey(name);
+        return items.containsKey(name.toUpperCase());
     }
 
     @Override
     public Item replaceItemValue(String name, Object value) {
+        String normalizedName = name.toUpperCase();
         CouchbaseItem item;
         if (value instanceof Vector<?> v) {
-            // multi-value
-            item = new CouchbaseItem(name, inferType(v), new ArrayList<>(v));
+            item = new CouchbaseItem(normalizedName, inferType(v), new ArrayList<>(v));
         } else {
-            item = new CouchbaseItem(name, inferType(value), value);
+            item = new CouchbaseItem(normalizedName, inferType(value), value);
         }
-        items.put(name, item);
+        items.put(normalizedName, item);
         dirty = true;
         return item;
     }
