@@ -267,7 +267,7 @@ domcouch/
 │           ├── FormulaExamplesTest.java    (97 tests)
 │           ├── CachedEvaluationTest.java   (8 tests)
 │           ├── PerformanceComparisonTest.java (9 tests)
-│           ├── FormulaTranslatorTest.java  (27 tests)
+│           ├── FormulaTranslatorTest.java  (39 tests)
 │           ├── StringFunctionsTest.java    (114 tests)
 │           ├── MathFunctionsTest.java      (33 tests)
 │           ├── DateTimeFunctionsTest.java  (33 tests)
@@ -324,7 +324,7 @@ domcouch/
 | `FormulaExamplesTest`       | formula-engine | 97      | Real Domino spec examples — all formula categories           |
 | `CachedEvaluationTest`      | formula-engine | 8       | Compile-once, evaluate-many                                  |
 | `PerformanceComparisonTest` | formula-engine | 9       | Throughput, cached vs uncached                               |
-| `FormulaTranslatorTest`     | formula-engine | 27      | N1QL translation correctness — AST-based walker              |
+| `FormulaTranslatorTest`     | formula-engine | 39      | N1QL translation correctness — AST-based walker              |
 | `StringFunctionsTest`       | formula-engine | 114     | @Contains @Matches @Repeat @ReplaceSubstring @Word @Trim ... |
 | `MathFunctionsTest`         | formula-engine | 33      | @Pi @Power @Sqrt @Abs @Max @Min @Sum @Modulo ...             |
 | `DateTimeFunctionsTest`     | formula-engine | 33      | @Month @Day @Year @Date @Adjust @TimeMerge ...               |

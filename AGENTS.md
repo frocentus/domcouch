@@ -389,6 +389,7 @@ documents and regenerates.
 | 2026-05-13 | 150+ @Functions implemented (132 ✅ + 19 🟡) | 654 tests; function-catalog.md with per-function spec verification |
 | 2026-05-14 | Extracted `formula-engine` as standalone Maven module | Zero external deps; 3-module project (formula-engine → domino-couchbase-lib → springboot-demo) |
 | 2026-05-14 | Pair-wise + permuted list operators | All 12 permuted operators, list broadcasting, any-match semantics |
+| 2026-05-15 | AST-based N1QL translator replaces regex | 71 @Function translations to Couchbase N1QL; formula-column views with computed fields |
 
 ---
 
