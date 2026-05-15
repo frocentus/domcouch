@@ -39,12 +39,15 @@ import java.util.List;
  * <h2>Thread safety</h2>
  * Instances are thread-safe for concurrent evaluation. The {@link #compile(String)}
  * method may be called from any thread; evaluation methods may be called concurrently
- * against different contexts or compiled formulas.
+ * against different contexts or compiled formulas. The {@code currentUserName} field
+ * is volatile — calling {@link #setCurrentUserName(String)} while another thread is
+ * evaluating may cause that evaluation to see the updated name on its next
+ * {@code @UserName} access, but will not corrupt the evaluation itself.
  */
 public class FormulaTranslator {
 
     private final Evaluator evaluator;
-    private String currentUserName = "Anonymous";
+    private volatile String currentUserName = "Anonymous";
 
     /** Create a translator with the default user ({@code "Anonymous"}). */
     public FormulaTranslator() {

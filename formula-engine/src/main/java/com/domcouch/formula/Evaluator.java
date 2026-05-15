@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 public class Evaluator {
 
     private final Map<String, FunctionHandler> functions;
-    private String currentUserName;
+    private volatile String currentUserName;
     private final ThreadLocal<Map<String, Object>> tempScope =
             ThreadLocal.withInitial(HashMap::new);
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter
