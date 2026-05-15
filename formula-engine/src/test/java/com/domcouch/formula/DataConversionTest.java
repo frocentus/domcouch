@@ -13,6 +13,22 @@ class DataConversionTest extends BaseFormulaTest {
         @Test @DisplayName("currency format") void currency() { assertEquals("$800.00", eval("@Text(800; \"C,2\")")); }
         @Test @DisplayName("scientific format") void scientific() { assertEquals("8.00E+02", eval("@Text(800; \"S\")")); }
         @Test @DisplayName("list with format") void listFormat() { assertEquals(List.of("8.00E+02", "-6.00E+02"), eval("@Text(800 : (-600); \"S\")")); }
+        @Test @DisplayName("date format D0 (MM/dd/yyyy)") void dateD0() {
+            String result = (String) eval("@Text(@Created; \"D0\")");
+            assertTrue(result.matches("\\d{2}/\\d{2}/\\d{4}"), "Expected MM/dd/yyyy, got: " + result);
+        }
+        @Test @DisplayName("date format D1 (MM/dd)") void dateD1() {
+            String result = (String) eval("@Text(@Created; \"D1\")");
+            assertTrue(result.matches("\\d{2}/\\d{2}"), "Expected MM/dd, got: " + result);
+        }
+        @Test @DisplayName("date format T0 (HH:mm:ss)") void timeT0() {
+            String result = (String) eval("@Text(@Created; \"T0\")");
+            assertTrue(result.matches("\\d{2}:\\d{2}:\\d{2}"), "Expected HH:mm:ss, got: " + result);
+        }
+        @Test @DisplayName("date format S0 (MM/dd/yyyy)") void dateS0() {
+            String result = (String) eval("@Text(@Created; \"S0\")");
+            assertTrue(result.matches("\\d{2}/\\d{2}/\\d{4}"), "Expected MM/dd/yyyy, got: " + result);
+        }
     }
 
     @Nested @DisplayName("@TextToNumber")
