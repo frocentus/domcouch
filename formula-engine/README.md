@@ -539,11 +539,11 @@ for (Document doc : docs) {
 
 ## N1QL Translation Coverage
 
-68 @Functions are translated to Couchbase N1QL expressions by
+71 @Functions are translated to Couchbase N1QL expressions by
 `N1qlTranslator`. The remaining functions are evaluated via the
 Java formula engine (`Evaluator`).
 
-### Translated to N1QL (68)
+### Translated to N1QL (71)
 
 | Category | @Functions |
 |----------|-----------|
@@ -551,7 +551,7 @@ Java formula engine (`Evaluator`).
 | **Math** | @Abs, @Sqrt, @Power, @Exp, @Log, @Ln, @Cos, @Sin, @Tan, @Pi, @Integer, @Round, @Modulo, @Sign, @Max, @Min, @Random |
 | **Date** | @Date, @Adjust, @Month, @Day, @Year, @Hour, @Minute, @Second, @Weekday, @Today, @Now, @Tomorrow, @Yesterday, @Created, @Modified |
 | **Type** | @Text, @TextToNumber, @IsNumber, @IsText, @IsNull |
-| **List** | @Elements, @Count, @IsMember, @IsNotMember, @Explode, @Implode |
+| **List** | @Elements, @Count, @IsMember, @IsNotMember, @Explode, @Implode, @Unique, @Sort, @Member |
 | **Logic** | @If, @IsAvailable, @IsUnavailable, @IsNewDoc |
 | **Boolean** | @True, @False, @Yes, @No, @All, @Success |
 | **Document** | @IsResponseDoc, @UserName |

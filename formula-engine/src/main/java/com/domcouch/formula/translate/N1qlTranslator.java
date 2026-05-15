@@ -239,6 +239,12 @@ final class N1qlTranslator {
             case FunctionNames.EXPLODE -> { sb.append("SPLIT("); walkExpr(args.get(0), sb, currentUserName, valueMode); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); } else sb.append(", ' ,;'"); sb.append(")"); }
             case FunctionNames.IMPLODE -> { sb.append("ARRAY_JOIN("); walkArrayArg(args.get(0), sb); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); } else sb.append(", ' '"); sb.append(")"); }
             case FunctionNames.COUNT -> { sb.append("ARRAY_LENGTH("); walkArrayArg(args.get(0), sb); sb.append(")"); }
+            case FunctionNames.UNIQUE -> { sb.append("ARRAY_DISTINCT("); walkArrayArg(args.get(0), sb); sb.append(")"); }
+            case FunctionNames.SORT -> { sb.append("ARRAY_SORT("); walkArrayArg(args.get(0), sb); sb.append(")"); }
+            case FunctionNames.MEMBER -> {
+                sb.append("ARRAY_POSITION("); walkArrayArg(args.get(1), sb);
+                sb.append(", "); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(") + 1");
+            }
 
             // ---- Value-expression extensions ----
             case FunctionNames.MODULO -> { sb.append("("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(" % "); walkExpr(args.get(1), sb, currentUserName, valueMode); sb.append(")"); }

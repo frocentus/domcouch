@@ -44,6 +44,7 @@ final class FunctionNames {
     static final String LOG = "LOG";
     static final String LOWERCASE = "LOWERCASE";
     static final String MAX = "MAX";
+    static final String MEMBER = "MEMBER";
     static final String MIDDLE = "MIDDLE";
     static final String MIDDLEBACK = "MIDDLEBACK";
     static final String MIN = "MIN";
@@ -64,9 +65,11 @@ final class FunctionNames {
     static final String ROUND = "ROUND";
     static final String SECOND = "SECOND";
     static final String SIGN = "SIGN";
+    static final String SORT = "SORT";
     static final String SIN = "SIN";
     static final String SQRT = "SQRT";
     static final String SUCCESS = "SUCCESS";
+    static final String SUBSET = "SUBSET";
     static final String TAN = "TAN";
     static final String TEXT = "TEXT";
     static final String TEXTTONUMBER = "TEXTTONUMBER";
@@ -74,6 +77,7 @@ final class FunctionNames {
     static final String TOMORROW = "TOMORROW";
     static final String TRIM = "TRIM";
     static final String TRUE = "TRUE";
+    static final String UNIQUE = "UNIQUE";
     static final String UPPERCASE = "UPPERCASE";
     static final String USERNAME = "USERNAME";
     static final String WEEKDAY = "WEEKDAY";
