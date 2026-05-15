@@ -15,7 +15,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * Requires: docker compose up -d
  * Run: mvn test -pl springboot-demo -Dtest=TranslationCoverageTest -Dcouchbase.test=true
  */
-@Disabled("Requires: docker compose up -d")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TranslationCoverageTest {
 
