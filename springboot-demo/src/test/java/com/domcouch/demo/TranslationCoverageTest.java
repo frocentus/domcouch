@@ -2,6 +2,8 @@ package com.domcouch.demo;
 
 import com.domcouch.api.*;
 import com.domcouch.impl.CouchbaseSession;
+import com.domcouch.impl.DocumentFormulaContext;
+import com.domcouch.formula.translate.FormulaTranslator;
 import org.junit.jupiter.api.*;
 
 import java.util.List;
@@ -204,6 +206,32 @@ class TranslationCoverageTest {
                 ViewColumn.formula("ExplodeTest", "@Explode(\"a,b,c\"; \",\")")
         ));
         assertNotNull(first(view).getColumnValue(0));
+    }
+
+    @Test @Order(11) @DisplayName("@DbLookup: view lookup returns matching values")
+    void dbLookup() {
+        // Create a lookup view keyed by Department
+        db.createView("LookupByDept", "Form = \"TestDoc\"", "Department");
+
+        // Create a context with database access
+        var docCtx = new DocumentFormulaContext(db.createDocument())
+                .withDatabase(db);
+
+        // @DbLookup(""; ""; "LookupByDept"; "Engineering"; 1)
+        var ft = new FormulaTranslator();
+        var result = ft.evaluate("@DbLookup(\"\"; \"\"; \"LookupByDept\"; \"Engineering\"; 1)", docCtx);
+        assertNotNull(result);
+    }
+
+    @Test @Order(12) @DisplayName("@DbColumn: returns column values")
+    void dbColumn() {
+        var docCtx = new DocumentFormulaContext(db.createDocument())
+                .withDatabase(db);
+
+        var ft = new FormulaTranslator();
+        var result = ft.evaluate("@DbColumn(\"\"; \"\"; \"LookupByDept\"; 1)", docCtx);
+        assertNotNull(result);
+        assertTrue(((java.util.List<?>) result).size() > 0, "Should return at least one value");
     }
 
     // ---- helpers ----
