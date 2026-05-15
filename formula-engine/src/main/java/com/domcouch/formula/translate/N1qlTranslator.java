@@ -193,7 +193,7 @@ final class N1qlTranslator {
             case FunctionNames.ROUND -> { sb.append("ROUND("); walkExpr(args.get(0), sb, currentUserName, valueMode); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); } sb.append(")"); }
             case FunctionNames.REPLACESUBSTRING -> { sb.append("REPLACE("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); sb.append(", "); walkExpr(args.get(2), sb, currentUserName, valueMode); sb.append(")"); }
             case FunctionNames.REPEAT -> { sb.append("REPEAT("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); sb.append(")"); }
-            case FunctionNames.NEWLINE -> sb.append("CHR(10)");
+            case FunctionNames.NEWLINE -> sb.append("'\\n'");
             case FunctionNames.ELEMENTS -> { sb.append("ARRAY_LENGTH("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(")"); }
 
             // ---- New translations for custom views ----
