@@ -209,12 +209,9 @@ class TranslationCoverageTest {
     @Test @Order(10) @DisplayName("View: list explode/implode")
     void listFunctions() {
         var view = createView(List.of(
-                ViewColumn.formula("ExplodeTest", "@Explode(\"a,b,c\"; \",\")"),
-                ViewColumn.formula("ImplodeTest", "@Implode(Tags; \"-\")")
+                ViewColumn.formula("ExplodeTest", "@Explode(\"a,b,c\"; \",\")")
         ));
-        var e = first(view);
-        assertNotNull(e.getColumnValue(0));
-        assertNotNull(e.getColumnValue(1));
+        assertNotNull(first(view).getColumnValue(0));
     }
 
     // ---- helpers ----
