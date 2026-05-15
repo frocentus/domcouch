@@ -4,7 +4,6 @@ import com.domcouch.api.*;
 import com.domcouch.impl.CouchbaseSession;
 import com.domcouch.impl.CouchbaseView;
 import com.domcouch.impl.CouchbaseViewNavigator;
-import com.domcouch.impl.CouchbaseViewNavigatorV2;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 
@@ -237,61 +236,7 @@ class ViewNavigatorPerformanceTest {
 
     // ---- helpers ----
 
-    @Test @Order(8) @DisplayName("Approach B: _categories LIKE navigator vs in-memory index")
-    void categoriesLikeNavigatorComparison() throws Exception {
-        // Create a categorized view with key columns (triggers _categories computation on save)
-        View view = db.createView("perf_catlike",
-                null,
-                List.of("Department"),
-                List.of(ViewColumn.field("Department", "Department"),
-                        ViewColumn.field("FullName", "LastName")));
-
-        // Note: _categories was already computed during reinit since the view exists.
-        // For fresh docs, save() calls computeCategories().
-
-        // Approach A: in-memory index
-        long t0 = System.nanoTime();
-        var navA = new CouchbaseViewNavigator((CouchbaseView) view, 64, 0);
-        long buildMsA = (System.nanoTime() - t0) / 1_000_000;
-        int totalA = navA.getCount();
-
-        // Approach B: N1QL cursor using _categories LIKE
-        t0 = System.nanoTime();
-        var navB = new CouchbaseViewNavigatorV2(view);
-        long buildMsB = (System.nanoTime() - t0) / 1_000_000;
-        int totalB = navB.getCount();
-
-        // getNth comparison
-        t0 = System.nanoTime();
-        int samples = 20;
-        for (int pos = 1; pos <= samples; pos++) navA.getNth(pos);
-        long nthNsA = (System.nanoTime() - t0) / samples;
-
-        t0 = System.nanoTime();
-        for (int pos = 1; pos <= samples; pos++) navB.getNth(pos);
-        long nthNsB = (System.nanoTime() - t0) / samples;
-
-        // getNextCategory
-        t0 = System.nanoTime();
-        navA.gotoFirst();
-        int skipsA = 0;
-        while (navA.getNextCategory() != null && skipsA < 10) skipsA++;
-        long skipNsA = (System.nanoTime() - t0) / Math.max(1, skipsA);
-
-        t0 = System.nanoTime();
-        navB.gotoFirst();
-        int skipsB = 0;
-        while (navB.getNextCategory() != null && skipsB < 10) skipsB++;
-        long skipNsB = (System.nanoTime() - t0) / Math.max(1, skipsB);
-
-        System.out.printf("  [LIKE]   build: %d ms vs %d ms | total: %d vs %d%n",
-                buildMsA, buildMsB, totalA, totalB);
-        System.out.printf("  [LIKE]   getNth: %d ns vs %d ns | cat-skip: %d ns vs %d ns%n",
-                nthNsA, nthNsB, skipNsA, skipNsB);
-        assertTrue(totalA > 0);
-    }
-
-    // ---- helpers ----
+        // ---- helpers ----
 
     private long measureBuildTime(View view) {
         System.gc();
