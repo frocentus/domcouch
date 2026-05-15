@@ -231,15 +231,16 @@ class LexerTest {
     @Test
     @DisplayName("operators: comparison")
     void comparisonOperators() {
-        List<Token> tokens = Lexer.tokenize("= <> != > < >= <=");
-        assertEquals(7, tokens.size());
+        List<Token> tokens = Lexer.tokenize("= <> >< != > < >= <=");
+        assertEquals(8, tokens.size());
         assertToken(tokens.get(0), TokenType.OPERATOR, "=", 0);
         assertToken(tokens.get(1), TokenType.OPERATOR, "<>", 2);
-        assertToken(tokens.get(2), TokenType.OPERATOR, "!=", 5);
-        assertToken(tokens.get(3), TokenType.OPERATOR, ">", 8);
-        assertToken(tokens.get(4), TokenType.OPERATOR, "<", 10);
-        assertToken(tokens.get(5), TokenType.OPERATOR, ">=", 12);
-        assertToken(tokens.get(6), TokenType.OPERATOR, "<=", 15);
+        assertToken(tokens.get(2), TokenType.OPERATOR, "><", 5);
+        assertToken(tokens.get(3), TokenType.OPERATOR, "!=", 8);
+        assertToken(tokens.get(4), TokenType.OPERATOR, ">", 11);
+        assertToken(tokens.get(5), TokenType.OPERATOR, "<", 13);
+        assertToken(tokens.get(6), TokenType.OPERATOR, ">=", 15);
+        assertToken(tokens.get(7), TokenType.OPERATOR, "<=", 18);
     }
 
     @Test

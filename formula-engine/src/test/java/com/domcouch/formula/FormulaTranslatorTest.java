@@ -62,6 +62,12 @@ class FormulaTranslatorTest {
                 translator.toN1ql("Form != \"Person\""));
     }
 
+    @Test @DisplayName(">< mapped to !=")
+    void altNotEqual() {
+        assertEquals("doc.items.FORM.`values`[0] != 'Person'",
+                translator.toN1ql("Form >< \"Person\""));
+    }
+
     @Test @DisplayName("! inside string literal preserved")
     void notInString() {
         assertEquals("doc.items.FORM.`values`[0] = 'Hi!'",

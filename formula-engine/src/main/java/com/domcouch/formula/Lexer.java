@@ -42,7 +42,7 @@ public final class Lexer {
     );
 
     private static final Set<String> MULTI_CHAR_OPS = Set.of(
-            ":=", "<>", "!=", ">=", "<="
+            ":=", "<>", "><", "!=", ">=", "<="
     );
 
     private Lexer() {}

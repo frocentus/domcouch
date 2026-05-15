@@ -221,8 +221,8 @@ public class FormulaTranslator {
             sb.append(" = ");
             walkForN1ql(bo.right(), sb);
         } else {
-            // Comparison operators: <>, !=, >, <, >=, <=
-            String n1qlOp = op.equals("<>") ? "!=" : op;
+            // Comparison operators: <>, ><, !=, >, <, >=, <=
+            String n1qlOp = (op.equals("<>") || op.equals("><")) ? "!=" : op;
             walkForN1ql(bo.left(), sb);
             sb.append(" ").append(n1qlOp).append(" ");
             walkForN1ql(bo.right(), sb);
