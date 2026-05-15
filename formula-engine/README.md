@@ -95,7 +95,7 @@ catches this in every @Function handler and returns a sensible default:
 | Context method            | When not supported                               | Evaluator default        |
 | ------------------------- | ------------------------------------------------ | ------------------------ |
 | `setField()`              | @SetField, FIELD `:=`                            | value unchanged (no-op)  |
-| `deleteField()`           | @DeleteField, REM {}                             | `""` (no-op)            |
+| `deleteField()`           | @DeleteField                                     | `""` (no-op)            |
 | `getFieldNames()`         | @DocFields                                       | `[]`                     |
 | `getDocumentUNID()`       | @DocumentUniqueID, @NoteID, @IsNewDoc            | `""`, `""`, `1.0` (new)  |
 | `isDocumentValid()`       | @IsValid                                         | `1.0` (true)             |
@@ -159,10 +159,16 @@ These functions modify document fields.
 
 ### Field Deletion (`ctx.deleteField`)
 
-| @Function            | Context Property    | Notes                    |
-| -------------------- | ------------------- | ------------------------ |
-| `@DeleteField`       | `deleteField(name)` | Removes field completely |
-| `REM { field; ... }` | `deleteField(name)` | Keyword statement        |
+| @Function      | Context Property    | Notes                    |
+| -------------- | ------------------- | ------------------------ |
+| `@DeleteField` | `deleteField(name)` | Removes field completely |
+
+### Comments / No-ops (no context needed)
+
+| Statement        | Notes              |
+| ---------------- | ------------------ |
+| `REM "..."`      | Comment, ignored   |
+| `REM { ... }`    | Comment, ignored   |
 
 ### Document Identity (`ctx.getDocumentUNID` / `ctx.getFieldNames`)
 
