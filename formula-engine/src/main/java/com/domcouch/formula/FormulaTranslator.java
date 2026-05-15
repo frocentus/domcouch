@@ -241,7 +241,14 @@ public class FormulaTranslator {
             case "MODIFIED" -> sb.append("doc.lastModified");
             case "USERNAME" -> sb.append("'").append(currentUserName.replace("'", "''")).append("'");
             case "ISAVAILABLE" -> {
-                walkForN1ql(args.get(0), sb);
+                // String literal: convert to field reference
+                // Variable: already emitted as doc.items.NAME.values[0]
+                if (args.get(0) instanceof Expr.StringConst s) {
+                    sb.append("doc.items.").append(escapeBacktick(s.value().toUpperCase()))
+                            .append(".`values`[0]");
+                } else {
+                    walkForN1ql(args.get(0), sb);
+                }
                 sb.append(" IS NOT MISSING");
             }
             case "ISNUMBER" -> { sb.append("IS_NUMBER("); walkForN1ql(args.get(0), sb); sb.append(")"); }

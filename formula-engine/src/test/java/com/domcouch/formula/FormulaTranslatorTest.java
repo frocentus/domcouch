@@ -110,6 +110,12 @@ class FormulaTranslatorTest {
                 translator.toN1ql("@Created > \"2024-01-01\" & @Modified > \"2024-06-01\""));
     }
 
+    @Test @DisplayName("@IsAvailable with string literal")
+    void atIsAvailableString() {
+        assertEquals("doc.items.SUBJECT.`values`[0] IS NOT MISSING",
+                translator.toN1ql("@IsAvailable(\"Subject\")"));
+    }
+
     @Test @DisplayName("SELECT stripped")
     void selectStripped() {
         assertEquals("doc.items.FORM.`values`[0] = 'Person'",
