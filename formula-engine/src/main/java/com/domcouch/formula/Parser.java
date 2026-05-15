@@ -238,10 +238,6 @@ public class Parser {
 
     private static boolean isInfixOp(String op) { return infixPrecedence(op) >= 0; }
 
-    private static boolean isUnaryOp(String op) {
-        return op.equals("+") || op.equals("-");
-    }
-
     private static boolean isLeftAssoc(String op) {
         return !op.equals(":=") && !op.equals(":");
     }
