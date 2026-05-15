@@ -47,6 +47,7 @@ public class CouchbaseDatabase implements Database {
     private boolean open;
     private final Map<String, CouchbaseView> views;
     private final Set<String> folderNames;
+    private final Set<List<String>> registeredKeyColumnSets;
 
     public CouchbaseDatabase(Cluster cluster, String bucketName, String scopeName) {
         this.cluster = cluster;
@@ -59,6 +60,7 @@ public class CouchbaseDatabase implements Database {
         this.title = scopeName;
         this.views = new ConcurrentHashMap<>();
         this.folderNames = ConcurrentHashMap.newKeySet();
+        this.registeredKeyColumnSets = ConcurrentHashMap.newKeySet();
 
         // Ensure the collection exists by performing a lightweight query that creates the primary index
         ensurePrimaryIndex();
@@ -146,6 +148,9 @@ public class CouchbaseDatabase implements Database {
         String n1qlFormula = formulaTranslator.toN1ql(selectionFormula);
         CouchbaseView view = new CouchbaseView(this, scope, name, n1qlFormula, keyColumns, columns);
         views.put(name, view);
+        if (keyColumns != null && !keyColumns.isEmpty()) {
+            registeredKeyColumnSets.add(List.copyOf(keyColumns));
+        }
         createViewIndex(name, keyColumns != null && !keyColumns.isEmpty() ? keyColumns.get(0) : null);
         return view;
     }
@@ -431,5 +436,39 @@ public class CouchbaseDatabase implements Database {
     @Override
     public boolean isFolder(String name) throws NotesException {
         return folderNames.contains(name);
+    }
+
+    /**
+     * Compute _categories items for a document from all registered key column sets.
+     * Stores category paths as TEXT values with '||' as level delimiter.
+     * E.g., Department="Engineering", City="New York" → "Engineering||New York"
+     * Multivalued documents produce one value per category path. No key column sets → no-op.
+     */
+    public void computeCategories(CouchbaseDocument doc) {
+        if (registeredKeyColumnSets.isEmpty()) return;
+        var values = new java.util.ArrayList<String>();
+        for (var keyColumns : registeredKeyColumnSets) {
+            // Build category path from the document's item values
+            StringBuilder path = new StringBuilder();
+            boolean allPresent = true;
+            for (int i = 0; i < keyColumns.size(); i++) {
+                String colName = keyColumns.get(i);
+                var item = doc.getFirstItem(colName);
+                Object val = item != null ? item.getValueString() : null;
+                if (val == null || val.toString().isEmpty()) {
+                    allPresent = false;
+                    break;
+                }
+                if (i > 0) path.append("||");
+                path.append(val);
+            }
+            if (allPresent && path.length() > 0) {
+                values.add(path.toString());
+            }
+        }
+        // Store _categories as TEXT item (type 0) with values array
+        if (!values.isEmpty()) {
+            doc.replaceItemValueSilent("_categories", new java.util.Vector<>(values));
+        }
     }
 }

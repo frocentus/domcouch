@@ -103,6 +103,20 @@ public class CouchbaseDocument implements Document {
         return item;
     }
 
+    /** Internal: same as replaceItemValue but doesn't set dirty flag (for computed fields). */
+    void replaceItemValueSilent(String name, Object value) {
+        String normalizedName = name.toUpperCase();
+        CouchbaseItem item;
+        if (value instanceof Vector<?> v) {
+            item = new CouchbaseItem(normalizedName, inferType(v), new ArrayList<>(v));
+        } else {
+            item = new CouchbaseItem(normalizedName, inferType(value), value);
+        }
+        item.setParent(this);
+        items.put(normalizedName, List.of(item));
+        // dirty flag NOT set
+    }
+
     @Override
     public void removeItem(String name) {
         items.remove(name.toUpperCase());
@@ -121,6 +135,8 @@ public class CouchbaseDocument implements Document {
         }
 
         try {
+            // Compute _categories from registered key column sets BEFORE toJson
+            database.computeCategories(this);
             JsonObject json = toJson();
             database.upsertDocument(unid, json);
             dirty = false;
