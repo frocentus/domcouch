@@ -178,7 +178,7 @@ public class DominoDatabaseService {
             row.put("LastName", cols.size() > 1 ? cols.get(1) : "");
             row.put("FullName", cols.size() > 2 ? cols.get(2) : "");
             row.put("Age", cols.size() > 3 ? cols.get(3) : "");
-            row.put("Income", cols.size() > 4 ? cols.get(4) : "");
+            row.put("Salary", cols.size() > 4 ? cols.get(4) : "");
             row.put("Department", cols.size() > 5 ? cols.get(5) : "");
             result.add(row);
         }
@@ -234,15 +234,15 @@ public class DominoDatabaseService {
 
         // View with formula columns: income > 50K, computed fullName and age
         database.createView("IncomeOver50K",
-                "Form = {Person} & Income > 50000",
+                "Form = {Person} & Salary > 50000",
                 java.util.List.of(
                         com.domcouch.api.ViewColumn.field("FirstName", "FirstName"),
                         com.domcouch.api.ViewColumn.field("LastName", "LastName"),
                         com.domcouch.api.ViewColumn.formula("FullName",
                                 "FirstName + \" \" + LastName"),
                         com.domcouch.api.ViewColumn.formula("Age",
-                                "@Integer((@Today - BirthDate) / 365)"),
-                        com.domcouch.api.ViewColumn.field("Income", "Income"),
+                                "@Year(@Now) - @Year(HireDate)"),
+                        com.domcouch.api.ViewColumn.field("Salary", "Salary"),
                         com.domcouch.api.ViewColumn.field("Department", "Department")
                 ));
 
