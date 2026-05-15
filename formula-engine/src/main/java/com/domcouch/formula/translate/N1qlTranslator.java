@@ -224,6 +224,16 @@ final class N1qlTranslator {
             case FunctionNames.EXPLODE -> { sb.append("SPLIT("); walkExpr(args.get(0), sb, currentUserName, valueMode); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); } else sb.append(", ' ,;'"); sb.append(")"); }
             case FunctionNames.IMPLODE -> { sb.append("ARRAY_JOIN("); walkExpr(args.get(0), sb, currentUserName, valueMode); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); } else sb.append(", ' '"); sb.append(")"); }
             case FunctionNames.COUNT -> { sb.append("ARRAY_LENGTH("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(")"); }
+
+            // ---- Value-expression extensions ----
+            case FunctionNames.MODULO -> { sb.append("("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(" % "); walkExpr(args.get(1), sb, currentUserName, valueMode); sb.append(")"); }
+            case FunctionNames.SIGN -> { sb.append("SIGN("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(")"); }
+            case FunctionNames.MIDDLE -> { sb.append("SUBSTR("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); sb.append(" + 1, "); walkExpr(args.get(2), sb, currentUserName, valueMode); sb.append(")"); }
+            case FunctionNames.MIDDLEBACK -> { sb.append("SUBSTR("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(", LENGTH("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(") - "); walkExpr(args.get(1), sb, currentUserName, valueMode); sb.append(" - "); walkExpr(args.get(2), sb, currentUserName, valueMode); sb.append(" + 1, "); walkExpr(args.get(2), sb, currentUserName, valueMode); sb.append(")"); }
+            case FunctionNames.MAX -> { sb.append("GREATEST("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); sb.append(")"); }
+            case FunctionNames.MIN -> { sb.append("LEAST("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); sb.append(")"); }
+            case FunctionNames.PROPERCASE -> { sb.append("INITCAP("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(")"); }
+            case FunctionNames.CHAR -> { sb.append("CHR("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(")"); }
             default -> sb.append(name.toLowerCase()).append("(")
                     .append(args.stream().map(Object::toString).reduce((a,b) -> a + ";" + b).orElse(""))
                     .append(")");

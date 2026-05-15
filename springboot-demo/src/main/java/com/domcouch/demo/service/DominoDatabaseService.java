@@ -245,7 +245,7 @@ public class DominoDatabaseService {
                         com.domcouch.api.ViewColumn.formula("FullName",
                                 "FirstName + \" \" + LastName"),
                         com.domcouch.api.ViewColumn.formula("Age",
-                                "@Integer((@Today - BirthDate) / 365)"),
+                                "@Year(@Now) - @Year(BirthDate)"),
                         com.domcouch.api.ViewColumn.field("Income", "Income"),
                         com.domcouch.api.ViewColumn.field("Department", "Department")
                 ));
