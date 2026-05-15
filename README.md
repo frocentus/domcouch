@@ -51,7 +51,7 @@ cd domcouch
 mvn clean install
 ```
 
-This runs all 637 tests and installs all three artifacts:
+This runs all 654 tests and installs all three artifacts:
 
 | Module                 | Artifact                                           | Notes                           |
 | ---------------------- | -------------------------------------------------- | ------------------------------- |
@@ -217,6 +217,7 @@ Full language spec: `docs/formula-language-architecture.md`
 | GET    | `/api/persons/view/{viewName}?key=...` | Lookup by view            |
 | GET    | `/api/persons/search?q=...`            | Full-text search          |
 | GET    | `/api/persons/{unid}`                  | Get person by UNID        |
+| GET    | `/api/persons/view/income-over-50k`| Formula-column view with computed fields |
 | POST   | `/api/persons/admin/reinitialize`      | Clear + repopulate        |
 
 ### Available Views
@@ -334,7 +335,7 @@ domcouch/
 | `PatternMatchingTest`       | formula-engine | 27      | @Matches (24) + @Like (6) — pattern matching                 |
 | `DataConversionTest`        | formula-engine | 24      | @Text @TextToNumber @IsNumber @IsTime @ToNumber ...          |
 | `ValidationTest`            | formula-engine | 25      | @Success @Failure @IsNull @IfError placeholders constants    |
-| **Total**                   |                | **637** |                                                              |
+| **Total**                   |                | **654** |                                                              |
 
 ## Documentation
 

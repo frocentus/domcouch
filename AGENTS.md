@@ -359,7 +359,7 @@ mvn test -pl domino-couchbase-lib
 | `PatternMatchingTest` | 27 | @Matches (24) + @Like (6) — all pattern operators |
 | `DataConversionTest` | 24 | @Text @TextToNumber @IsNumber @IsTime @TextToTime @ToNumber @ToTime |
 | `ValidationTest` | 25 | @Success @Failure @IsNull @IsValid @IfError + placeholders + constants |
-| **Total** | **637** | |
+| **Total** | **654** | |
 
 ### 6.4 Data Generation
 
@@ -382,11 +382,11 @@ documents and regenerates.
 | 2026-05-11 | `FTSearch` uses parameterized N1QL queries (`$q`)                   | Eliminates N1QL injection; user input never concatenated      |
 | 2026-05-11 | `getCollectionPath()` extracted; shared by DB + View                | Single source of truth for backtick-escaped path              |
 | 2026-05-11 | Reader check in `getDocumentByUNID` BEFORE deserialization          | Avoids full doc construction cost if user can't read          |
-| 2026-05-12 | Formula engine: Lexer → Parser → Evaluator pipeline        | Full Domino formula language support; 637 tests            |
+| 2026-05-12 | Formula engine: Lexer → Parser → Evaluator pipeline        | Full Domino formula language support; 654 tests            |
 | 2026-05-12 | Compiled formula caching with `compileFormula()`            | 16× speedup for batch document processing                   |
 | 2026-05-12 | `DocumentFormulaContext` bridges formula engine with Document | Computed fields evaluated directly against domcouch Documents |
 | 2026-05-12 | `@Command` / `@PostedCommand` treated as no-ops             | Matches Domino `NoExternalApps=1`; formulas with UI commands still evaluate |
-| 2026-05-13 | 150+ @Functions implemented (132 ✅ + 19 🟡) | 637 tests; function-catalog.md with per-function spec verification |
+| 2026-05-13 | 150+ @Functions implemented (132 ✅ + 19 🟡) | 654 tests; function-catalog.md with per-function spec verification |
 | 2026-05-14 | Extracted `formula-engine` as standalone Maven module | Zero external deps; 3-module project (formula-engine → domino-couchbase-lib → springboot-demo) |
 | 2026-05-14 | Pair-wise + permuted list operators | All 12 permuted operators, list broadcasting, any-match semantics |
 
