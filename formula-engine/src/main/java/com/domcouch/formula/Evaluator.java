@@ -1,10 +1,10 @@
 package com.domcouch.formula;
 
-import java.time.Instant;
+import com.domcouch.formula.handlers.*;
+
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.regex.Pattern;
 
 /**
  * Walks an {@link Expr} AST and evaluates it against a {@link FormulaContext}.
@@ -16,13 +16,13 @@ public class Evaluator {
 
     private final Map<String, FunctionHandler> functions;
     private volatile String currentUserName;
-    final ThreadLocal<Map<String, Object>> tempScope =
+    public final ThreadLocal<Map<String, Object>> tempScope =
             ThreadLocal.withInitial(HashMap::new);
-    static final DateTimeFormatter DT_FMT = DateTimeFormatter
+    public static final DateTimeFormatter DT_FMT = DateTimeFormatter
             .ofPattern("MM/dd/yyyy hh:mm:ss a").withZone(ZoneId.systemDefault());
 
     /** Sentinel value for @Error / @IsError. */
-    static final Object ERROR_VALUE = new Object();
+    public static final Object ERROR_VALUE = new Object();
 
     /** Create an Evaluator with the default user ("Anonymous") and built-in functions. */
     public Evaluator() {
@@ -41,7 +41,7 @@ public class Evaluator {
         this.currentUserName = currentUserName != null ? currentUserName : "Anonymous";
     }
 
-    String getCurrentUserName() { return currentUserName; }
+    public String getCurrentUserName() { return currentUserName; }
 
     /** Parse and evaluate a single formula. Convenience for testing. */
     public Object evalExpr(String formula, FormulaContext ctx) {
@@ -269,7 +269,7 @@ public class Evaluator {
     private static boolean isEmptyValue(Object val) {
         if (val == null) return true;
         if (val instanceof List<?> l) return l.isEmpty();
-        String s = toString(val);
+        String s = convertToString(val);
         return s.isEmpty() || "0".equals(s);
     }
 
@@ -288,7 +288,7 @@ public class Evaluator {
 
     private static Object add(Object left, Object right) {
         if (left instanceof String || right instanceof String)
-            return toString(left) + toString(right);
+            return convertToString(left) + convertToString(right);
         return toNumber(left) + toNumber(right);
     }
 
@@ -312,12 +312,12 @@ public class Evaluator {
         if (left instanceof Comparable && right instanceof Comparable
                 && left.getClass().equals(right.getClass()))
             return ((Comparable) left).compareTo(right);
-        return toString(left).compareTo(toString(right));
+        return convertToString(left).compareTo(convertToString(right));
     }
 
     // ---- Type coercion ----
 
-    static double toNumber(Object val) {
+    public static double toNumber(Object val) {
         if (val == null) return 0.0;
         if (val instanceof Number n) return n.doubleValue();
         if (val instanceof String s && !s.isEmpty()) {
@@ -327,7 +327,7 @@ public class Evaluator {
         return 0.0;
     }
 
-    static boolean isTruthy(Object val) {
+    public static boolean isTruthy(Object val) {
         if (val == null) return false;
         if (val instanceof Number n) return n.doubleValue() != 0.0;
         if (val instanceof String s) return !s.isEmpty();
@@ -335,7 +335,7 @@ public class Evaluator {
         return true;
     }
 
-    static double boolToNum(boolean b) { return b ? 1.0 : 0.0; }
+    public static double boolToNum(boolean b) { return b ? 1.0 : 0.0; }
 
     // ---- Date parsing ----
 
@@ -354,9 +354,9 @@ public class Evaluator {
     };
 
     /** Extract a date field (month, day, year) from a date string or object. */
-    static int extractDateField(Object val, java.time.temporal.ChronoField field) {
+    public static int extractDateField(Object val, java.time.temporal.ChronoField field) {
         if (val == null) return 0;
-        String s = toString(val).trim();
+        String s = convertToString(val).trim();
         if (s.isEmpty()) return 0;
         for (var fmt : DATE_PARSERS) {
             try {
@@ -372,7 +372,7 @@ public class Evaluator {
     }
 
     /** Parse a date string to ZonedDateTime, returning null on failure. */
-    static java.time.ZonedDateTime parseDateToZoned(String s) {
+    public static java.time.ZonedDateTime parseDateToZoned(String s) {
         for (var fmt : DATE_PARSERS) {
             try {
                 var parsed = fmt.parseBest(s,
@@ -394,7 +394,7 @@ public class Evaluator {
     }
 
     /** Parse a date string to LocalDate, returning null on failure. */
-    static java.time.LocalDate parseDate(String s) {
+    public static java.time.LocalDate parseDate(String s) {
         java.time.ZonedDateTime zdt = parseDateToZoned(s);
         return zdt != null ? zdt.toLocalDate() : null;
     }
@@ -402,13 +402,13 @@ public class Evaluator {
     static boolean isFalsy(Object val) { return !isTruthy(val); }
 
     /** Check if a string represents a valid number. */
-    static boolean isNumeric(String s) {
+    public static boolean isNumeric(String s) {
         if (s == null || s.isEmpty()) return false;
         try { Double.parseDouble(s); return true; }
         catch (NumberFormatException e) { return false; }
     }
 
-    static String toString(Object val) {
+    public static String convertToString(Object val) {
         if (val == null) return "";
         if (val instanceof Double d && d == Math.floor(d) && !Double.isInfinite(d)
                 && d >= Long.MIN_VALUE && d <= Long.MAX_VALUE)
@@ -456,7 +456,7 @@ public class Evaluator {
                                          java.util.function.BiPredicate<String, String> pred) {
         for (Object sa : toList(a)) {
             for (Object sb : toList(b)) {
-                if (pred.test(toString(sa), toString(sb))) return true;
+                if (pred.test(convertToString(sa), convertToString(sb))) return true;
             }
         }
         return false;
@@ -493,9 +493,9 @@ public class Evaluator {
      * For offset: the middle begins one character AFTER the offset.
      * For negative numberchars: middle starts AT the offset/substring and goes left.
      */
-    static Object middleExtract(Evaluator ev, java.util.List<Expr> args,
-                                         FormulaContext ctx, boolean fromBack) {
-        String s = toString(ev.eval(args.get(0), ctx));
+    public static Object middleExtract(Evaluator ev, java.util.List<Expr> args,
+                                       FormulaContext ctx, boolean fromBack) {
+        String s = convertToString(ev.eval(args.get(0), ctx));
         if (s.isEmpty()) return "";
         Object fromObj = ev.eval(args.get(1), ctx);
         Object toObj = args.size() > 2 ? ev.eval(args.get(2), ctx) : null;
@@ -513,7 +513,7 @@ public class Evaluator {
                 start = off; // 1-based off → 0-based index after offset
             }
         } else {
-            String sub = toString(fromObj);
+            String sub = convertToString(fromObj);
             if (sub.isEmpty()) return "";
             int idx = fromBack ? s.lastIndexOf(sub) : s.indexOf(sub);
             if (idx < 0) return "";
@@ -536,13 +536,13 @@ public class Evaluator {
                     start = Math.max(0, start + len);
                     end = start - len; // old start
                 } else {
-                    int idx = start - toString(fromObj).length();
+                    int idx = start - convertToString(fromObj).length();
                     start = Math.max(0, idx + len);
                     end = idx;
                 }
             }
         } else {
-            String toSub = toString(toObj);
+            String toSub = convertToString(toObj);
             if (toSub.isEmpty()) { end = s.length(); }
             else {
                 int idx = fromBack
@@ -562,12 +562,12 @@ public class Evaluator {
      * Convert a Domino @Matches pattern to a Java regex Pattern.
      * Delegates to {@link PatternUtils#toRegex(String)}.
      */
-    static java.util.regex.Pattern dominoPatternToRegex(String pattern) {
+    public static java.util.regex.Pattern dominoPatternToRegex(String pattern) {
         return PatternUtils.toRegex(pattern);
     }
 
     /** Format a number according to a Domino format string (always US locale). */
-    static String formatNumber(double value, String format) {
+    public static String formatNumber(double value, String format) {
         java.util.Locale us = java.util.Locale.US;
         String upper = format.toUpperCase();
         int decimals = 2;
@@ -612,7 +612,7 @@ public class Evaluator {
 
     /** Format a date/time string according to a Domino date format code. */
     // TODO: @Text date format strings (D0-D3, T0-T1, S0-S3) — basic support
-    static String formatDate(String dateStr, String format) {
+    public static String formatDate(String dateStr, String format) {
         java.time.ZonedDateTime zdt = parseDateToZoned(dateStr);
         if (zdt == null) return dateStr;
         String upper = format.toUpperCase().strip();
@@ -642,9 +642,9 @@ public class Evaluator {
     }
 
     /** Exception thrown by @Return to unwind evaluation. */
-    static class ReturnValue extends RuntimeException {
+    public static class ReturnValue extends RuntimeException {
         final Object value;
-        ReturnValue(Object value) { this.value = value; }
+        public ReturnValue(Object value) { this.value = value; }
 
         /** Unwrap a ReturnValue or re-throw other RuntimeExceptions. */
         static Object unwrap(RuntimeException e) {

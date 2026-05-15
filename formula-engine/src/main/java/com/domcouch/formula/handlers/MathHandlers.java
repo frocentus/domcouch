@@ -1,4 +1,7 @@
-package com.domcouch.formula;
+package com.domcouch.formula.handlers;
+
+import com.domcouch.formula.Evaluator;
+import com.domcouch.formula.Expr;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,11 +9,11 @@ import java.util.List;
 /**
  * Math @Function handlers.
  */
-final class MathHandlers {
+public final class MathHandlers {
 
     private MathHandlers() {}
 
-    static void register(java.util.Map<String, FunctionHandler> functions) {
+    public static void register(java.util.Map<String, FunctionHandler> functions) {
         functions.put("ABS", (ev, args, ctx) -> {
             Object val = ev.eval(args.getFirst(), ctx);
             List<Object> sources = Evaluator.toList(val);
