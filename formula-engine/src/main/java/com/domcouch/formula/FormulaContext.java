@@ -165,6 +165,35 @@ public interface FormulaContext {
         throw new ContextNotSupportedException("addToFolder");
     }
 
+    // ---- Cross-database lookups ----
+
+    /**
+     * Look up values from a view column. Used by {@code @DbLookup}.
+     * @param server server name (empty for current)
+     * @param database database path (empty for current)
+     * @param view view name
+     * @param key lookup key
+     * @param column 1-based column number
+     * @return list of matching values, or empty list
+     */
+    default java.util.List<Object> dbLookup(String server, String database,
+            String view, Object key, int column) {
+        throw new ContextNotSupportedException("dbLookup");
+    }
+
+    /**
+     * Return all values from a view column. Used by {@code @DbColumn}.
+     * @param server server name (empty for current)
+     * @param database database path (empty for current)
+     * @param view view name
+     * @param column 1-based column number
+     * @return list of all column values
+     */
+    default java.util.List<Object> dbColumn(String server, String database,
+            String view, int column) {
+        throw new ContextNotSupportedException("dbColumn");
+    }
+
     // ---- Time zone (Domino-specific canonical format; not applicable in Couchbase) ----
 
     /**

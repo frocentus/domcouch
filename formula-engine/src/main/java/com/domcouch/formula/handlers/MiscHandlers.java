@@ -663,6 +663,28 @@ public final class MiscHandlers {
             }
             return val;
         });
+
+        // ---- Cross-database lookups ----
+        functions.put("DBLOOKUP", (ev, args, ctx) -> {
+            String server = args.size() > 0 ? Evaluator.convertToString(ev.eval(args.get(0), ctx)) : "";
+            String database = args.size() > 1 ? Evaluator.convertToString(ev.eval(args.get(1), ctx)) : "";
+            String view = args.size() > 2 ? Evaluator.convertToString(ev.eval(args.get(2), ctx)) : "";
+            Object key = args.size() > 3 ? ev.eval(args.get(3), ctx) : "";
+            int column = args.size() > 4 ? (int) Evaluator.toNumber(ev.eval(args.get(4), ctx)) : 1;
+            try {
+                return new java.util.ArrayList<>(ctx.dbLookup(server, database, view, key, column));
+            } catch (ContextNotSupportedException e) { return ""; }
+        });
+        functions.put("DBCOLUMN", (ev, args, ctx) -> {
+            String server = args.size() > 0 ? Evaluator.convertToString(ev.eval(args.get(0), ctx)) : "";
+            String database = args.size() > 1 ? Evaluator.convertToString(ev.eval(args.get(1), ctx)) : "";
+            String view = args.size() > 2 ? Evaluator.convertToString(ev.eval(args.get(2), ctx)) : "";
+            int column = args.size() > 3 ? (int) Evaluator.toNumber(ev.eval(args.get(3), ctx)) : 1;
+            try {
+                return new java.util.ArrayList<>(ctx.dbColumn(server, database, view, column));
+            } catch (ContextNotSupportedException e) { return ""; }
+        });
+
         FunctionHandler noop = (ev, args, ctx) -> "";
         functions.put("COMMAND", noop);
         functions.put("POSTEDCOMMAND", noop);

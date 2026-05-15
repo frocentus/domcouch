@@ -174,4 +174,47 @@ public class DocumentFormulaContext implements FormulaContext {
 
     // ---- Soft deletion (not supported by Couchbase) ----
     // markForDeletion, unmarkForDeletion use default → ContextNotSupportedException
+
+    // ---- Cross-database lookups (optional database reference) ----
+
+    private com.domcouch.api.Database database;
+
+    public DocumentFormulaContext withDatabase(com.domcouch.api.Database db) {
+        this.database = db;
+        return this;
+    }
+
+    @Override
+    public java.util.List<Object> dbLookup(String server, String database, String view, Object key, int column) {
+        if (this.database == null)
+            throw new com.domcouch.formula.ContextNotSupportedException("dbLookup");
+        try {
+            var v = this.database.getView(view);
+            if (v == null) return java.util.List.of();
+            var entries = v.getAllEntriesByKey(key);
+            var result = new java.util.ArrayList<>();
+            for (var entry : entries) {
+                var val = entry.getColumnValue(column - 1); // 1-based → 0-based
+                if (val != null) result.add(val);
+            }
+            return result;
+        } catch (Exception e) { return java.util.List.of(); }
+    }
+
+    @Override
+    public java.util.List<Object> dbColumn(String server, String database, String view, int column) {
+        if (this.database == null)
+            throw new com.domcouch.formula.ContextNotSupportedException("dbColumn");
+        try {
+            var v = this.database.getView(view);
+            if (v == null) return java.util.List.of();
+            var entries = v.getAllEntries();
+            var result = new java.util.ArrayList<>();
+            for (var entry : entries) {
+                var val = entry.getColumnValue(column - 1);
+                if (val != null) result.add(val);
+            }
+            return result;
+        } catch (Exception e) { return java.util.List.of(); }
+    }
 }
