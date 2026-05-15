@@ -1,13 +1,10 @@
 package com.domcouch.demo;
 
-import com.couchbase.client.java.Cluster;
-import com.couchbase.client.java.ClusterOptions;
 import com.domcouch.api.*;
 import com.domcouch.impl.CouchbaseSession;
 import org.junit.jupiter.api.*;
 
 import java.util.List;
-import java.util.Vector;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -18,7 +15,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * Requires: docker compose up -d
  * Run: mvn test -pl springboot-demo -Dtest=TranslationCoverageTest -Dcouchbase.test=true
  */
-@Disabled("Requires running Couchbase. Activate with -Dcouchbase.test=true")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TranslationCoverageTest {
 
@@ -28,9 +24,7 @@ class TranslationCoverageTest {
 
     @BeforeAll
     static void setUp() {
-        Cluster cluster = Cluster.connect("couchbase://localhost",
-                ClusterOptions.clusterOptions("Administrator", "password"));
-        session = new CouchbaseSession(cluster, "Administrator", "password");
+        session = CouchbaseSession.connect("couchbase://localhost", "Administrator", "password");
         db = session.getDatabase("translation_test");
     }
 
@@ -231,7 +225,7 @@ class TranslationCoverageTest {
 
     private ViewEntry first(View view) {
         var entries = view.getAllEntries();
-        assertFalse(entries.isEmpty(), "View returned no entries");
+        assertTrue(entries.getCount() > 0, "View returned no entries");
         return entries.iterator().next();
     }
 
