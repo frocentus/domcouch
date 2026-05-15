@@ -238,6 +238,10 @@ public class CouchbaseView implements View {
 
     // ---- package-private helpers for CouchbaseViewNavigator ----
 
+    String getSelectionFormula() {
+        return selectionFormula;
+    }
+
     Scope getScope() {
         return scope;
     }
