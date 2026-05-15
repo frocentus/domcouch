@@ -58,9 +58,10 @@ public class FormulaTranslator {
         this.evaluator = new Evaluator(currentUserName);
     }
 
-    /** Update the user name for {@code @UserName} resolution in subsequent evaluations. */
+    /** Update the user name for both query translation and formula evaluation. */
     public void setCurrentUserName(String currentUserName) {
         this.currentUserName = currentUserName != null ? currentUserName : "Anonymous";
+        this.evaluator.setCurrentUserName(this.currentUserName);
     }
 
     /** @return the current user name used for {@code @UserName} resolution */

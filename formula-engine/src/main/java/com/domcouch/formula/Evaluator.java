@@ -15,8 +15,9 @@ import java.util.regex.Pattern;
 public class Evaluator {
 
     private final Map<String, FunctionHandler> functions;
-    private final String currentUserName;
-    private Map<String, Object> tempScope; // per-evaluation temp variables
+    private String currentUserName;
+    private final ThreadLocal<Map<String, Object>> tempScope =
+            ThreadLocal.withInitial(HashMap::new);
     private static final DateTimeFormatter DT_FMT = DateTimeFormatter
             .ofPattern("MM/dd/yyyy hh:mm:ss a").withZone(ZoneId.systemDefault());
 
@@ -35,9 +36,14 @@ public class Evaluator {
         registerBuiltins();
     }
 
+    /** Update the user name for {@code @UserName} resolution in subsequent evaluations. */
+    public void setCurrentUserName(String currentUserName) {
+        this.currentUserName = currentUserName != null ? currentUserName : "Anonymous";
+    }
+
     /** Parse and evaluate a single formula. Convenience for testing. */
     public Object evalExpr(String formula, FormulaContext ctx) {
-        this.tempScope = new HashMap<>();
+        tempScope.set(new HashMap<>());
         List<Token> tokens = Lexer.tokenize(formula);
         List<Expr> stmts = new Parser(tokens).parse();
         Object result = "";
@@ -53,7 +59,7 @@ public class Evaluator {
 
     /** Reset the temp variable scope for a new evaluation (called by FormulaTranslator). */
     void initTempScope() {
-        this.tempScope = new HashMap<>();
+        tempScope.set(new HashMap<>());
     }
 
     /** Evaluate a single expression in the given context. */
@@ -62,8 +68,9 @@ public class Evaluator {
             return switch (expr) {
                 case Expr.Variable v -> {
                     // Check temp scope first, then context
-                    if (tempScope != null && tempScope.containsKey(v.name())) {
-                        Object tv = tempScope.get(v.name());
+                    Map<String, Object> ts = tempScope.get();
+                    if (ts.containsKey(v.name())) {
+                        Object tv = ts.get(v.name());
                         yield tv != null ? tv : "";
                     }
                     Object val = ctx.resolve(v.name());
@@ -230,7 +237,7 @@ public class Evaluator {
                 ctx.setField(name, val);
             } catch (ContextNotSupportedException e) { /* no-op */ }
         } else {
-            if (tempScope != null) tempScope.put(name, val != null ? val : "");
+            tempScope.get().put(name, val != null ? val : "");
         }
         return val;
     }
@@ -1810,7 +1817,7 @@ public class Evaluator {
         functions.put("SET", (ev, args, ctx) -> {
             String varName = toString(ev.eval(args.get(0), ctx)).toUpperCase();
             Object val = ev.eval(args.get(1), ctx);
-            if (ev.tempScope != null) ev.tempScope.put(varName, val);
+            ev.tempScope.get().put(varName, val);
             return val;
         });
         functions.put("SETFIELD", (ev, args, ctx) -> {
