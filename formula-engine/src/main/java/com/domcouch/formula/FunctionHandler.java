@@ -1,8 +1,4 @@
-package com.domcouch.formula.handlers;
-
-import com.domcouch.formula.Evaluator;
-import com.domcouch.formula.Expr;
-import com.domcouch.formula.FormulaContext;
+package com.domcouch.formula;
 
 import java.util.List;
 

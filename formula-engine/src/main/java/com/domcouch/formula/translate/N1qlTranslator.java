@@ -1,4 +1,9 @@
-package com.domcouch.formula;
+package com.domcouch.formula.translate;
+
+import com.domcouch.formula.Expr;
+import com.domcouch.formula.Lexer;
+import com.domcouch.formula.Parser;
+import com.domcouch.formula.Token;
 
 import java.util.List;
 
@@ -7,7 +12,7 @@ import java.util.List;
  * Handles field references, logical/arithmetic operators,
  * and common @Functions used in view selection formulas.
  */
-final class N1qlTranslator {
+public final class N1qlTranslator {
 
     private N1qlTranslator() {}
 
@@ -17,7 +22,7 @@ final class N1qlTranslator {
      * @param currentUserName the user for @UserName resolution
      * @return N1QL boolean expression, or null if input is null
      */
-    static String translate(String formula, String currentUserName) {
+    public static String translate(String formula, String currentUserName) {
         if (formula == null) return null;
         if (formula.contains("doc.items.")) return formula;
 

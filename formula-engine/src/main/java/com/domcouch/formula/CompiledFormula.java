@@ -1,5 +1,7 @@
 package com.domcouch.formula;
 
+import com.domcouch.formula.translate.FormulaTranslator;
+
 import java.util.List;
 
 /**
@@ -11,7 +13,7 @@ public final class CompiledFormula {
     private final List<Expr> statements;
     private final String source;
 
-    CompiledFormula(List<Expr> statements, String source) {
+    public CompiledFormula(List<Expr> statements, String source) {
         this.statements = List.copyOf(statements);
         this.source = source;
     }
@@ -23,7 +25,7 @@ public final class CompiledFormula {
     public int statementCount() { return statements.size(); }
 
     /** Internal: the parsed AST. */
-    List<Expr> statements() { return statements; }
+    public List<Expr> statements() { return statements; }
 
     @Override
     public String toString() {

@@ -2,6 +2,7 @@ package com.domcouch.formula.handlers;
 
 import com.domcouch.formula.ContextNotSupportedException;
 import com.domcouch.formula.Evaluator;
+import com.domcouch.formula.FunctionHandler;
 
 import java.time.Instant;
 import java.util.ArrayList;

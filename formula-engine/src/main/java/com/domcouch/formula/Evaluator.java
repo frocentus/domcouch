@@ -64,12 +64,12 @@ public class Evaluator {
     }
 
     /** Reset the temp variable scope for a new evaluation (called by FormulaTranslator). */
-    void initTempScope() {
+    public void initTempScope() {
         tempScope.set(new HashMap<>());
     }
 
     /** Remove the temp variable scope to prevent thread-local leaks (called by FormulaTranslator). */
-    void clearTempScope() {
+    public void clearTempScope() {
         tempScope.remove();
     }
 
@@ -643,7 +643,7 @@ public class Evaluator {
 
     /** Exception thrown by @Return to unwind evaluation. */
     public static class ReturnValue extends RuntimeException {
-        final Object value;
+        public final Object value;
         public ReturnValue(Object value) { this.value = value; }
 
         /** Unwrap a ReturnValue or re-throw other RuntimeExceptions. */

@@ -1,6 +1,6 @@
-package com.domcouch.formula;
+package com.domcouch.formula.translate;
 
-import java.util.List;
+import com.domcouch.formula.*;
 
 /**
  * Translates Domino formulas to Couchbase N1QL WHERE clauses (selection mode)
@@ -108,7 +108,7 @@ public class FormulaTranslator {
      * followed by {@link #evaluate(CompiledFormula, FormulaContext)}.
      *
      * @param formula the Domino formula string (e.g., {@code "LastName + \", \" + FirstName"})
-     * @param ctx     the resolution context (typically {@link DocumentFormulaContext})
+     * @param ctx     the resolution context (typically {@link FormulaContext})
      * @return the computed value ({@code String}, {@code Double}, {@code List}, etc.)
      */
     public Object evaluate(String formula, FormulaContext ctx) {

@@ -1,5 +1,6 @@
 package com.domcouch.formula;
 
+import com.domcouch.formula.translate.FormulaTranslator;
 import org.junit.jupiter.api.*;
 
 import static org.junit.jupiter.api.Assertions.*;

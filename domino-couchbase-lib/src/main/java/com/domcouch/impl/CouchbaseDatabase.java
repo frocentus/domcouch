@@ -12,7 +12,7 @@ import com.couchbase.client.java.query.QueryResult;
 import com.domcouch.api.*;
 import com.domcouch.formula.CompiledFormula;
 import com.domcouch.formula.FormulaContext;
-import com.domcouch.formula.FormulaTranslator;
+import com.domcouch.formula.translate.FormulaTranslator;
 
 import java.util.ArrayList;
 import java.util.List;

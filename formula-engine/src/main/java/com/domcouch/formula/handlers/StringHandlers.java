@@ -1,6 +1,7 @@
 package com.domcouch.formula.handlers;
 
 import com.domcouch.formula.Evaluator;
+import com.domcouch.formula.FunctionHandler;
 
 import java.util.ArrayList;
 import java.util.List;

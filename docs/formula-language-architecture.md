@@ -765,7 +765,7 @@ public class FormulaParseException extends NotesException {
 
 ## 8. Migration
 
-The existing `com.domcouch.impl.FormulaTranslator` moves to `com.domcouch.formula.FormulaTranslator`.
+The existing `com.domcouch.impl.FormulaTranslator` moves to `com.domcouch.formula.translate.FormulaTranslator`.
 The existing `toN1ql()` method continues to work identically (regex-based). No breaking changes.
 
 ```java
@@ -773,7 +773,7 @@ The existing `toN1ql()` method continues to work identically (regex-based). No b
 import com.domcouch.impl.FormulaTranslator;
 
 // New
-import com.domcouch.formula.FormulaTranslator;
+import com.domcouch.formula.translate.FormulaTranslator;
 ```
 
 ---
