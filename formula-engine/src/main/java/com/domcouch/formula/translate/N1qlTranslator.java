@@ -111,73 +111,73 @@ final class N1qlTranslator {
         String name = fc.name();
         List<Expr> args = fc.args();
         switch (name) {
-            case "ALL", "TRUE", "SUCCESS" -> sb.append("true");
-            case "FALSE", "NO" -> sb.append("false");
-            case "ISRESPONSEDOC" -> sb.append("doc.parentUNID IS NOT MISSING");
-            case "TODAY", "NOW" -> sb.append("NOW_STR()");
-            case "CREATED" -> sb.append("doc.created");
-            case "MODIFIED" -> sb.append("doc.lastModified");
-            case "USERNAME" -> sb.append("'").append(currentUserName.replace("'", "''")).append("'");
-            case "ISAVAILABLE" -> {
+            case FunctionNames.ALL, FunctionNames.TRUE, FunctionNames.SUCCESS -> sb.append("true");
+            case FunctionNames.FALSE, FunctionNames.NO -> sb.append("false");
+            case FunctionNames.ISRESPONSEDOC -> sb.append("doc.parentUNID IS NOT MISSING");
+            case FunctionNames.TODAY, FunctionNames.NOW -> sb.append("NOW_STR()");
+            case FunctionNames.CREATED -> sb.append("doc.created");
+            case FunctionNames.MODIFIED -> sb.append("doc.lastModified");
+            case FunctionNames.USERNAME -> sb.append("'").append(currentUserName.replace("'", "''")).append("'");
+            case FunctionNames.ISAVAILABLE -> {
                 if (args.get(0) instanceof Expr.StringConst s) {
                     sb.append("doc.items.").append(escapeBacktick(s.value().toUpperCase())).append(".`values`[0]");
                 } else walkExpr(args.get(0), sb, currentUserName);
                 sb.append(" IS NOT MISSING");
             }
-            case "ISNUMBER" -> { sb.append("IS_NUMBER("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
-            case "ISTEXT" -> { sb.append("IS_STRING("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
-            case "CONTAINS" -> { sb.append("CONTAINS("); walkExpr(args.get(0), sb, currentUserName); sb.append(", "); walkExpr(args.get(1), sb, currentUserName); sb.append(")"); }
-            case "BEGINS" -> { walkExpr(args.get(0), sb, currentUserName); sb.append(" LIKE ("); walkExpr(args.get(1), sb, currentUserName); sb.append(" || '%')"); }
-            case "ENDS" -> { walkExpr(args.get(0), sb, currentUserName); sb.append(" LIKE ('%' || "); walkExpr(args.get(1), sb, currentUserName); sb.append(")"); }
-            case "ISMEMBER" -> { walkExpr(args.get(0), sb, currentUserName); sb.append(" IN "); walkExpr(args.get(1), sb, currentUserName); }
-            case "ISNOTMEMBER" -> { walkExpr(args.get(0), sb, currentUserName); sb.append(" NOT IN "); walkExpr(args.get(1), sb, currentUserName); }
-            case "LOWERCASE" -> { sb.append("LOWER("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
-            case "UPPERCASE" -> { sb.append("UPPER("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
-            case "TRIM" -> { sb.append("TRIM("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
-            case "LENGTH" -> { sb.append("LENGTH("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
-            case "LEFT" -> { sb.append("SUBSTR("); walkExpr(args.get(0), sb, currentUserName); sb.append(", 0, "); walkExpr(args.get(1), sb, currentUserName); sb.append(")"); }
-            case "RIGHT" -> { sb.append("SUBSTR("); walkExpr(args.get(0), sb, currentUserName); sb.append(", LENGTH("); walkExpr(args.get(0), sb, currentUserName); sb.append(") - "); walkExpr(args.get(1), sb, currentUserName); sb.append(")"); }
-            case "IF" -> { if (args.size() >= 3) { sb.append("CASE WHEN "); walkExpr(args.get(0), sb, currentUserName); sb.append(" THEN "); walkExpr(args.get(1), sb, currentUserName); sb.append(" ELSE "); walkExpr(args.get(2), sb, currentUserName); sb.append(" END"); } }
-            case "MONTH" -> { sb.append("DATE_PART_STR("); walkExpr(args.get(0), sb, currentUserName); sb.append(", 'month')"); }
-            case "DAY" -> { sb.append("DATE_PART_STR("); walkExpr(args.get(0), sb, currentUserName); sb.append(", 'day')"); }
-            case "YEAR" -> { sb.append("DATE_PART_STR("); walkExpr(args.get(0), sb, currentUserName); sb.append(", 'year')"); }
-            case "HOUR" -> { sb.append("DATE_PART_STR("); walkExpr(args.get(0), sb, currentUserName); sb.append(", 'hour')"); }
-            case "MINUTE" -> { sb.append("DATE_PART_STR("); walkExpr(args.get(0), sb, currentUserName); sb.append(", 'minute')"); }
-            case "SECOND" -> { sb.append("DATE_PART_STR("); walkExpr(args.get(0), sb, currentUserName); sb.append(", 'second')"); }
-            case "WEEKDAY" -> { sb.append("DAYOFWEEK("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
-            case "TOMORROW" -> sb.append("DATE_ADD_STR(NOW_STR(), 1, 'day')");
-            case "YESTERDAY" -> sb.append("DATE_ADD_STR(NOW_STR(), -1, 'day')");
-            case "ABS" -> { sb.append("ABS("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
-            case "SQRT" -> { sb.append("SQRT("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
-            case "POWER" -> { sb.append("POWER("); walkExpr(args.get(0), sb, currentUserName); sb.append(", "); walkExpr(args.get(1), sb, currentUserName); sb.append(")"); }
-            case "EXP" -> { sb.append("EXP("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
-            case "LOG" -> { sb.append("LOG("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
-            case "LN" -> { sb.append("LN("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
-            case "COS" -> { sb.append("COS("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
-            case "SIN" -> { sb.append("SIN("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
-            case "TAN" -> { sb.append("TAN("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
-            case "PI" -> sb.append("PI()");
-            case "INTEGER" -> { sb.append("FLOOR("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
-            case "ROUND" -> { sb.append("ROUND("); walkExpr(args.get(0), sb, currentUserName); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName); } sb.append(")"); }
-            case "REPLACESUBSTRING" -> { sb.append("REPLACE("); walkExpr(args.get(0), sb, currentUserName); sb.append(", "); walkExpr(args.get(1), sb, currentUserName); sb.append(", "); walkExpr(args.get(2), sb, currentUserName); sb.append(")"); }
-            case "REPEAT" -> { sb.append("REPEAT("); walkExpr(args.get(0), sb, currentUserName); sb.append(", "); walkExpr(args.get(1), sb, currentUserName); sb.append(")"); }
-            case "NEWLINE" -> sb.append("CHR(10)");
-            case "ELEMENTS" -> { sb.append("ARRAY_LENGTH("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.ISNUMBER -> { sb.append("IS_NUMBER("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.ISTEXT -> { sb.append("IS_STRING("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.CONTAINS -> { sb.append("CONTAINS("); walkExpr(args.get(0), sb, currentUserName); sb.append(", "); walkExpr(args.get(1), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.BEGINS -> { walkExpr(args.get(0), sb, currentUserName); sb.append(" LIKE ("); walkExpr(args.get(1), sb, currentUserName); sb.append(" || '%')"); }
+            case FunctionNames.ENDS -> { walkExpr(args.get(0), sb, currentUserName); sb.append(" LIKE ('%' || "); walkExpr(args.get(1), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.ISMEMBER -> { walkExpr(args.get(0), sb, currentUserName); sb.append(" IN "); walkExpr(args.get(1), sb, currentUserName); }
+            case FunctionNames.ISNOTMEMBER -> { walkExpr(args.get(0), sb, currentUserName); sb.append(" NOT IN "); walkExpr(args.get(1), sb, currentUserName); }
+            case FunctionNames.LOWERCASE -> { sb.append("LOWER("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.UPPERCASE -> { sb.append("UPPER("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.TRIM -> { sb.append("TRIM("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.LENGTH -> { sb.append("LENGTH("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.LEFT -> { sb.append("SUBSTR("); walkExpr(args.get(0), sb, currentUserName); sb.append(", 0, "); walkExpr(args.get(1), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.RIGHT -> { sb.append("SUBSTR("); walkExpr(args.get(0), sb, currentUserName); sb.append(", LENGTH("); walkExpr(args.get(0), sb, currentUserName); sb.append(") - "); walkExpr(args.get(1), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.IF -> { if (args.size() >= 3) { sb.append("CASE WHEN "); walkExpr(args.get(0), sb, currentUserName); sb.append(" THEN "); walkExpr(args.get(1), sb, currentUserName); sb.append(" ELSE "); walkExpr(args.get(2), sb, currentUserName); sb.append(" END"); } }
+            case FunctionNames.MONTH -> { sb.append("DATE_PART_STR("); walkExpr(args.get(0), sb, currentUserName); sb.append(", 'month')"); }
+            case FunctionNames.DAY -> { sb.append("DATE_PART_STR("); walkExpr(args.get(0), sb, currentUserName); sb.append(", 'day')"); }
+            case FunctionNames.YEAR -> { sb.append("DATE_PART_STR("); walkExpr(args.get(0), sb, currentUserName); sb.append(", 'year')"); }
+            case FunctionNames.HOUR -> { sb.append("DATE_PART_STR("); walkExpr(args.get(0), sb, currentUserName); sb.append(", 'hour')"); }
+            case FunctionNames.MINUTE -> { sb.append("DATE_PART_STR("); walkExpr(args.get(0), sb, currentUserName); sb.append(", 'minute')"); }
+            case FunctionNames.SECOND -> { sb.append("DATE_PART_STR("); walkExpr(args.get(0), sb, currentUserName); sb.append(", 'second')"); }
+            case FunctionNames.WEEKDAY -> { sb.append("DAYOFWEEK("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.TOMORROW -> sb.append("DATE_ADD_STR(NOW_STR(), 1, 'day')");
+            case FunctionNames.YESTERDAY -> sb.append("DATE_ADD_STR(NOW_STR(), -1, 'day')");
+            case FunctionNames.ABS -> { sb.append("ABS("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.SQRT -> { sb.append("SQRT("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.POWER -> { sb.append("POWER("); walkExpr(args.get(0), sb, currentUserName); sb.append(", "); walkExpr(args.get(1), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.EXP -> { sb.append("EXP("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.LOG -> { sb.append("LOG("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.LN -> { sb.append("LN("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.COS -> { sb.append("COS("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.SIN -> { sb.append("SIN("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.TAN -> { sb.append("TAN("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.PI -> sb.append("PI()");
+            case FunctionNames.INTEGER -> { sb.append("FLOOR("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.ROUND -> { sb.append("ROUND("); walkExpr(args.get(0), sb, currentUserName); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName); } sb.append(")"); }
+            case FunctionNames.REPLACESUBSTRING -> { sb.append("REPLACE("); walkExpr(args.get(0), sb, currentUserName); sb.append(", "); walkExpr(args.get(1), sb, currentUserName); sb.append(", "); walkExpr(args.get(2), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.REPEAT -> { sb.append("REPEAT("); walkExpr(args.get(0), sb, currentUserName); sb.append(", "); walkExpr(args.get(1), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.NEWLINE -> sb.append("CHR(10)");
+            case FunctionNames.ELEMENTS -> { sb.append("ARRAY_LENGTH("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
 
             // ---- New translations for custom views ----
-            case "ISNEWDOC" -> sb.append("doc.unid IS MISSING");
-            case "ISUNAVAILABLE" -> { walkExpr(args.get(0), sb, currentUserName); sb.append(" IS MISSING"); }
-            case "LIKE" -> {
+            case FunctionNames.ISNEWDOC -> sb.append("doc.unid IS MISSING");
+            case FunctionNames.ISUNAVAILABLE -> { walkExpr(args.get(0), sb, currentUserName); sb.append(" IS MISSING"); }
+            case FunctionNames.LIKE -> {
                 walkExpr(args.get(0), sb, currentUserName); sb.append(" LIKE ");
                 // Convert Domino pattern to SQL LIKE: _ stays _, % stays %
                 // But need to handle escape char if provided
                 walkExpr(args.get(1), sb, currentUserName);
                 if (args.size() > 2) { sb.append(" ESCAPE "); walkExpr(args.get(2), sb, currentUserName); }
             }
-            case "TEXT" -> { sb.append("TO_STRING("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
-            case "TEXTTONUMBER" -> { sb.append("TO_NUMBER("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
-            case "DATE" -> { sb.append("DATE_STR("); walkExpr(args.get(0), sb, currentUserName); sb.append(" || '-' || "); walkExpr(args.get(1), sb, currentUserName); sb.append(" || '-' || "); walkExpr(args.get(2), sb, currentUserName); sb.append(")"); }
-            case "ADJUST" -> {
+            case FunctionNames.TEXT -> { sb.append("TO_STRING("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.TEXTTONUMBER -> { sb.append("TO_NUMBER("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.DATE -> { sb.append("DATE_STR("); walkExpr(args.get(0), sb, currentUserName); sb.append(" || '-' || "); walkExpr(args.get(1), sb, currentUserName); sb.append(" || '-' || "); walkExpr(args.get(2), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.ADJUST -> {
                 sb.append("DATE_ADD_STR(DATE_ADD_STR(DATE_ADD_STR(DATE_ADD_STR(DATE_ADD_STR(DATE_ADD_STR(");
                 walkExpr(args.get(0), sb, currentUserName);
                 sb.append(", "); walkExpr(args.get(1), sb, currentUserName); sb.append(", 'year')");
@@ -187,11 +187,11 @@ final class N1qlTranslator {
                 sb.append(", "); walkExpr(args.get(5), sb, currentUserName); sb.append(", 'minute')");
                 sb.append(", "); walkExpr(args.get(6), sb, currentUserName); sb.append(", 'second')");
             }
-            case "WORD" -> { sb.append("SPLIT("); walkExpr(args.get(0), sb, currentUserName); sb.append(", "); walkExpr(args.get(1), sb, currentUserName); sb.append(")["); walkExpr(args.get(2), sb, currentUserName); sb.append(" - 1]"); }
-            case "ISNULL" -> { walkExpr(args.get(0), sb, currentUserName); sb.append(" IS NULL"); }
-            case "EXPLODE" -> { sb.append("SPLIT("); walkExpr(args.get(0), sb, currentUserName); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName); } else sb.append(", ' ,;'"); sb.append(")"); }
-            case "IMPLODE" -> { sb.append("ARRAY_JOIN("); walkExpr(args.get(0), sb, currentUserName); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName); } else sb.append(", ' '"); sb.append(")"); }
-            case "COUNT" -> { sb.append("ARRAY_LENGTH("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case FunctionNames.WORD -> { sb.append("SPLIT("); walkExpr(args.get(0), sb, currentUserName); sb.append(", "); walkExpr(args.get(1), sb, currentUserName); sb.append(")["); walkExpr(args.get(2), sb, currentUserName); sb.append(" - 1]"); }
+            case FunctionNames.ISNULL -> { walkExpr(args.get(0), sb, currentUserName); sb.append(" IS NULL"); }
+            case FunctionNames.EXPLODE -> { sb.append("SPLIT("); walkExpr(args.get(0), sb, currentUserName); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName); } else sb.append(", ' ,;'"); sb.append(")"); }
+            case FunctionNames.IMPLODE -> { sb.append("ARRAY_JOIN("); walkExpr(args.get(0), sb, currentUserName); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName); } else sb.append(", ' '"); sb.append(")"); }
+            case FunctionNames.COUNT -> { sb.append("ARRAY_LENGTH("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
             default -> sb.append(name.toLowerCase()).append("(")
                     .append(args.stream().map(Object::toString).reduce((a,b) -> a + ";" + b).orElse(""))
                     .append(")");

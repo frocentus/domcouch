@@ -77,7 +77,7 @@ public final class DateTimeHandlers {
             }
             List<Object> sources = Evaluator.toList(ev.eval(args.get(0), ctx)); List<Object> result = new ArrayList<>();
             for (Object src : sources) { java.time.ZonedDateTime zdt = Evaluator.parseDateToZoned(Evaluator.convertToString(src)); if (zdt == null) result.add(""); else result.add(Evaluator.DT_FMT.format(zdt.toLocalTime().atDate(java.time.LocalDate.of(1970, 1, 1)).atZone(zdt.getZone()))); }
-            return result.size() == 1 ? result.get(0) : result;
+            return result.size() == 1 ? result.getFirst() : result;
         });
         functions.put("TIMEMERGE", (ev, args, ctx) -> {
             List<Object> dates = Evaluator.toList(ev.eval(args.get(0), ctx)), times = Evaluator.toList(ev.eval(args.get(1), ctx));
@@ -87,18 +87,18 @@ public final class DateTimeHandlers {
                 java.time.ZonedDateTime t = Evaluator.parseDateToZoned(Evaluator.convertToString(times.get(Math.min(i, times.size() - 1))));
                 result.add(d == null || t == null ? "" : Evaluator.DT_FMT.format(d.toLocalDate().atTime(t.toLocalTime()).atZone(d.getZone())));
             }
-            return result.size() == 1 ? result.get(0) : result;
+            return result.size() == 1 ? result.getFirst() : result;
         });
-        functions.put("YEAR", (ev, args, ctx) -> (double) Evaluator.extractDateField(ev.eval(args.get(0), ctx), java.time.temporal.ChronoField.YEAR));
-        functions.put("MONTH", (ev, args, ctx) -> (double) Evaluator.extractDateField(ev.eval(args.get(0), ctx), java.time.temporal.ChronoField.MONTH_OF_YEAR));
-        functions.put("DAY", (ev, args, ctx) -> (double) Evaluator.extractDateField(ev.eval(args.get(0), ctx), java.time.temporal.ChronoField.DAY_OF_MONTH));
-        functions.put("SECOND", (ev, args, ctx) -> (double) Evaluator.extractDateField(ev.eval(args.get(0), ctx), java.time.temporal.ChronoField.SECOND_OF_MINUTE));
-        functions.put("MINUTE", (ev, args, ctx) -> (double) Evaluator.extractDateField(ev.eval(args.get(0), ctx), java.time.temporal.ChronoField.MINUTE_OF_HOUR));
-        functions.put("HOUR", (ev, args, ctx) -> (double) Evaluator.extractDateField(ev.eval(args.get(0), ctx), java.time.temporal.ChronoField.HOUR_OF_DAY));
-        functions.put("WEEKDAY", (ev, args, ctx) -> { long v = Evaluator.extractDateField(ev.eval(args.get(0), ctx), java.time.temporal.ChronoField.DAY_OF_WEEK); return v == 7 ? 1.0 : (double) (v + 1); });
+        functions.put("YEAR", (ev, args, ctx) -> (double) Evaluator.extractDateField(ev.eval(args.getFirst(), ctx), java.time.temporal.ChronoField.YEAR));
+        functions.put("MONTH", (ev, args, ctx) -> (double) Evaluator.extractDateField(ev.eval(args.getFirst(), ctx), java.time.temporal.ChronoField.MONTH_OF_YEAR));
+        functions.put("DAY", (ev, args, ctx) -> (double) Evaluator.extractDateField(ev.eval(args.getFirst(), ctx), java.time.temporal.ChronoField.DAY_OF_MONTH));
+        functions.put("SECOND", (ev, args, ctx) -> (double) Evaluator.extractDateField(ev.eval(args.getFirst(), ctx), java.time.temporal.ChronoField.SECOND_OF_MINUTE));
+        functions.put("MINUTE", (ev, args, ctx) -> (double) Evaluator.extractDateField(ev.eval(args.getFirst(), ctx), java.time.temporal.ChronoField.MINUTE_OF_HOUR));
+        functions.put("HOUR", (ev, args, ctx) -> (double) Evaluator.extractDateField(ev.eval(args.getFirst(), ctx), java.time.temporal.ChronoField.HOUR_OF_DAY));
+        functions.put("WEEKDAY", (ev, args, ctx) -> { long v = Evaluator.extractDateField(ev.eval(args.getFirst(), ctx), java.time.temporal.ChronoField.DAY_OF_WEEK); return v == 7 ? 1.0 : (double) (v + 1); });
         functions.put("TOMORROW", (ev, args, ctx) -> Evaluator.DT_FMT.format(java.time.ZonedDateTime.now().plusDays(1)));
         functions.put("YESTERDAY", (ev, args, ctx) -> Evaluator.DT_FMT.format(java.time.ZonedDateTime.now().minusDays(1)));
-        functions.put("ZONE", (ev, args, ctx) -> { String td = args.isEmpty() ? null : Evaluator.convertToString(ev.eval(args.get(0), ctx)); try { return ctx.getTimeZoneOffset(td); } catch (
+        functions.put("ZONE", (ev, args, ctx) -> { String td = args.isEmpty() ? null : Evaluator.convertToString(ev.eval(args.getFirst(), ctx)); try { return ctx.getTimeZoneOffset(td); } catch (
                 ContextNotSupportedException e) { return java.time.ZoneId.systemDefault().getId(); } });
         functions.put("GETCURRENTTIMEZONE", (ev, args, ctx) -> { try { return ctx.getCanonicalTimeZone(); } catch (ContextNotSupportedException e) { return java.time.ZoneId.systemDefault().getId(); } });
         functions.put("TIMETOTEXTINZONE", (ev, args, ctx) -> { String td = Evaluator.convertToString(ev.eval(args.get(0), ctx)), tz = Evaluator.convertToString(ev.eval(args.get(1), ctx)), fmt = args.size() > 2 ? Evaluator.convertToString(ev.eval(args.get(2), ctx)) : ""; try { return ctx.timeToTextInZone(td, tz, fmt); } catch (ContextNotSupportedException e) { return ""; } });
