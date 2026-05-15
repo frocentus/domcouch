@@ -34,7 +34,7 @@ class TranslationCoverageTest {
     }
 
     @Test @Order(1) @DisplayName("Create test document with known values")
-    void createTestDocument() throws NotesException {
+    void createTestDocument() throws Exception {
         Document doc = db.createDocument();
         doc.replaceItemValue("Form", "TestDoc");
         doc.replaceItemValue("FirstName", "John");
@@ -48,6 +48,8 @@ class TranslationCoverageTest {
         doc.replaceItemValue("Grade", 95.5);
         doc.replaceItemValue("Active", true);
         doc.save();
+        // Allow Couchbase index propagation
+        Thread.sleep(500);
         testUnid = doc.getUniversalID();
         assertNotNull(testUnid);
     }
