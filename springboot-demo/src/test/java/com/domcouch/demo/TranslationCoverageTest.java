@@ -26,7 +26,7 @@ class TranslationCoverageTest {
     @BeforeAll
     static void setUp() throws NotesException {
         session = CouchbaseSession.connect("couchbase://localhost", "Administrator", "password");
-        db = session.getDatabase("translation_test");
+        db = session.getDatabase("domcouch", "translation_test");
     }
 
     @AfterAll
