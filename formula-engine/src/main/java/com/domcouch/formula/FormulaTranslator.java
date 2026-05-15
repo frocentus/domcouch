@@ -136,15 +136,19 @@ public class FormulaTranslator {
      */
     public Object evaluate(CompiledFormula compiled, FormulaContext ctx) {
         evaluator.initTempScope();
-        Object result = "";
         try {
-            for (Expr stmt : compiled.statements()) {
-                result = evaluator.eval(stmt, ctx);
+            Object result = "";
+            try {
+                for (Expr stmt : compiled.statements()) {
+                    result = evaluator.eval(stmt, ctx);
+                }
+            } catch (Evaluator.ReturnValue rv) {
+                return rv.value;
             }
-        } catch (Evaluator.ReturnValue rv) {
-            return rv.value;
+            return result;
+        } finally {
+            evaluator.clearTempScope();
         }
-        return result;
     }
 
     // ---- internal helpers: AST-based N1QL translation ----

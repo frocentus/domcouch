@@ -44,22 +44,31 @@ public class Evaluator {
     /** Parse and evaluate a single formula. Convenience for testing. */
     public Object evalExpr(String formula, FormulaContext ctx) {
         tempScope.set(new HashMap<>());
-        List<Token> tokens = Lexer.tokenize(formula);
-        List<Expr> stmts = new Parser(tokens).parse();
-        Object result = "";
         try {
-            for (Expr stmt : stmts) {
-                result = eval(stmt, ctx);
+            List<Token> tokens = Lexer.tokenize(formula);
+            List<Expr> stmts = new Parser(tokens).parse();
+            Object result = "";
+            try {
+                for (Expr stmt : stmts) {
+                    result = eval(stmt, ctx);
+                }
+            } catch (ReturnValue rv) {
+                return rv.value;
             }
-        } catch (ReturnValue rv) {
-            return rv.value;
+            return result;
+        } finally {
+            tempScope.remove();
         }
-        return result;
     }
 
     /** Reset the temp variable scope for a new evaluation (called by FormulaTranslator). */
     void initTempScope() {
         tempScope.set(new HashMap<>());
+    }
+
+    /** Remove the temp variable scope to prevent thread-local leaks (called by FormulaTranslator). */
+    void clearTempScope() {
+        tempScope.remove();
     }
 
     /** Evaluate a single expression in the given context. */
