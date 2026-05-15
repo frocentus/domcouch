@@ -400,7 +400,7 @@ public class Evaluator {
     static boolean isFalsy(Object val) { return !isTruthy(val); }
 
     /** Check if a string represents a valid number. */
-    private static boolean isNumeric(String s) {
+    static boolean isNumeric(String s) {
         if (s == null || s.isEmpty()) return false;
         try { Double.parseDouble(s); return true; }
         catch (NumberFormatException e) { return false; }
@@ -417,13 +417,13 @@ public class Evaluator {
     // ---- List operations ----
 
     @SuppressWarnings("unchecked")
-    private static List<Object> toList(Object val) {
+    public static List<Object> toList(Object val) {
         if (val instanceof List l) return l;
         return List.of(val);
     }
 
     /** Map a single-arg math function over a value or list. */
-    private static Object map1(Evaluator ev, List<Expr> args, FormulaContext ctx,
+    public static Object map1(Evaluator ev, List<Expr> args, FormulaContext ctx,
                                 java.util.function.DoubleUnaryOperator fn) {
         Object val = ev.eval(args.getFirst(), ctx);
         List<Object> sources = toList(val);
@@ -433,7 +433,7 @@ public class Evaluator {
     }
 
     /** Map a dual-arg math function pair-wise over value(s) or list(s). */
-    private static Object map2(Evaluator ev, List<Expr> args, FormulaContext ctx,
+    public static Object map2(Evaluator ev, List<Expr> args, FormulaContext ctx,
                                 java.util.function.DoubleBinaryOperator fn) {
         Object val1 = ev.eval(args.get(0), ctx);
         Object val2 = ev.eval(args.get(1), ctx);
@@ -450,7 +450,7 @@ public class Evaluator {
     }
 
     /** Check if any pair (a,b) from two values (or lists) matches the predicate. */
-    private static boolean anyPairMatch(Object a, Object b,
+    public static boolean anyPairMatch(Object a, Object b,
                                          java.util.function.BiPredicate<String, String> pred) {
         for (Object sa : toList(a)) {
             for (Object sb : toList(b)) {
@@ -491,7 +491,7 @@ public class Evaluator {
      * For offset: the middle begins one character AFTER the offset.
      * For negative numberchars: middle starts AT the offset/substring and goes left.
      */
-    private static Object middleExtract(Evaluator ev, java.util.List<Expr> args,
+    static Object middleExtract(Evaluator ev, java.util.List<Expr> args,
                                          FormulaContext ctx, boolean fromBack) {
         String s = toString(ev.eval(args.get(0), ctx));
         if (s.isEmpty()) return "";
@@ -572,7 +572,7 @@ public class Evaluator {
      * </ul>
      * Simple characters are case-insensitive; {}-enclosed chars are case-sensitive.
      */
-    private static java.util.regex.Pattern dominoPatternToRegex(String pattern) {
+    static java.util.regex.Pattern dominoPatternToRegex(String pattern) {
         // Phase 1: split by top-level | (OR) — each alternative must match independently
         java.util.List<String> orParts = splitTopLevel(pattern, '|');
         if (orParts.size() > 1) {
@@ -784,38 +784,8 @@ public class Evaluator {
     // ---- Built-in function registration ----
 
     private void registerBuiltins() {
-        // Math functions
-        functions.put("ABS", (ev, args, ctx) -> {
-            Object val = ev.eval(args.getFirst(), ctx);
-            List<Object> sources = toList(val);
-            List<Object> result = new ArrayList<>();
-            for (Object src : sources) result.add(Math.abs(toNumber(src)));
-            return result.size() == 1 ? result.getFirst() : result;
-        });
-        functions.put("ACOS", (ev, args, ctx) -> map1(ev, args, ctx, Math::acos));
-        functions.put("ASIN", (ev, args, ctx) -> map1(ev, args, ctx, Math::asin));
-        functions.put("ATAN", (ev, args, ctx) -> map1(ev, args, ctx, Math::atan));
-        functions.put("ATAN2", (ev, args, ctx) -> map2(ev, args, ctx, Math::atan2));
-        functions.put("COS", (ev, args, ctx) -> map1(ev, args, ctx, Math::cos));
-        functions.put("SIN", (ev, args, ctx) -> map1(ev, args, ctx, Math::sin));
-        functions.put("TAN", (ev, args, ctx) -> map1(ev, args, ctx, Math::tan));
-        functions.put("EXP", (ev, args, ctx) -> map1(ev, args, ctx, Math::exp));
-        functions.put("LOG", (ev, args, ctx) -> map1(ev, args, ctx, Math::log10));
-        functions.put("SQRT", (ev, args, ctx) -> map1(ev, args, ctx, Math::sqrt));
-        functions.put("PI", (ev, args, ctx) -> Math.PI);
-        functions.put("POWER", (ev, args, ctx) -> map2(ev, args, ctx, Math::pow));
-        functions.put("INTEGER", (ev, args, ctx) -> map1(ev, args, ctx, v -> (double) (long) v));
-        functions.put("ROUND", (ev, args, ctx) -> {
-            Object val = ev.eval(args.get(0), ctx);
-            double factor = args.size() > 1 ? toNumber(ev.eval(args.get(1), ctx)) : 1.0;
-            List<Object> sources = toList(val);
-            List<Object> result = new ArrayList<>();
-            for (Object src : sources) {
-                double v = toNumber(src);
-                result.add(Math.round(v / factor) * factor);
-            }
-            return result.size() == 1 ? result.getFirst() : result;
-        });
+        MathHandlers.register(functions);
+        StringHandlers.register(functions);
 
         // Calendar functions
         functions.put("BUSINESSDAYS", (ev, args, ctx) -> {
@@ -853,176 +823,6 @@ public class Evaluator {
                 result.add(days < 0 ? -1.0 : (double) days);
             }
             return result.size() == 1 ? result.getFirst() : result;
-        });
-
-        // String functions
-        functions.put("ASCII", (ev, args, ctx) -> {
-            Object val = ev.eval(args.getFirst(), ctx);
-            boolean allInRange = args.size() > 1
-                    && "ALLINRANGE".equalsIgnoreCase(toString(ev.eval(args.get(1), ctx)));
-            List<Object> sources = toList(val);
-            List<Object> result = new ArrayList<>();
-            for (Object src : sources) {
-                String s = toString(src);
-                StringBuilder sb = new StringBuilder();
-                for (char c : s.toCharArray()) {
-                    sb.append(c >= 32 && c <= 127 ? c : '?');
-                }
-                String converted = sb.toString();
-                if (allInRange && converted.indexOf('?') >= 0) converted = "";
-                result.add(converted);
-            }
-            return result.size() == 1 ? result.get(0) : result;
-        });
-        functions.put("CHAR", (ev, args, ctx) -> {
-            Object val = ev.eval(args.get(0), ctx);
-            List<Object> sources = toList(val);
-            List<Object> result = new ArrayList<>();
-            java.nio.charset.Charset cp850 = java.nio.charset.Charset.forName("Cp850");
-            for (Object src : sources) {
-                int code = (int) toNumber(src) & 0xFF;
-                result.add(new String(new byte[]{(byte) code}, cp850));
-            }
-            return result.size() == 1 ? result.get(0) : result;
-        });
-        functions.put("COMPARE", (ev, args, ctx) -> {
-            List<Object> list1 = toList(ev.eval(args.get(0), ctx));
-            List<Object> list2 = toList(ev.eval(args.get(1), ctx));
-            int size = Math.max(list1.size(), list2.size());
-            List<Object> result = new ArrayList<>();
-            for (int i = 0; i < size; i++) {
-                String s1 = toString(list1.get(Math.min(i, list1.size() - 1)));
-                String s2 = toString(list2.get(Math.min(i, list2.size() - 1)));
-                int cmp = s1.compareTo(s2);
-                result.add(cmp < 0 ? -1.0 : cmp > 0 ? 1.0 : 0.0);
-            }
-            return result.size() == 1 ? result.get(0) : result;
-        });
-        functions.put("EXPLODE", (ev, args, ctx) -> {
-            Object src = ev.eval(args.get(0), ctx);
-            List<Object> sources = toList(src);
-            String sep = args.size() > 1 ? toString(ev.eval(args.get(1), ctx)) : " ,;";
-            if (sep.isEmpty()) sep = " ,;";
-            boolean includeEmpties = args.size() > 2 && isTruthy(ev.eval(args.get(2), ctx));
-            boolean newlineAsSep = args.size() <= 3 || isTruthy(ev.eval(args.get(3), ctx));
-            // Build regex character class from separators
-            String sepChars = newlineAsSep ? sep + "\n" : sep;
-            String sepPattern = "[" + java.util.regex.Pattern.quote(sepChars) + "]+";
-            java.util.List<Object> result = new java.util.ArrayList<>();
-            for (Object item : sources) {
-                String s = toString(item);
-                String[] parts = s.split(sepPattern, includeEmpties ? -1 : 0);
-                for (String p : parts) {
-                    if (includeEmpties || !p.isEmpty()) result.add(p);
-                }
-            }
-            return result.isEmpty() ? "" : result.size() == 1 ? result.get(0) : result;
-        });
-        functions.put("TRIM", (ev, args, ctx) -> {
-            Object val = ev.eval(args.get(0), ctx);
-            List<Object> sources = toList(val);
-            List<Object> result = new ArrayList<>();
-            for (Object src : sources) {
-                String s = toString(src);
-                // Collapse consecutive spaces, then trim
-                String trimmed = s.replaceAll("  +", " ").trim();
-                if (!trimmed.isEmpty()) result.add(trimmed);
-            }
-            if (result.isEmpty()) return "";
-            return result.size() == 1 ? result.get(0) : result;
-        });
-        functions.put("UPPERCASE", (ev, args, ctx) -> {
-            Object val = ev.eval(args.get(0), ctx);
-            List<Object> sources = toList(val);
-            List<Object> result = new ArrayList<>();
-            for (Object src : sources) result.add(toString(src).toUpperCase());
-            return result.size() == 1 ? result.get(0) : result;
-        });
-        functions.put("LOWERCASE", (ev, args, ctx) -> {
-            Object val = ev.eval(args.get(0), ctx);
-            List<Object> sources = toList(val);
-            List<Object> result = new ArrayList<>();
-            for (Object src : sources) result.add(toString(src).toLowerCase());
-            return result.size() == 1 ? result.get(0) : result;
-        });
-        functions.put("LENGTH", (ev, args, ctx) -> {
-            Object val = ev.eval(args.get(0), ctx);
-            List<Object> sources = toList(val);
-            List<Object> result = new ArrayList<>();
-            for (Object src : sources) result.add((double) toString(src).length());
-            return result.size() == 1 ? result.get(0) : result;
-        });
-        functions.put("LEFT", (ev, args, ctx) -> {
-            Object val = ev.eval(args.get(0), ctx);
-            Object arg2 = ev.eval(args.get(1), ctx);
-            List<Object> sources = toList(val);
-            List<Object> result = new ArrayList<>();
-            for (Object src : sources) {
-                String s = toString(src);
-                if (arg2 instanceof Number || (arg2 instanceof String && isNumeric((String) arg2))) {
-                    int n = (int) toNumber(arg2);
-                    result.add(n < 0 ? s : s.substring(0, Math.min(n, s.length())));
-                } else {
-                    String sub = toString(arg2);
-                    int idx = s.indexOf(sub);
-                    result.add(idx >= 0 ? s.substring(0, idx) : "");
-                }
-            }
-            return result.size() == 1 ? result.get(0) : result;
-        });
-        functions.put("RIGHT", (ev, args, ctx) -> {
-            Object val = ev.eval(args.get(0), ctx);
-            Object arg2 = ev.eval(args.get(1), ctx);
-            List<Object> sources = toList(val);
-            List<Object> result = new ArrayList<>();
-            for (Object src : sources) {
-                String s = toString(src);
-                if (arg2 instanceof Number || (arg2 instanceof String && isNumeric((String) arg2))) {
-                    int n = (int) toNumber(arg2);
-                    result.add(n < 0 ? s : s.substring(Math.max(0, s.length() - n)));
-                } else {
-                    String sub = toString(arg2);
-                    int idx = s.indexOf(sub);
-                    result.add(idx >= 0 ? s.substring(idx + sub.length()) : "");
-                }
-            }
-            return result.size() == 1 ? result.get(0) : result;
-        });
-// @Repeat(string; count; [maxChars]) — repeat string count times, then truncate to maxChars.
-// Result cannot exceed 1,024 characters per Domino spec.
-        functions.put("REPEAT", (ev, args, ctx) -> {
-            Object val = ev.eval(args.get(0), ctx);
-            int n = (int) toNumber(ev.eval(args.get(1), ctx));
-            int maxChars = args.size() > 2 ? (int) toNumber(ev.eval(args.get(2), ctx)) : 0;
-            List<Object> sources = toList(val);
-            List<Object> result = new ArrayList<>();
-            for (Object src : sources) {
-                String s = toString(src);
-                String repeated = s.repeat(Math.max(0, n));
-                if (maxChars > 0 && repeated.length() > maxChars) {
-                    repeated = repeated.substring(0, maxChars);
-                }
-                // Domino enforces 1,024 character limit
-                if (repeated.length() > 1024) {
-                    repeated = repeated.substring(0, 1024);
-                }
-                result.add(repeated);
-            }
-            return result.size() == 1 ? result.getFirst() : result;
-        });
-
-        // ---- Pattern matching ----
-        functions.put("MATCHES", (ev, args, ctx) -> {
-            Object str = ev.eval(args.get(0), ctx);
-            Object pat = ev.eval(args.get(1), ctx);
-            return boolToNum(anyPairMatch(str, pat, (s, pattern) -> {
-                try {
-                    java.util.regex.Pattern regex = dominoPatternToRegex(pattern);
-                    return regex.matcher(s).matches();
-                } catch (Exception e) {
-                    return false;
-                }
-            }));
         });
 
         // Conversion
