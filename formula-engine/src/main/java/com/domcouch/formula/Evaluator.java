@@ -284,11 +284,11 @@ public class Evaluator {
         return toNumber(left) / r;
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     private static int compare(Object left, Object right) {
         if (left instanceof Number && right instanceof Number)
             return Double.compare(((Number) left).doubleValue(), ((Number) right).doubleValue());
-        if (left instanceof Comparable && right instanceof Comparable)
+        if (left instanceof Comparable && right instanceof Comparable
+                && left.getClass().equals(right.getClass()))
             return ((Comparable) left).compareTo(right);
         return toString(left).compareTo(toString(right));
     }

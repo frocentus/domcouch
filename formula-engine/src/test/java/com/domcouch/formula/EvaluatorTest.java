@@ -297,6 +297,14 @@ class EvaluatorTest {
         assertEquals(15.0, eval("a+5"));
     }
 
+    @Test @DisplayName("String vs Double comparison falls back to string compare")
+    void stringVsDoubleCompare() {
+        // "10" compared to 5.0 — both are Comparable but different types
+        // Falls back to toString comparison: "10" vs "5.0" → -1 (1 < 5 char-wise)
+        vars.put("S", "10");
+        assertEquals(0.0, eval("@If(s = 5; 1; 0)")); // "10" != "5.0"
+    }
+
     // ---- Helpers ----
 
     /** A context backed by a map that also tracks setField calls. */
