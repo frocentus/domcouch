@@ -468,6 +468,9 @@ public final class MiscHandlers {
             Object v = ctx.resolve(Evaluator.convertToString(ev.eval(args.getFirst(), ctx)));
             return v != null ? v : "";
         });
+        // PERF: @CheckFormulaSyntax and @Eval re-parse on every call.
+        // These are rarely in hot paths, but could benefit from an AST cache
+        // if used in loops or computed fields.
         functions.put("CHECKFORMULASYNTAX", (ev, args, ctx) -> {
             String f = Evaluator.convertToString(ev.eval(args.getFirst(), ctx));
             try {

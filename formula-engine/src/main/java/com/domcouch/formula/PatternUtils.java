@@ -6,9 +6,16 @@ package com.domcouch.formula;
  */
 final class PatternUtils {
 
+    private static final java.util.Map<String, java.util.regex.Pattern> CACHE =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
     private PatternUtils() {}
 
     static java.util.regex.Pattern toRegex(String pattern) {
+        return CACHE.computeIfAbsent(pattern, PatternUtils::compileRegex);
+    }
+
+    private static java.util.regex.Pattern compileRegex(String pattern) {
         java.util.List<String> orParts = splitTopLevel(pattern, '|');
         if (orParts.size() > 1) {
             String combined = orParts.stream().map(String::trim).filter(p -> !p.isEmpty())
