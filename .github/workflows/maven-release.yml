@@ -1,0 +1,32 @@
+name: Publish Release Artifact
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers workflow when a tag starting with 'v' is pushed (e.g., v1.0.0)
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to create a GitHub Release
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25' # Change this to match your project's Java version (e.g., '11', '21')
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+
+      - name: Create Release and Upload JAR
+        uses: softprops/action-gh-release@v2
+        with:
+          files: target/*.jar # Uploads any compiled JAR from the target directory
+          generate_release_notes: true
