@@ -90,4 +90,16 @@ public interface Item {
 
     /** @return file attachments embedded in this item */
     java.util.List<EmbeddedObject> getEmbeddedObjects();
+
+    /**
+     * Remove this item from its parent document.
+     */
+    void remove();
+
+    /**
+     * Copy this item to another document.
+     * @param target the target document
+     * @return the new item in the target document
+     */
+    Item copyItemToDocument(Document target);
 }

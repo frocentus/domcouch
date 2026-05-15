@@ -159,4 +159,16 @@ public class CouchbaseItem implements Item {
                 .filter(eo -> name.equals(eo.getItemName()))
                 .toList();
     }
+
+    @Override
+    public void remove() {
+        if (parent != null) {
+            parent.removeItem(name);
+        }
+    }
+
+    @Override
+    public com.domcouch.api.Item copyItemToDocument(com.domcouch.api.Document target) {
+        return target.replaceItemValue(name, values);
+    }
 }

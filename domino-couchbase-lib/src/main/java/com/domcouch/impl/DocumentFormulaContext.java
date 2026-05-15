@@ -64,7 +64,7 @@ public class DocumentFormulaContext implements FormulaContext {
 
     @Override
     public void deleteField(String name) {
-        document.replaceItemValue(name, "");
+        document.removeItem(name);
     }
 
     @Override

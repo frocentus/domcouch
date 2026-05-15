@@ -35,6 +35,12 @@ public interface Document {
     Item replaceItemValue(String name, Object value);
 
     /**
+     * Remove an item from this document.
+     * @param name the item name
+     */
+    void removeItem(String name);
+
+    /**
      * Persist all changes to Couchbase.
      *
      * @return true on success

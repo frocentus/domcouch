@@ -100,6 +100,12 @@ public class CouchbaseDocument implements Document {
     }
 
     @Override
+    public void removeItem(String name) {
+        items.remove(name.toUpperCase());
+        dirty = true;
+    }
+
+    @Override
     public boolean save() throws NotesException {
         if (!dirty) return true;
 
