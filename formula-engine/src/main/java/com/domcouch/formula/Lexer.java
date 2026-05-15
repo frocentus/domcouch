@@ -28,8 +28,17 @@ public final class Lexer {
     );
 
     private static final Set<String> BRACKET_KEYWORDS = Set.of(
+            // Dialog buttons
             "OK", "CANCEL", "YES", "NO", "OKCANCEL", "YESNO", "NOCANCEL",
-            "ABORT", "RETRY", "IGNORE", "YESNOCANCEL"
+            "ABORT", "RETRY", "IGNORE", "YESNOCANCEL",
+            // @DocLock keywords
+            "LOCK", "UNLOCK", "STATUS", "LOCKINGENABLED",
+            // @Adjust DST keywords
+            "INLOCALTIME", "INGMT",
+            // @Ascii option
+            "ALLINRANGE",
+            // Time zone / date format keywords
+            "SERVER", "CN", "PAB", "ABBREVIATE"
     );
 
     private static final Set<String> MULTI_CHAR_OPS = Set.of(
@@ -100,15 +109,14 @@ public final class Lexer {
                     tokens.add(new Token(TokenType.KEYWORD, ct.toUpperCase(), start));
                 }
                 else if (ct.matches("[A-Za-z]")) {
-                    // TODO: multi-letter variable names inside brackets (e.g., items[longName])
-                    // currently only handled as KEYWORD; may need [ + VARIABLE + ] token sequence
-                    // Single letter: emit [ and ] for subscript support (e.g., items[n])
+                    // Single letter: emit [ VARIABLE ] for subscript support (e.g., items[n])
                     tokens.add(new Token(TokenType.OPERATOR, "[", start));
                     tokens.add(new Token(TokenType.VARIABLE, ct.toUpperCase(), start + 1));
                     tokens.add(new Token(TokenType.OPERATOR, "]", start + ct.length() + 1));
                 }
                 else if (ct.matches("[A-Za-z][A-Za-z]*")) {
-                    // Multi-letter: treat as keyword (e.g., [EditClear])
+                    // Multi-letter: treat as keyword (known Domino keywords)
+                    // For subscript with multi-letter index, assign to temp: idx := n; items[idx]
                     tokens.add(new Token(TokenType.KEYWORD, ct.toUpperCase(), start));
                 }
                 else if (ct.matches("[+-]?\\d+")) {

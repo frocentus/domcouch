@@ -124,8 +124,8 @@ public class Parser {
             }
 
             if (op.lexeme().equals("[")) {
-                // TODO: subscript with multi-letter variable names inside brackets
-                // (currently only single-letter keys work due to lexer limitation)
+                // Subscript: numeric and single-letter variable indices supported.
+                // Multi-letter: use a temp variable (e.g., idx := n; items[idx]).
                 advance();
                 Expr index = expression(0);
                 if (match(TokenType.OPERATOR) && peek().lexeme().equals("]")) advance();

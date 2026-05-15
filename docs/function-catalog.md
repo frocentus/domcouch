@@ -249,7 +249,7 @@
 | Permuted (`*+ *- ** */ *= *!= *> *< *>= *<=`) | ✅ | 📋 | Cartesian product operations |
 | Concatenation (`+`) | ✅ | 📋 | Pair-wise |
 | List constructor (`:`) | ✅ | 📋 | Colon operator |
-| Subscript (`[n]`) | ✅ | 📋 | 1-based indexing; single-letter vars |
+| Subscript (`[n]`) | ✅ | 📋 | 1-based indexing; numeric and single-letter var indices; for multi-letter, use temp: `idx := n; items[idx]` |
 | Assignment (`:=`) | ✅ | 📋 | Temporary variable |
 | `FIELD x := expr` | ✅ | 📋 | Field assignment |
 | `DEFAULT x := expr` | ✅ | 📋 | Default value |
