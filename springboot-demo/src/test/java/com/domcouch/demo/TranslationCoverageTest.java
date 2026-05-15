@@ -220,7 +220,7 @@ class TranslationCoverageTest {
 
     private View createView(List<ViewColumn> columns) {
         String name = "test_" + java.util.UUID.randomUUID().toString().substring(0, 8);
-        return db.createView(name, "Form = 'TestDoc'", columns);
+        return db.createView(name, "Form = \"TestDoc\"", columns);
     }
 
     private ViewEntry first(View view) {
