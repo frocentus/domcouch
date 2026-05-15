@@ -1,5 +1,7 @@
 package com.domcouch.formula;
 
+import java.util.List;
+
 /**
  * Translates Domino formulas to Couchbase N1QL WHERE clauses (selection mode)
  * and evaluates computed formulas against document contexts (runtime mode).
@@ -79,13 +81,21 @@ public class FormulaTranslator {
      *   SELECT doc.* FROM bucket.scope.collection AS doc
      *   WHERE doc._type = 'domcouch.document' AND (<b>n1qlFormula</b>)
      * </pre>
-     * Handles {@code SELECT}, {@code & | !} operators, common {@code @Functions},
-     * field references, and {@code IS [NOT] MISSING}.
+     * Handles Domino view selection formulas: {@code SELECT}, {@code & | !}
+     * operators, field references, and common {@code @Functions}.
+     * <p>
+     * Uses the Lexer → Parser pipeline for robust parsing (case-insensitive,
+     * spacing-optional, quote-aware) then walks the AST to emit N1QL.
      *
      * @param formula the Domino-style selection formula (e.g., {@code "Form = 'Person'"})
      * @return the N1QL boolean expression, or {@code null} if input is null
+     * @throws FormulaParseException if the formula cannot be parsed
      */
-    public String toN1ql(String formula) { /* ... unchanged ... */ return translate(formula); }
+    public String toN1ql(String formula) {
+        if (formula == null) return null;
+        if (formula.contains("doc.items.")) return formula;
+        return translate(formula);
+    }
 
     // ---- Evaluation mode (Lexer → Parser → Evaluator) ----
 
@@ -137,88 +147,171 @@ public class FormulaTranslator {
         return result;
     }
 
-    // ---- internal helpers ----
+    // ---- internal helpers: AST-based N1QL translation ----
 
     private String translate(String formula) {
-        if (formula == null) return null;
-        if (formula.contains("doc.items.")) return formula;
-
-        String result = formula.trim();
-        result = result.replaceFirst("(?i)^\\s*SELECT\\s+", "");
-        // Replace & and | operators (with or without surrounding spaces), quote-aware
-        result = replaceOpOutsideQuotes(result, "&", " AND ");
-        result = replaceOpOutsideQuotes(result, "|", " OR ");
-        // Replace ! with NOT (but not !=), quote-aware
-        result = replaceNotOutsideQuotes(result);
-        result = translateAtFunctions(result);
-        // Field references: case-insensitive, but NOT doc.xxx identifiers
-        result = result.replaceAll(
-                "\\b(?<!doc\\.)([A-Za-z][A-Za-z0-9_]*)\\s+(IS\\s+(NOT\\s+)?MISSING)",
-                "doc.items.$1 $2");
-        result = result.replaceAll(
-                "\\b(?<!doc\\.)([A-Za-z][A-Za-z0-9_]*)\\s*(=|!=|<>|>=?|<=?|LIKE)",
-                "doc.items.$1.`values`[0] $2");
-        // Normalize whitespace (no effect on string literals which are already processed)
-        result = result.replaceAll("[ \\t]+", " ");
-        return result.trim();
-    }
-
-    private String replaceOpOutsideQuotes(String s, String from, String to) {
+        List<Token> tokens = Lexer.tokenize(formula);
+        List<Expr> stmts = new Parser(tokens).parse();
         StringBuilder sb = new StringBuilder();
-        boolean inSingle = false, inDouble = false;
-        int i = 0;
-        while (i < s.length()) {
-            char c = s.charAt(i);
-            if (c == '\'' && !inDouble) inSingle = !inSingle;
-            else if (c == '"' && !inSingle) inDouble = !inDouble;
-            if (!inSingle && !inDouble && s.regionMatches(i, from, 0, from.length())) {
-                sb.append(to);
-                i += from.length();
-            } else { sb.append(c); i++; }
+        for (int i = 0; i < stmts.size(); i++) {
+            Expr stmt = stmts.get(i);
+            if (stmt instanceof Expr.KeywordStatement ks && "SELECT".equals(ks.keyword())) {
+                walkForN1ql(ks.body(), sb);
+            } else {
+                walkForN1ql(stmt, sb);
+            }
+            if (i < stmts.size() - 1 && isExpression(stmt)) {
+                sb.append(" AND ");
+            }
         }
-        return sb.toString();
+        return sb.toString().trim();
     }
 
-    /** Replace ! with NOT (but not !=), respecting quotes. */
-    private String replaceNotOutsideQuotes(String s) {
-        StringBuilder sb = new StringBuilder();
-        boolean inSingle = false, inDouble = false;
-        int i = 0;
-        while (i < s.length()) {
-            char c = s.charAt(i);
-            if (c == '\'' && !inDouble) inSingle = !inSingle;
-            else if (c == '"' && !inSingle) inDouble = !inDouble;
-            if (!inSingle && !inDouble && c == '!' && (i + 1 >= s.length() || s.charAt(i + 1) != '=')) {
-                sb.append(" NOT ");
-                i++;
-            } else { sb.append(c); i++; }
-        }
-        return sb.toString();
+    /** True for expression nodes that don't already emit a complete N1QL clause. */
+    private static boolean isExpression(Expr e) {
+        return !(e instanceof Expr.KeywordStatement) && !(e instanceof Expr.Comment)
+                && !(e instanceof Expr.DeleteField);
     }
 
-    private String translateAtFunctions(String f) {
-        f = f.replaceAll("@All(?![A-Za-z0-9_])", "true");
-        f = f.replace("@IsResponseDoc", "doc.parentUNID IS NOT MISSING");
-        f = f.replaceAll("@IsAvailable\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*\\)", "doc.items.$1 IS NOT MISSING");
-        f = f.replaceAll("@Contains\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*;\\s*([^)]+)\\s*\\)", "CONTAINS(doc.items.$1.`values`[0], $2)");
-        f = f.replaceAll("@Begins\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*;\\s*([^)]+)\\s*\\)", "doc.items.$1.`values`[0] LIKE ($2 || '%')");
-        f = f.replaceAll("@Ends\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*;\\s*([^)]+)\\s*\\)", "doc.items.$1.`values`[0] LIKE ('%' || $2)");
-        f = f.replaceAll("@IsMember\\(\\s*([^;]+)\\s*;\\s*([A-Za-z][A-Za-z0-9_]*)\\s*\\)", "$1 IN doc.items.$2.`values`");
-        f = f.replaceAll("@IsNotMember\\(\\s*([^;]+)\\s*;\\s*([A-Za-z][A-Za-z0-9_]*)\\s*\\)", "$1 NOT IN doc.items.$2.`values`");
-        f = f.replaceAll("@LowerCase\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*\\)", "LOWER(doc.items.$1.`values`[0])");
-        f = f.replaceAll("@UpperCase\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*\\)", "UPPER(doc.items.$1.`values`[0])");
-        f = f.replaceAll("@Trim\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*\\)", "TRIM(doc.items.$1.`values`[0])");
-        f = f.replaceAll("@Length\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*\\)", "LENGTH(doc.items.$1.`values`[0])");
-        f = f.replaceAll("@Left\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*;\\s*(\\d+)\\s*\\)", "SUBSTR(doc.items.$1.`values`[0], 0, $2)");
-        f = f.replaceAll("@Right\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*;\\s*(\\d+)\\s*\\)", "SUBSTR(doc.items.$1.`values`[0], LENGTH(doc.items.$1.`values`[0]) - $2)");
-        f = f.replace("@Today", "NOW_STR()");
-        f = f.replace("@Now", "NOW_STR()");
-        f = f.replaceAll("@Created(?![A-Za-z0-9_])", "doc.created");
-        f = f.replaceAll("@Modified(?![A-Za-z0-9_])", "doc.lastModified");
-        f = f.replace("@UserName", "'" + currentUserName.replace("'", "''") + "'");
-        f = f.replaceAll("@IsNumber\\(", "IS_NUMBER(");
-        f = f.replaceAll("@IsText\\(", "IS_STRING(");
-        f = f.replaceAll("@If\\(\\s*([^;]+)\\s*;\\s*([^;]+)\\s*;\\s*([^)]+)\\s*\\)", "CASE WHEN $1 THEN $2 ELSE $3 END");
-        return f;
+    private void walkForN1ql(Expr expr, StringBuilder sb) {
+        switch (expr) {
+            case Expr.Variable v -> sb.append("doc.items.").append(escapeBacktick(v.name()))
+                    .append(".`values`[0]");
+            case Expr.StringConst s -> sb.append("'").append(s.value().replace("'", "''")).append("'");
+            case Expr.NumberConst n -> sb.append(formatNumber(n.value()));
+            case Expr.DateTimeConst d -> sb.append("'").append(d.raw().replace("'", "''")).append("'");
+            case Expr.KeywordExpr kw -> {
+                String v = kw.value().toString();
+                if ("TRUE".equals(v) || "ALL".equals(v) || "YES".equals(v) || "SUCCESS".equals(v))
+                    sb.append("true");
+                else if ("FALSE".equals(v) || "NO".equals(v))
+                    sb.append("false");
+                else sb.append("'").append(v).append("'");
+            }
+            case Expr.BinaryOp bo -> walkBinary(bo, sb);
+            case Expr.FunctionCall fc -> walkFunction(fc, sb);
+            case Expr.KeywordStatement ks -> walkForN1ql(ks.body(), sb);
+            case Expr.Comment c -> { /* skip */ }
+            default -> sb.append(expr.toString()); // fallback: raw representation
+        }
     }
+
+    private void walkBinary(Expr.BinaryOp bo, StringBuilder sb) {
+        String op = bo.op();
+        // Logical operators
+        if ("&".equals(op)) {
+            sb.append("(");
+            walkForN1ql(bo.left(), sb);
+            sb.append(" AND ");
+            walkForN1ql(bo.right(), sb);
+            sb.append(")");
+        } else if ("|".equals(op)) {
+            sb.append("(");
+            walkForN1ql(bo.left(), sb);
+            sb.append(" OR ");
+            walkForN1ql(bo.right(), sb);
+            sb.append(")");
+        } else if ("!".equals(op) && bo.left() == null) {
+            // Unary NOT
+            sb.append("NOT (");
+            walkForN1ql(bo.right(), sb);
+            sb.append(")");
+        } else if ("=".equals(op)) {
+            walkForN1ql(bo.left(), sb);
+            sb.append(" = ");
+            walkForN1ql(bo.right(), sb);
+        } else {
+            // Comparison operators: <>, !=, >, <, >=, <=
+            String n1qlOp = op.equals("<>") ? "!=" : op;
+            walkForN1ql(bo.left(), sb);
+            sb.append(" ").append(n1qlOp).append(" ");
+            walkForN1ql(bo.right(), sb);
+        }
+    }
+
+    private void walkFunction(Expr.FunctionCall fc, StringBuilder sb) {
+        String name = fc.name();
+        List<Expr> args = fc.args();
+        switch (name) {
+            case "ALL", "TRUE", "SUCCESS" -> sb.append("true");
+            case "FALSE", "NO" -> sb.append("false");
+            case "ISRESPONSEDOC" -> sb.append("doc.parentUNID IS NOT MISSING");
+            case "TODAY", "NOW" -> sb.append("NOW_STR()");
+            case "CREATED" -> sb.append("doc.created");
+            case "MODIFIED" -> sb.append("doc.lastModified");
+            case "USERNAME" -> sb.append("'").append(currentUserName.replace("'", "''")).append("'");
+            case "ISAVAILABLE" -> {
+                walkForN1ql(args.get(0), sb);
+                sb.append(" IS NOT MISSING");
+            }
+            case "ISNUMBER" -> { sb.append("IS_NUMBER("); walkForN1ql(args.get(0), sb); sb.append(")"); }
+            case "ISTEXT" -> { sb.append("IS_STRING("); walkForN1ql(args.get(0), sb); sb.append(")"); }
+            case "CONTAINS" -> {
+                sb.append("CONTAINS(");
+                walkForN1ql(args.get(0), sb); sb.append(", ");
+                walkForN1ql(args.get(1), sb); sb.append(")");
+            }
+            case "BEGINS" -> {
+                walkForN1ql(args.get(0), sb); sb.append(" LIKE (");
+                walkForN1ql(args.get(1), sb); sb.append(" || '%')");
+            }
+            case "ENDS" -> {
+                walkForN1ql(args.get(0), sb); sb.append(" LIKE ('%' || ");
+                walkForN1ql(args.get(1), sb); sb.append(")");
+            }
+            case "ISMEMBER" -> {
+                walkForN1ql(args.get(0), sb); sb.append(" IN ");
+                walkForN1ql(args.get(1), sb);
+            }
+            case "ISNOTMEMBER" -> {
+                walkForN1ql(args.get(0), sb); sb.append(" NOT IN ");
+                walkForN1ql(args.get(1), sb);
+            }
+            case "LOWERCASE" -> {
+                sb.append("LOWER("); walkForN1ql(args.get(0), sb); sb.append(")");
+            }
+            case "UPPERCASE" -> {
+                sb.append("UPPER("); walkForN1ql(args.get(0), sb); sb.append(")");
+            }
+            case "TRIM" -> {
+                sb.append("TRIM("); walkForN1ql(args.get(0), sb); sb.append(")");
+            }
+            case "LENGTH" -> {
+                sb.append("LENGTH("); walkForN1ql(args.get(0), sb); sb.append(")");
+            }
+            case "LEFT" -> {
+                sb.append("SUBSTR("); walkForN1ql(args.get(0), sb);
+                sb.append(", 0, "); walkForN1ql(args.get(1), sb); sb.append(")");
+            }
+            case "RIGHT" -> {
+                sb.append("SUBSTR("); walkForN1ql(args.get(0), sb);
+                sb.append(", LENGTH("); walkForN1ql(args.get(0), sb);
+                sb.append(") - "); walkForN1ql(args.get(1), sb); sb.append(")");
+            }
+            case "IF" -> {
+                if (args.size() >= 3) {
+                    sb.append("CASE WHEN "); walkForN1ql(args.get(0), sb);
+                    sb.append(" THEN "); walkForN1ql(args.get(1), sb);
+                    sb.append(" ELSE "); walkForN1ql(args.get(2), sb);
+                    sb.append(" END");
+                }
+            }
+            default -> sb.append(name.toLowerCase()).append("(") // unknown: pass through
+                    .append(args.stream().map(Object::toString).reduce((a,b) -> a + ";" + b).orElse(""))
+                    .append(")");
+        }
+    }
+
+    private static String escapeBacktick(String s) {
+        return s.replace("`", "\\`");
+    }
+
+    private static String formatNumber(double d) {
+        if (d == Math.floor(d) && !Double.isInfinite(d))
+            return String.valueOf((long) d);
+        return String.valueOf(d);
+    }
+
+    // ---- removed: old regex-based translate(), replaceOpOutsideQuotes(),
+    //      replaceNotOutsideQuotes(), translateAtFunctions()
 }
