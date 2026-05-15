@@ -12,7 +12,7 @@ import java.util.List;
  * Handles field references, logical/arithmetic operators,
  * and common @Functions used in view selection formulas.
  */
-public final class N1qlTranslator {
+final class N1qlTranslator {
 
     private N1qlTranslator() {}
 

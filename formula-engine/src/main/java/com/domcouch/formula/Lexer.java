@@ -194,7 +194,7 @@ public final class Lexer {
                     // Check for permuted operator: *+ *- ** */ *= *> *< *>= *<= *!=
                     if (i + 1 < len) {
                         char next = input.charAt(i + 1);
-                        if ("+-*/=><!" .indexOf(next) >= 0) {
+                        if ("+-*/=><!".indexOf(next) >= 0) {
                             if (i + 2 < len && (next == '>' || next == '<' || next == '!')
                                     && input.charAt(i + 2) == '=') {
                                 tokens.add(new Token(TokenType.OPERATOR, "*" + next + "=", i));
