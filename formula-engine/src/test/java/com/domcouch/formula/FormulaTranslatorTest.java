@@ -241,13 +241,13 @@ class FormulaTranslatorTest {
 
     @Test @DisplayName("@Implode")
     void atImplode() {
-        assertEquals("ARRAY_JOIN(doc.items.TAGS.`values`[0], '-')",
+        assertEquals("ARRAY_JOIN(doc.items.TAGS.`values`, '-')",
                 translator.toN1ql("@Implode(Tags; \"-\")"));
     }
 
     @Test @DisplayName("@Count")
     void atCount() {
-        assertEquals("ARRAY_LENGTH(doc.items.TAGS.`values`[0])",
+        assertEquals("ARRAY_LENGTH(doc.items.TAGS.`values`)",
                 translator.toN1ql("@Count(Tags)"));
     }
 }

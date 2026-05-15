@@ -69,6 +69,17 @@ final class N1qlTranslator {
         walkExpr(expr, sb, currentUserName, false);
     }
 
+    /** Emit a field reference with .values (full array, not .values[0]) for array functions. */
+    private static void walkFieldRef(Expr.Variable v, StringBuilder sb) {
+        sb.append("doc.items.").append(escapeBacktick(v.name())).append(".`values`");
+    }
+
+    /** Emit array-aware argument: .values for Variables, .values[0] for others. */
+    private static void walkArrayArg(Expr arg, StringBuilder sb) {
+        if (arg instanceof Expr.Variable v) walkFieldRef(v, sb);
+        else walkExpr(arg, sb, ""); // literal/expression — fallback
+    }
+
     private static void walkExpr(Expr expr, StringBuilder sb, String currentUserName, boolean valueMode) {
         switch (expr) {
             case Expr.Variable v -> sb.append("doc.items.").append(escapeBacktick(v.name()))
@@ -198,7 +209,7 @@ final class N1qlTranslator {
             case FunctionNames.REPLACESUBSTRING -> { sb.append("REPLACE("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); sb.append(", "); walkExpr(args.get(2), sb, currentUserName, valueMode); sb.append(")"); }
             case FunctionNames.REPEAT -> { sb.append("REPEAT("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); sb.append(")"); }
             case FunctionNames.NEWLINE -> sb.append("'\\n'");
-            case FunctionNames.ELEMENTS -> { sb.append("ARRAY_LENGTH("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(")"); }
+            case FunctionNames.ELEMENTS -> { sb.append("ARRAY_LENGTH("); walkArrayArg(args.get(0), sb); sb.append(")"); }
 
             // ---- New translations for custom views ----
             case FunctionNames.ISNEWDOC -> sb.append("doc.unid IS MISSING");
@@ -226,8 +237,8 @@ final class N1qlTranslator {
             case FunctionNames.WORD -> { sb.append("SPLIT("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); sb.append(")["); walkExpr(args.get(2), sb, currentUserName, valueMode); sb.append(" - 1]"); }
             case FunctionNames.ISNULL -> { walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(" IS NULL"); }
             case FunctionNames.EXPLODE -> { sb.append("SPLIT("); walkExpr(args.get(0), sb, currentUserName, valueMode); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); } else sb.append(", ' ,;'"); sb.append(")"); }
-            case FunctionNames.IMPLODE -> { sb.append("ARRAY_JOIN("); walkExpr(args.get(0), sb, currentUserName, valueMode); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); } else sb.append(", ' '"); sb.append(")"); }
-            case FunctionNames.COUNT -> { sb.append("ARRAY_LENGTH("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(")"); }
+            case FunctionNames.IMPLODE -> { sb.append("ARRAY_JOIN("); walkArrayArg(args.get(0), sb); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); } else sb.append(", ' '"); sb.append(")"); }
+            case FunctionNames.COUNT -> { sb.append("ARRAY_LENGTH("); walkArrayArg(args.get(0), sb); sb.append(")"); }
 
             // ---- Value-expression extensions ----
             case FunctionNames.MODULO -> { sb.append("("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(" % "); walkExpr(args.get(1), sb, currentUserName, valueMode); sb.append(")"); }
