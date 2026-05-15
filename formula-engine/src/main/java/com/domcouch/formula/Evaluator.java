@@ -1193,8 +1193,9 @@ public class Evaluator {
 
         // Date construction
         functions.put("DATE", (ev, args, ctx) -> {
-            if (args.size() >= 3 && ev.eval(args.get(0), ctx) instanceof Number) {
-                int year = (int) toNumber(ev.eval(args.get(0), ctx));
+            Object first = ev.eval(args.get(0), ctx);
+            if (args.size() >= 3 && first instanceof Number) {
+                int year = (int) toNumber(first);
                 int month = (int) toNumber(ev.eval(args.get(1), ctx));
                 int day = (int) toNumber(ev.eval(args.get(2), ctx));
                 int hour = args.size() >= 6 ? (int) toNumber(ev.eval(args.get(3), ctx)) : 0;
@@ -1486,8 +1487,9 @@ public class Evaluator {
         functions.put("YESTERDAY", (ev, args, ctx) ->
                 DT_FMT.format(java.time.ZonedDateTime.now().minusDays(1)));
         functions.put("TIME", (ev, args, ctx) -> {
-            if (args.size() >= 3 && ev.eval(args.get(0), ctx) instanceof Number) {
-                int h = (int) toNumber(ev.eval(args.get(0), ctx));
+            Object first = ev.eval(args.get(0), ctx);
+            if (args.size() >= 3 && first instanceof Number) {
+                int h = (int) toNumber(first);
                 int m = (int) toNumber(ev.eval(args.get(1), ctx));
                 int s = args.size() > 2 ? (int) toNumber(ev.eval(args.get(2), ctx)) : 0;
                 return DT_FMT.format(java.time.ZonedDateTime.now()
