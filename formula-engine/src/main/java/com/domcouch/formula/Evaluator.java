@@ -1708,7 +1708,6 @@ public class Evaluator {
         functions.put("CHECKFORMULASYNTAX", (ev, args, ctx) -> {
             String formula = toString(ev.eval(args.get(0), ctx));
             try {
-                Lexer.tokenize(formula);
                 new Parser(Lexer.tokenize(formula)).parse();
                 return "1";
             } catch (FormulaParseException e) {
