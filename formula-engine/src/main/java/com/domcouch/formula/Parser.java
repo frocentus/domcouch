@@ -34,10 +34,34 @@ public class Parser {
             while (match(TokenType.SEMICOLON)) advance();
             if (isAtEnd()) break;
             Expr stmt = parseStatement();
-            if (stmt != null) statements.add(stmt);
-            if (match(TokenType.SEMICOLON)) advance();
+            if (stmt != null) {
+                statements.add(stmt);
+                // Consume optional semicolon after statement
+                if (match(TokenType.SEMICOLON)) advance();
+                // Reject adjacent bare values: LastName FirstName without operator
+                else if (!isAtEnd() && isBareValue(stmt) && isExpressionStart(peek()))
+                    throw error("Unexpected adjacent term: '" + peek().lexeme()
+                            + "'. Values must be separated by an operator or ';'.");
+            }
         }
         return statements;
+    }
+
+    /** True if the expression is a single bare value (variable, constant) with no operator. */
+    private static boolean isBareValue(Expr expr) {
+        return expr instanceof Expr.Variable
+                || expr instanceof Expr.NumberConst
+                || expr instanceof Expr.StringConst
+                || expr instanceof Expr.DateTimeConst
+                || expr instanceof Expr.KeywordExpr;
+    }
+
+    /** True if the token type can start a new expression. */
+    private static boolean isExpressionStart(Token t) {
+        return switch (t.type()) {
+            case VARIABLE, CONST_NUMBER, CONST_STRING, CONST_DATETIME, AT_FUNCTION -> true;
+            default -> false;
+        };
     }
 
     // ---- Statements ----

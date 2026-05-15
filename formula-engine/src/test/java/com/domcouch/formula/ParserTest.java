@@ -460,6 +460,37 @@ class ParserTest {
         assertEquals(new Expr.KeywordExpr("OK"), stmts.get(0));
     }
 
+    // ---- Adjacent term rejection ----
+
+    @Test
+    @DisplayName("adjacent variables rejected: LastName FirstName")
+    void adjacentVariablesRejected() {
+        FormulaParseException ex = assertThrows(FormulaParseException.class,
+                () -> parse("LastName FirstName"));
+        assertTrue(ex.getMessage().contains("adjacent") || ex.getMessage().contains("Unexpected"));
+    }
+
+    @Test
+    @DisplayName("adjacent constants rejected: 1 2")
+    void adjacentNumbersRejected() {
+        assertThrows(FormulaParseException.class, () -> parse("1 2"));
+    }
+
+    @Test
+    @DisplayName("variable+operator+variable accepted: LastName+FirstName")
+    void operatorBetweenVarsAccepted() {
+        List<Expr> stmts = parse("LastName+FirstName");
+        assertEquals(1, stmts.size());
+        assertTrue(stmts.get(0) instanceof Expr.BinaryOp);
+    }
+
+    @Test
+    @DisplayName("multi-statement with semicolons accepted: x:=1;y:=2")
+    void multiStatementSemicolons() {
+        List<Expr> stmts = parse("x:=1;y:=2");
+        assertEquals(2, stmts.size());
+    }
+
     // ---- Helper ----
 
     private static List<Expr> parse(String input) {
