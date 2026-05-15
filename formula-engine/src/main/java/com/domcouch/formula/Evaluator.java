@@ -1834,10 +1834,38 @@ public class Evaluator {
             Expr formula = args.get(2);
             List<Object> result = new ArrayList<>();
             for (Object elem : list) {
-                // Create a context that binds the variable to current element
-                FormulaContext elemCtx = name -> {
-                    if (name.equals(varName)) return elem;
-                    return ctx.resolve(name);
+                // Create a context that binds the variable to current element,
+                // delegating all other operations to the parent context.
+                FormulaContext elemCtx = new FormulaContext() {
+                    @Override public Object resolve(String name) {
+                        return name.equals(varName) ? elem : ctx.resolve(name);
+                    }
+                    @Override public void setField(String n, Object v) { ctx.setField(n, v); }
+                    @Override public void deleteField(String n) { ctx.deleteField(n); }
+                    @Override public java.util.List<String> getFieldNames() { return ctx.getFieldNames(); }
+                    @Override public String getDocumentUNID() { return ctx.getDocumentUNID(); }
+                    @Override public String getDatabaseName() { return ctx.getDatabaseName(); }
+                    @Override public String getServerName() { return ctx.getServerName(); }
+                    @Override public String getDatabaseTitle() { return ctx.getDatabaseTitle(); }
+                    @Override public String getReplicaID() { return ctx.getReplicaID(); }
+                    @Override public boolean isDocumentValid() { return ctx.isDocumentValid(); }
+                    @Override public long getDocumentSize() { return ctx.getDocumentSize(); }
+                    @Override public int getAttachmentCount() { return ctx.getAttachmentCount(); }
+                    @Override public java.util.List<String> getFolderNames() { return ctx.getFolderNames(); }
+                    @Override public boolean lockDocument() { return ctx.lockDocument(); }
+                    @Override public boolean unlockDocument() { return ctx.unlockDocument(); }
+                    @Override public String getDocumentLockStatus() { return ctx.getDocumentLockStatus(); }
+                    @Override public boolean isDocumentLockingEnabled() { return ctx.isDocumentLockingEnabled(); }
+                    @Override public String getDomain() { return ctx.getDomain(); }
+                    @Override public String getEnvironmentValue(String n) { return ctx.getEnvironmentValue(n); }
+                    @Override public void markForDeletion() { ctx.markForDeletion(); }
+                    @Override public void unmarkForDeletion() { ctx.unmarkForDeletion(); }
+                    @Override public void hardDelete() { ctx.hardDelete(); }
+                    @Override public void addToFolder(String n) { ctx.addToFolder(n); }
+                    @Override public java.util.List<Number> getTimeZoneOffset(String d) { return ctx.getTimeZoneOffset(d); }
+                    @Override public String getCanonicalTimeZone() { return ctx.getCanonicalTimeZone(); }
+                    @Override public String timeToTextInZone(String d, String z, String f) { return ctx.timeToTextInZone(d, z, f); }
+                    @Override public String timeZoneToText(String z, String f) { return ctx.timeZoneToText(z, f); }
                 };
                 result.add(ev.eval(formula, elemCtx));
             }
