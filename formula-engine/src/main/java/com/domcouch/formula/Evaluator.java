@@ -617,10 +617,11 @@ public class Evaluator {
             case "D3" -> java.time.format.DateTimeFormatter.ofPattern("yyyy/MM");
             case "T0" -> java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss");
             case "T1" -> java.time.format.DateTimeFormatter.ofPattern("HH:mm");
-            case "S0" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy");
-            case "S1" -> java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss");
-            case "S2" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");
-            case "S3" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");
+            // S0-S3 share patterns with D0/T0 but are semantically distinct per Domino spec
+            case "S0" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy");  // Date only
+            case "S1" -> java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss");  // Time only
+            case "S2" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");  // Date and time
+            case "S3" -> java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");  // Today/Yesterday (simplified)
             default -> null;
         };
         return fmt != null ? fmt.format(zdt) : dateStr;
