@@ -126,4 +126,36 @@ class FormulaTranslatorTest {
         assertEquals("doc.items.Form.`values`[0] = 'Person'",
                 translator.toN1ql("doc.items.Form.`values`[0] = 'Person'"));
     }
+
+    // ---- Quick-win @Function translations ----
+
+    @Test @DisplayName("@Month")
+    void atMonth() {
+        assertEquals("DATE_PART_STR(doc.items.DATE.`values`[0], 'month') = 1",
+                translator.toN1ql("@Month(Date) = 1"));
+    }
+
+    @Test @DisplayName("@Year")
+    void atYear() {
+        assertEquals("DATE_PART_STR(doc.created, 'year') = 2024",
+                translator.toN1ql("@Year(@Created) = 2024"));
+    }
+
+    @Test @DisplayName("@Abs")
+    void atAbs() {
+        assertEquals("ABS(doc.items.AMOUNT.`values`[0]) > 100",
+                translator.toN1ql("@Abs(Amount) > 100"));
+    }
+
+    @Test @DisplayName("@Tomorrow")
+    void atTomorrow() {
+        assertEquals("DATE_ADD_STR(NOW_STR(), 1, 'day')",
+                translator.toN1ql("@Tomorrow"));
+    }
+
+    @Test @DisplayName("@ReplaceSubstring")
+    void atReplaceSubstring() {
+        assertEquals("REPLACE(doc.items.NAME.`values`[0], 'old', 'new')",
+                translator.toN1ql("@ReplaceSubstring(Name; \"old\"; \"new\")"));
+    }
 }

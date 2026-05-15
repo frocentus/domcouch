@@ -296,6 +296,42 @@ public class FormulaTranslator {
                     sb.append(" END");
                 }
             }
+
+            // ---- Date extraction (Couchbase N1QL DATE_PART_STR) ----
+            case "MONTH" -> { sb.append("DATE_PART_STR("); walkForN1ql(args.get(0), sb); sb.append(", 'month')"); }
+            case "DAY" -> { sb.append("DATE_PART_STR("); walkForN1ql(args.get(0), sb); sb.append(", 'day')"); }
+            case "YEAR" -> { sb.append("DATE_PART_STR("); walkForN1ql(args.get(0), sb); sb.append(", 'year')"); }
+            case "HOUR" -> { sb.append("DATE_PART_STR("); walkForN1ql(args.get(0), sb); sb.append(", 'hour')"); }
+            case "MINUTE" -> { sb.append("DATE_PART_STR("); walkForN1ql(args.get(0), sb); sb.append(", 'minute')"); }
+            case "SECOND" -> { sb.append("DATE_PART_STR("); walkForN1ql(args.get(0), sb); sb.append(", 'second')"); }
+            case "WEEKDAY" -> { sb.append("DAYOFWEEK("); walkForN1ql(args.get(0), sb); sb.append(")"); }
+
+            // ---- Date construction ----
+            case "TOMORROW" -> sb.append("DATE_ADD_STR(NOW_STR(), 1, 'day')");
+            case "YESTERDAY" -> sb.append("DATE_ADD_STR(NOW_STR(), -1, 'day')");
+
+            // ---- Math (Couchbase N1QL equivalents) ----
+            case "ABS" -> { sb.append("ABS("); walkForN1ql(args.get(0), sb); sb.append(")"); }
+            case "SQRT" -> { sb.append("SQRT("); walkForN1ql(args.get(0), sb); sb.append(")"); }
+            case "POWER" -> { sb.append("POWER("); walkForN1ql(args.get(0), sb); sb.append(", "); walkForN1ql(args.get(1), sb); sb.append(")"); }
+            case "EXP" -> { sb.append("EXP("); walkForN1ql(args.get(0), sb); sb.append(")"); }
+            case "LOG" -> { sb.append("LOG("); walkForN1ql(args.get(0), sb); sb.append(")"); }
+            case "LN" -> { sb.append("LN("); walkForN1ql(args.get(0), sb); sb.append(")"); }
+            case "COS" -> { sb.append("COS("); walkForN1ql(args.get(0), sb); sb.append(")"); }
+            case "SIN" -> { sb.append("SIN("); walkForN1ql(args.get(0), sb); sb.append(")"); }
+            case "TAN" -> { sb.append("TAN("); walkForN1ql(args.get(0), sb); sb.append(")"); }
+            case "PI" -> sb.append("PI()");
+            case "INTEGER" -> { sb.append("FLOOR("); walkForN1ql(args.get(0), sb); sb.append(")"); }
+            case "ROUND" -> { sb.append("ROUND("); walkForN1ql(args.get(0), sb); if (args.size() > 1) { sb.append(", "); walkForN1ql(args.get(1), sb); } sb.append(")"); }
+
+            // ---- String (Couchbase N1QL equivalents) ----
+            case "REPLACESUBSTRING" -> { sb.append("REPLACE("); walkForN1ql(args.get(0), sb); sb.append(", "); walkForN1ql(args.get(1), sb); sb.append(", "); walkForN1ql(args.get(2), sb); sb.append(")"); }
+            case "REPEAT" -> { sb.append("REPEAT("); walkForN1ql(args.get(0), sb); sb.append(", "); walkForN1ql(args.get(1), sb); sb.append(")"); }
+            case "NEWLINE" -> sb.append("CHR(10)");
+
+            // ---- List ----
+            case "ELEMENTS" -> { sb.append("ARRAY_LENGTH("); walkForN1ql(args.get(0), sb); sb.append(")"); }
+
             default -> sb.append(name.toLowerCase()).append("(") // unknown: pass through
                     .append(args.stream().map(Object::toString).reduce((a,b) -> a + ";" + b).orElse(""))
                     .append(")");
