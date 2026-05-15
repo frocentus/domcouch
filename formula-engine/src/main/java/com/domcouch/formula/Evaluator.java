@@ -858,7 +858,8 @@ public class Evaluator {
         // String functions
         functions.put("ASCII", (ev, args, ctx) -> {
             Object val = ev.eval(args.getFirst(), ctx);
-            boolean allInRange = args.size() > 1;
+            boolean allInRange = args.size() > 1
+                    && "ALLINRANGE".equalsIgnoreCase(toString(ev.eval(args.get(1), ctx)));
             List<Object> sources = toList(val);
             List<Object> result = new ArrayList<>();
             for (Object src : sources) {
