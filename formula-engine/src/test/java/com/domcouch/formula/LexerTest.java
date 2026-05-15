@@ -185,6 +185,36 @@ class LexerTest {
         assertToken(tokens.get(0), TokenType.CONST_STRING, "42", 0);
     }
 
+    // ---- Sign-prefix vs operator disambiguation ----
+
+    @Test
+    @DisplayName("minus after variable is operator, not sign prefix: a-5")
+    void minusAfterVariable() {
+        List<Token> tokens = Lexer.tokenize("a-5");
+        assertEquals(3, tokens.size());
+        assertToken(tokens.get(0), TokenType.VARIABLE, "A", 0);
+        assertToken(tokens.get(1), TokenType.OPERATOR, "-", 1);
+        assertToken(tokens.get(2), TokenType.CONST_NUMBER, "5", 2);
+    }
+
+    @Test
+    @DisplayName("minus at start is sign prefix: -5")
+    void minusAtStart() {
+        List<Token> tokens = Lexer.tokenize("-5");
+        assertEquals(1, tokens.size());
+        assertToken(tokens.get(0), TokenType.CONST_NUMBER, "-5", 0);
+    }
+
+    @Test
+    @DisplayName("plus after variable is operator: a+5")
+    void plusAfterVariable() {
+        List<Token> tokens = Lexer.tokenize("a+5");
+        assertEquals(3, tokens.size());
+        assertToken(tokens.get(0), TokenType.VARIABLE, "A", 0);
+        assertToken(tokens.get(1), TokenType.OPERATOR, "+", 1);
+        assertToken(tokens.get(2), TokenType.CONST_NUMBER, "5", 2);
+    }
+
     // ---- Operators ----
 
     @Test

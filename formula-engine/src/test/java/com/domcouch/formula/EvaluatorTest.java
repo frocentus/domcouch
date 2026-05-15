@@ -285,6 +285,18 @@ class EvaluatorTest {
         assertEquals(25.0, eval("x * 5"));
     }
 
+    @Test @DisplayName("subtraction without spaces: Salary-1000")
+    void subtractionNoSpaces() {
+        vars.put("SALARY", 5000.0);
+        assertEquals(4000.0, eval("Salary-1000"));
+    }
+
+    @Test @DisplayName("addition without spaces: a+5")
+    void additionNoSpaces() {
+        vars.put("A", 10.0);
+        assertEquals(15.0, eval("a+5"));
+    }
+
     // ---- Helpers ----
 
     /** A context backed by a map that also tracks setField calls. */

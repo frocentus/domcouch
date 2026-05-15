@@ -138,8 +138,18 @@ public final class Lexer {
                 continue;
             }
 
-            // Numbers
+            // Numbers (only sign-prefixed at start of term, not after a value)
             if (c == '+' || c == '-' || c == '.' || Character.isDigit(c)) {
+                boolean afterValue = !tokens.isEmpty() && switch (tokens.getLast().type()) {
+                    case VARIABLE, CONST_NUMBER, CONST_STRING, CONST_DATETIME, RPAREN -> true;
+                    default -> false;
+                };
+                // Sign after a value is an operator, not a number prefix
+                if ((c == '+' || c == '-') && afterValue) {
+                    tokens.add(new Token(TokenType.OPERATOR, String.valueOf(c), i));
+                    i++;
+                    continue;
+                }
                 Token num = tryReadNumber(input, i);
                 if (num != null) {
                     tokens.add(num);
