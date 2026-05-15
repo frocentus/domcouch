@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*' # Triggers workflow when a tag starting with 'v' is pushed (e.g., v1.0.0)
   workflow_dispatch: #
+    inputs:
+      tag_name: # <-- 1. Ask for a tag name when running manually
+        description: 'Tag for the release (e.g., v1.0.0)'
+        required: true
+        type: string
   
 jobs:
   release:
@@ -29,5 +34,6 @@ jobs:
       - name: Create Release and Upload JAR
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag_name || github.ref_name }}
           files: target/*.jar # Uploads any compiled JAR from the target directory
           generate_release_notes: true
