@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Requires: docker compose up -d
  * Run: mvn test -pl springboot-demo -Dtest=TranslationCoverageTest -Dcouchbase.test=true
  */
+@Disabled("Requires: docker compose up -d")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class TranslationCoverageTest {
 
@@ -23,7 +24,7 @@ class TranslationCoverageTest {
     private static String testUnid;
 
     @BeforeAll
-    static void setUp() {
+    static void setUp() throws NotesException {
         session = CouchbaseSession.connect("couchbase://localhost", "Administrator", "password");
         db = session.getDatabase("translation_test");
     }
