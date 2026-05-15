@@ -14,9 +14,19 @@ public interface ViewEntryCollection extends Iterable<ViewEntry> {
     ViewEntry getFirstEntry();
 
     /**
+     * @return the last entry in the collection, or null if empty
+     */
+    ViewEntry getLastEntry();
+
+    /**
      * @return the next entry in the collection, or null after the last entry
      */
     ViewEntry getNextEntry();
+
+    /**
+     * @return the previous entry in the collection, or null before the first entry
+     */
+    ViewEntry getPrevEntry();
 
     /**
      * Get an entry by its 1-based position.
@@ -25,6 +35,14 @@ public interface ViewEntryCollection extends Iterable<ViewEntry> {
      * @return the entry at position n, or null
      */
     ViewEntry getNthEntry(int n);
+
+    /**
+     * Look up an entry by object reference or key.
+     *
+     * @param entry a ViewEntry object or a key value
+     * @return the matching entry, or null
+     */
+    ViewEntry getEntry(Object entry);
 
     /**
      * @return number of entries in this collection
