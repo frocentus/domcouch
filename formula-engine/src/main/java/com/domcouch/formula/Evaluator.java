@@ -1074,11 +1074,23 @@ public class Evaluator {
         // Existence
         functions.put("ISAUTHOR", (ev, args, ctx) -> 1.0);
         functions.put("ISAVAILABLE", (ev, args, ctx) -> {
-            String name = toString(ev.eval(args.getFirst(), ctx));
+            // Variable: check if the field itself exists (not its value)
+            // String/expression: evaluate and use toString as field name
+            String name;
+            if (args.getFirst() instanceof Expr.Variable v) {
+                name = v.name();
+            } else {
+                name = toString(ev.eval(args.getFirst(), ctx));
+            }
             return boolToNum(ctx.resolve(name) != null);
         });
         functions.put("ISUNAVAILABLE", (ev, args, ctx) -> {
-            String name = toString(ev.eval(args.getFirst(), ctx));
+            String name;
+            if (args.getFirst() instanceof Expr.Variable v) {
+                name = v.name();
+            } else {
+                name = toString(ev.eval(args.getFirst(), ctx));
+            }
             return boolToNum(ctx.resolve(name) == null);
         });
         functions.put("ISNEWDOC", (ev, args, ctx) -> {
@@ -1102,13 +1114,6 @@ public class Evaluator {
         functions.put("ATTACHMENTS", (ev, args, ctx) -> {
             try { return (double) ctx.getAttachmentCount(); }
             catch (ContextNotSupportedException e) { return 0.0; }
-        });
-        functions.put("ISAVAILABLE", (ev, args, ctx) -> {
-            if (args.getFirst() instanceof Expr.Variable v) {
-                Object val = ctx.resolve(v.name());
-                return boolToNum(val != null);
-            }
-            return 0.0;
         });
 
         // List functions

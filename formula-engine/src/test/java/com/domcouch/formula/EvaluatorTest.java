@@ -211,6 +211,12 @@ class EvaluatorTest {
         @Test @DisplayName("@IsAvailable false")
         void isAvailableFalse() { assertEquals(0.0, eval("@IsAvailable(Missing)")); }
 
+        @Test @DisplayName("@IsAvailable with string literal")
+        void isAvailableStringLiteral() {
+            vars.put("SUBJECT", "Hello");
+            assertEquals(1.0, eval("@IsAvailable(\"SUBJECT\")"));
+        }
+
         @Test @DisplayName("@Elements of list")
         void elements() {
             assertEquals(3.0, eval("@Elements(\"a\" : \"b\" : \"c\")"));
