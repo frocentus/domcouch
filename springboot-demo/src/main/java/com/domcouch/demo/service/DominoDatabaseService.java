@@ -210,42 +210,42 @@ public class DominoDatabaseService {
         log.info("Creating views...");
 
         database.createView(VIEW_ALL,
-                "Form = "Person"");
+                "Form = {Person}");
 
         database.createView(VIEW_BY_LASTNAME,
-                "Form = "Person" AND LastName IS NOT MISSING",
+                "Form = {Person} AND LastName IS NOT MISSING",
                 "LastName");
 
         database.createView(VIEW_BY_DEPARTMENT,
-                "Form = "Person" AND Department IS NOT MISSING",
+                "Form = {Person} AND Department IS NOT MISSING",
                 "Department");
 
         database.createView(VIEW_BY_COMPANY,
-                "Form = "Person" AND Company IS NOT MISSING",
+                "Form = {Person} AND Company IS NOT MISSING",
                 "Company");
 
         database.createView(VIEW_BY_SALARY_RANGE,
-                "Form = "Person" AND Salary IS NOT MISSING",
+                "Form = {Person} AND Salary IS NOT MISSING",
                 "Salary");
 
         database.createView(VIEW_BY_CITY,
-                "Form = "Person" AND City IS NOT MISSING",
+                "Form = {Person} AND City IS NOT MISSING",
                 "City");
 
         database.createView(VIEW_HIGH_EARNERS,
-                "Form = "Person" AND Salary > 100000",
+                "Form = {Person} AND Salary > 100000",
                 "Salary");
 
         // View with formula columns: income > 50K, computed fullName and age
         database.createView("IncomeOver50K",
-                "Form = "Person" AND Income > 50000",
+                "Form = {Person} AND Income > 50000",
                 java.util.List.of(
                         com.domcouch.api.ViewColumn.field("FirstName", "FirstName"),
                         com.domcouch.api.ViewColumn.field("LastName", "LastName"),
                         com.domcouch.api.ViewColumn.formula("FullName",
                                 "FirstName + \" \" + LastName"),
                         com.domcouch.api.ViewColumn.formula("Age",
-                                "@Year(@Now) - @Year(BirthDate)"),
+                                "@Integer((@Today - BirthDate) / 365)"),
                         com.domcouch.api.ViewColumn.field("Income", "Income"),
                         com.domcouch.api.ViewColumn.field("Department", "Department")
                 ));
