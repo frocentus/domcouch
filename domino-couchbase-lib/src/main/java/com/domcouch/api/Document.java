@@ -125,6 +125,18 @@ public interface Document {
     java.util.List<String> getFolderNames();
 
     /**
+     * Attach a file to this document.
+     * @param name file name
+     * @param bytes binary content
+     * @param mimeType content type (e.g., "application/pdf")
+     * @return the embedded object
+     */
+    EmbeddedObject embedObject(String name, byte[] bytes, String mimeType) throws NotesException;
+
+    /** @return all file attachments in this document */
+    java.util.List<EmbeddedObject> getEmbeddedObjects();
+
+    /**
      * Release Couchbase resources held by this document.
      */
     void recycle();

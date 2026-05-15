@@ -145,7 +145,7 @@ public class DocumentFormulaContext implements FormulaContext {
 
     @Override
     public int getAttachmentCount() {
-        return 0; // attachments not yet supported
+        return document.getEmbeddedObjects().size();
     }
 
     // ---- Document lifecycle ----

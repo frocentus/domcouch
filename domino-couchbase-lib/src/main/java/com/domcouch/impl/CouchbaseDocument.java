@@ -41,12 +41,14 @@ public class CouchbaseDocument implements Document {
     private boolean isNew;
     private String parentUNID;
     private final List<String> folders;
+    private final List<CouchbaseEmbeddedObject> attachments;
 
     /** Construct a brand-new document with a generated UNID. */
     public CouchbaseDocument(CouchbaseDatabase database) {
         this.database = database;
         this.items = new ConcurrentHashMap<>();
         this.folders = new ArrayList<>();
+        this.attachments = new ArrayList<>();
         this.unid = generateUNID();
         this.isNew = true;
         this.dirty = true;
@@ -59,6 +61,7 @@ public class CouchbaseDocument implements Document {
         this.database = database;
         this.items = new ConcurrentHashMap<>();
         this.folders = new ArrayList<>();
+        this.attachments = new ArrayList<>();
         this.isNew = false;
         this.dirty = false;
         loadFromJson(doc);
@@ -212,10 +215,27 @@ public class CouchbaseDocument implements Document {
         return new ArrayList<>(folders);
     }
 
+    // ---- Attachments ----
+
+    @Override
+    public EmbeddedObject embedObject(String name, byte[] bytes, String mimeType) {
+        var eo = new CouchbaseEmbeddedObject(name, mimeType != null ? mimeType : "application/octet-stream",
+                bytes != null ? bytes.length : 0, bytes);
+        attachments.add(eo);
+        dirty = true;
+        return eo;
+    }
+
+    @Override
+    public List<EmbeddedObject> getEmbeddedObjects() {
+        return new ArrayList<>(attachments);
+    }
+
     @Override
     public void recycle() {
         items.clear();
         folders.clear();
+        attachments.clear();
     }
 
     /**
@@ -301,6 +321,19 @@ public class CouchbaseDocument implements Document {
             }
         }
 
+        // Load attachments
+        this.attachments.clear();
+        var attArray = doc.getArray("_attachments");
+        if (attArray != null) {
+            for (Object a : attArray.toList()) {
+                if (a instanceof JsonObject att) {
+                    this.attachments.add(new CouchbaseEmbeddedObject(
+                            att.getString("name"), att.getString("type"),
+                            att.getLong("size"), null));
+                }
+            }
+        }
+
         String createdStr = doc.getString("created");
         this.created = createdStr != null ? Instant.parse(createdStr) : Instant.now();
 
@@ -348,6 +381,16 @@ public class CouchbaseDocument implements Document {
         }
         if (!folders.isEmpty()) {
             json.put("folders", folders);
+        }
+        if (!attachments.isEmpty()) {
+            var attArray = com.couchbase.client.java.json.JsonArray.create();
+            for (var att : attachments) {
+                attArray.add(com.couchbase.client.java.json.JsonObject.create()
+                        .put("name", att.getName())
+                        .put("type", att.getType())
+                        .put("size", att.getFileSize()));
+            }
+            json.put("_attachments", attArray);
         }
 
         json.put("created", created != null ? created.toString() : Instant.now().toString());
