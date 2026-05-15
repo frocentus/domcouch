@@ -228,6 +228,18 @@ public class CouchbaseDocument implements Document {
         var eo = new CouchbaseEmbeddedObject(name, mimeType != null ? mimeType : "application/octet-stream",
                 bytes != null ? bytes.length : 0, bytes, itemName);
         attachments.add(eo);
+        // Document-level attachments: map to $FILE items for Domino API compatibility
+        if (itemName == null) {
+            var existing = items.get("$FILE");
+            if (existing != null) {
+                // Append to existing multi-value $FILE
+                var vals = new java.util.ArrayList<>(existing.getValues());
+                vals.add(name);
+                replaceItemValue("$FILE", new Vector<>(vals));
+            } else {
+                replaceItemValue("$FILE", name);
+            }
+        }
         dirty = true;
         return eo;
     }
@@ -334,7 +346,7 @@ public class CouchbaseDocument implements Document {
             }
         }
 
-        // Load attachments
+        // Load attachments from _attachments JSON array
         this.attachments.clear();
         var attArray = doc.getArray("_attachments");
         if (attArray != null) {
@@ -344,6 +356,24 @@ public class CouchbaseDocument implements Document {
                             att.getString("name"), att.getString("type"),
                             att.getLong("size"), null,
                             att.getString("item")));
+                }
+            }
+        }
+        // Fallback: if no _attachments, check $FILE items for document-level attachments
+        if (this.attachments.isEmpty()) {
+            var fileItem = doc.getObject("items");
+            if (fileItem != null) {
+                var fileObj = fileItem.getObject("$FILE");
+                if (fileObj != null) {
+                    var fileValues = fileObj.getArray("values");
+                    if (fileValues != null) {
+                        for (Object f : fileValues.toList()) {
+                            if (f != null) {
+                                this.attachments.add(new CouchbaseEmbeddedObject(
+                                        f.toString(), null, 0, null, null));
+                            }
+                        }
+                    }
                 }
             }
         }
