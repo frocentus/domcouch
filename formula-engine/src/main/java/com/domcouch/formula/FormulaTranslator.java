@@ -145,17 +145,22 @@ public class FormulaTranslator {
 
         String result = formula.trim();
         result = result.replaceFirst("(?i)^\\s*SELECT\\s+", "");
-        result = replaceOpOutsideQuotes(result, " & ", " AND ");
-        result = replaceOpOutsideQuotes(result, " | ", " OR ");
-        result = result.replaceAll("!(?!\\s*=)", " NOT ");
+        // Replace & and | operators (with or without surrounding spaces), quote-aware
+        result = replaceOpOutsideQuotes(result, "&", " AND ");
+        result = replaceOpOutsideQuotes(result, "|", " OR ");
+        // Replace ! with NOT (but not !=), quote-aware
+        result = replaceNotOutsideQuotes(result);
         result = translateAtFunctions(result);
+        // Field references: case-insensitive, but NOT doc.xxx identifiers
         result = result.replaceAll(
-                "\\b([A-Z][A-Za-z0-9_]*)\\s+(IS\\s+(NOT\\s+)?MISSING)",
+                "\\b(?<!doc\\.)([A-Za-z][A-Za-z0-9_]*)\\s+(IS\\s+(NOT\\s+)?MISSING)",
                 "doc.items.$1 $2");
         result = result.replaceAll(
-                "\\b([A-Z][A-Za-z0-9_]*)\\s*(=|!=|<>|>=?|<=?|LIKE)",
+                "\\b(?<!doc\\.)([A-Za-z][A-Za-z0-9_]*)\\s*(=|!=|<>|>=?|<=?|LIKE)",
                 "doc.items.$1.`values`[0] $2");
-        return result;
+        // Normalize whitespace (no effect on string literals which are already processed)
+        result = result.replaceAll("[ \\t]+", " ");
+        return result.trim();
     }
 
     private String replaceOpOutsideQuotes(String s, String from, String to) {
@@ -174,21 +179,38 @@ public class FormulaTranslator {
         return sb.toString();
     }
 
+    /** Replace ! with NOT (but not !=), respecting quotes. */
+    private String replaceNotOutsideQuotes(String s) {
+        StringBuilder sb = new StringBuilder();
+        boolean inSingle = false, inDouble = false;
+        int i = 0;
+        while (i < s.length()) {
+            char c = s.charAt(i);
+            if (c == '\'' && !inDouble) inSingle = !inSingle;
+            else if (c == '"' && !inSingle) inDouble = !inDouble;
+            if (!inSingle && !inDouble && c == '!' && (i + 1 >= s.length() || s.charAt(i + 1) != '=')) {
+                sb.append(" NOT ");
+                i++;
+            } else { sb.append(c); i++; }
+        }
+        return sb.toString();
+    }
+
     private String translateAtFunctions(String f) {
         f = f.replaceAll("@All(?![A-Za-z0-9_])", "true");
         f = f.replace("@IsResponseDoc", "doc.parentUNID IS NOT MISSING");
-        f = f.replaceAll("@IsAvailable\\(\\s*([A-Z][A-Za-z0-9_]*)\\s*\\)", "doc.items.$1 IS NOT MISSING");
-        f = f.replaceAll("@Contains\\(\\s*([A-Z][A-Za-z0-9_]*)\\s*;\\s*([^)]+)\\s*\\)", "CONTAINS(doc.items.$1.`values`[0], $2)");
-        f = f.replaceAll("@Begins\\(\\s*([A-Z][A-Za-z0-9_]*)\\s*;\\s*([^)]+)\\s*\\)", "doc.items.$1.`values`[0] LIKE ($2 || '%')");
-        f = f.replaceAll("@Ends\\(\\s*([A-Z][A-Za-z0-9_]*)\\s*;\\s*([^)]+)\\s*\\)", "doc.items.$1.`values`[0] LIKE ('%' || $2)");
-        f = f.replaceAll("@IsMember\\(\\s*([^;]+)\\s*;\\s*([A-Z][A-Za-z0-9_]*)\\s*\\)", "$1 IN doc.items.$2.`values`");
-        f = f.replaceAll("@IsNotMember\\(\\s*([^;]+)\\s*;\\s*([A-Z][A-Za-z0-9_]*)\\s*\\)", "$1 NOT IN doc.items.$2.`values`");
-        f = f.replaceAll("@LowerCase\\(\\s*([A-Z][A-Za-z0-9_]*)\\s*\\)", "LOWER(doc.items.$1.`values`[0])");
-        f = f.replaceAll("@UpperCase\\(\\s*([A-Z][A-Za-z0-9_]*)\\s*\\)", "UPPER(doc.items.$1.`values`[0])");
-        f = f.replaceAll("@Trim\\(\\s*([A-Z][A-Za-z0-9_]*)\\s*\\)", "TRIM(doc.items.$1.`values`[0])");
-        f = f.replaceAll("@Length\\(\\s*([A-Z][A-Za-z0-9_]*)\\s*\\)", "LENGTH(doc.items.$1.`values`[0])");
-        f = f.replaceAll("@Left\\(\\s*([A-Z][A-Za-z0-9_]*)\\s*;\\s*(\\d+)\\s*\\)", "SUBSTR(doc.items.$1.`values`[0], 0, $2)");
-        f = f.replaceAll("@Right\\(\\s*([A-Z][A-Za-z0-9_]*)\\s*;\\s*(\\d+)\\s*\\)", "SUBSTR(doc.items.$1.`values`[0], LENGTH(doc.items.$1.`values`[0]) - $2)");
+        f = f.replaceAll("@IsAvailable\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*\\)", "doc.items.$1 IS NOT MISSING");
+        f = f.replaceAll("@Contains\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*;\\s*([^)]+)\\s*\\)", "CONTAINS(doc.items.$1.`values`[0], $2)");
+        f = f.replaceAll("@Begins\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*;\\s*([^)]+)\\s*\\)", "doc.items.$1.`values`[0] LIKE ($2 || '%')");
+        f = f.replaceAll("@Ends\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*;\\s*([^)]+)\\s*\\)", "doc.items.$1.`values`[0] LIKE ('%' || $2)");
+        f = f.replaceAll("@IsMember\\(\\s*([^;]+)\\s*;\\s*([A-Za-z][A-Za-z0-9_]*)\\s*\\)", "$1 IN doc.items.$2.`values`");
+        f = f.replaceAll("@IsNotMember\\(\\s*([^;]+)\\s*;\\s*([A-Za-z][A-Za-z0-9_]*)\\s*\\)", "$1 NOT IN doc.items.$2.`values`");
+        f = f.replaceAll("@LowerCase\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*\\)", "LOWER(doc.items.$1.`values`[0])");
+        f = f.replaceAll("@UpperCase\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*\\)", "UPPER(doc.items.$1.`values`[0])");
+        f = f.replaceAll("@Trim\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*\\)", "TRIM(doc.items.$1.`values`[0])");
+        f = f.replaceAll("@Length\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*\\)", "LENGTH(doc.items.$1.`values`[0])");
+        f = f.replaceAll("@Left\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*;\\s*(\\d+)\\s*\\)", "SUBSTR(doc.items.$1.`values`[0], 0, $2)");
+        f = f.replaceAll("@Right\\(\\s*([A-Za-z][A-Za-z0-9_]*)\\s*;\\s*(\\d+)\\s*\\)", "SUBSTR(doc.items.$1.`values`[0], LENGTH(doc.items.$1.`values`[0]) - $2)");
         f = f.replace("@Today", "NOW_STR()");
         f = f.replace("@Now", "NOW_STR()");
         f = f.replaceAll("@Created(?![A-Za-z0-9_])", "doc.created");
