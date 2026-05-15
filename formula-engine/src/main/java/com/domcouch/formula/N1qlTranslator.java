@@ -158,6 +158,35 @@ final class N1qlTranslator {
             case "REPEAT" -> { sb.append("REPEAT("); walkExpr(args.get(0), sb, currentUserName); sb.append(", "); walkExpr(args.get(1), sb, currentUserName); sb.append(")"); }
             case "NEWLINE" -> sb.append("CHR(10)");
             case "ELEMENTS" -> { sb.append("ARRAY_LENGTH("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+
+            // ---- New translations for custom views ----
+            case "ISNEWDOC" -> sb.append("doc.unid IS MISSING");
+            case "ISUNAVAILABLE" -> { walkExpr(args.get(0), sb, currentUserName); sb.append(" IS MISSING"); }
+            case "LIKE" -> {
+                walkExpr(args.get(0), sb, currentUserName); sb.append(" LIKE ");
+                // Convert Domino pattern to SQL LIKE: _ stays _, % stays %
+                // But need to handle escape char if provided
+                walkExpr(args.get(1), sb, currentUserName);
+                if (args.size() > 2) { sb.append(" ESCAPE "); walkExpr(args.get(2), sb, currentUserName); }
+            }
+            case "TEXT" -> { sb.append("TO_STRING("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case "TEXTTONUMBER" -> { sb.append("TO_NUMBER("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
+            case "DATE" -> { sb.append("DATE_STR("); walkExpr(args.get(0), sb, currentUserName); sb.append(" || '-' || "); walkExpr(args.get(1), sb, currentUserName); sb.append(" || '-' || "); walkExpr(args.get(2), sb, currentUserName); sb.append(")"); }
+            case "ADJUST" -> {
+                sb.append("DATE_ADD_STR(DATE_ADD_STR(DATE_ADD_STR(DATE_ADD_STR(DATE_ADD_STR(DATE_ADD_STR(");
+                walkExpr(args.get(0), sb, currentUserName);
+                sb.append(", "); walkExpr(args.get(1), sb, currentUserName); sb.append(", 'year')");
+                sb.append(", "); walkExpr(args.get(2), sb, currentUserName); sb.append(", 'month')");
+                sb.append(", "); walkExpr(args.get(3), sb, currentUserName); sb.append(", 'day')");
+                sb.append(", "); walkExpr(args.get(4), sb, currentUserName); sb.append(", 'hour')");
+                sb.append(", "); walkExpr(args.get(5), sb, currentUserName); sb.append(", 'minute')");
+                sb.append(", "); walkExpr(args.get(6), sb, currentUserName); sb.append(", 'second')");
+            }
+            case "WORD" -> { sb.append("SPLIT("); walkExpr(args.get(0), sb, currentUserName); sb.append(", "); walkExpr(args.get(1), sb, currentUserName); sb.append(")["); walkExpr(args.get(2), sb, currentUserName); sb.append(" - 1]"); }
+            case "ISNULL" -> { walkExpr(args.get(0), sb, currentUserName); sb.append(" IS NULL"); }
+            case "EXPLODE" -> { sb.append("SPLIT("); walkExpr(args.get(0), sb, currentUserName); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName); } else sb.append(", ' ,;'"); sb.append(")"); }
+            case "IMPLODE" -> { sb.append("ARRAY_JOIN("); walkExpr(args.get(0), sb, currentUserName); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName); } else sb.append(", ' '"); sb.append(")"); }
+            case "COUNT" -> { sb.append("ARRAY_LENGTH("); walkExpr(args.get(0), sb, currentUserName); sb.append(")"); }
             default -> sb.append(name.toLowerCase()).append("(")
                     .append(args.stream().map(Object::toString).reduce((a,b) -> a + ";" + b).orElse(""))
                     .append(")");

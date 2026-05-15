@@ -176,4 +176,77 @@ class FormulaTranslatorTest {
         assertEquals("REPLACE(doc.items.NAME.`values`[0], 'old', 'new')",
                 translator.toN1ql("@ReplaceSubstring(Name; \"old\"; \"new\")"));
     }
+
+    // ---- New translations for custom views ----
+
+    @Test @DisplayName("@IsNewDoc")
+    void atIsNewDoc() {
+        assertEquals("doc.unid IS MISSING", translator.toN1ql("@IsNewDoc"));
+    }
+
+    @Test @DisplayName("@IsUnavailable")
+    void atIsUnavailable() {
+        assertEquals("doc.items.STATUS.`values`[0] IS MISSING",
+                translator.toN1ql("@IsUnavailable(Status)"));
+    }
+
+    @Test @DisplayName("@Like")
+    void atLike() {
+        assertEquals("doc.items.NAME.`values`[0] LIKE '%Smith%'",
+                translator.toN1ql("@Like(Name; \"%Smith%\")"));
+    }
+
+    @Test @DisplayName("@Text")
+    void atText() {
+        assertEquals("TO_STRING(doc.items.AMOUNT.`values`[0]) = '100'",
+                translator.toN1ql("@Text(Amount) = \"100\""));
+    }
+
+    @Test @DisplayName("@TextToNumber")
+    void atTextToNumber() {
+        assertEquals("TO_NUMBER(doc.items.PRICE.`values`[0]) > 50",
+                translator.toN1ql("@TextToNumber(Price) > 50"));
+    }
+
+    @Test @DisplayName("@Date constructor")
+    void atDateConstructor() {
+        assertEquals("DATE_STR(2024 || '-' || 6 || '-' || 15) = doc.created",
+                translator.toN1ql("@Date(2024; 6; 15) = @Created"));
+    }
+
+    @Test @DisplayName("@Adjust")
+    void atAdjust() {
+        assertEquals("DATE_ADD_STR(DATE_ADD_STR(DATE_ADD_STR(DATE_ADD_STR(DATE_ADD_STR(DATE_ADD_STR(doc.created, 1, 'year'), 0, 'month'), 0, 'day'), 0, 'hour'), 0, 'minute'), 0, 'second')",
+                translator.toN1ql("@Adjust(@Created; 1; 0; 0; 0; 0; 0)"));
+    }
+
+    @Test @DisplayName("@Word")
+    void atWord() {
+        assertEquals("SPLIT(doc.items.NAME.`values`[0], ' ')[2 - 1]",
+                translator.toN1ql("@Word(Name; \" \"; 2)"));
+    }
+
+    @Test @DisplayName("@IsNull")
+    void atIsNull() {
+        assertEquals("doc.items.NAME.`values`[0] IS NULL",
+                translator.toN1ql("@IsNull(Name)"));
+    }
+
+    @Test @DisplayName("@Explode")
+    void atExplode() {
+        assertEquals("SPLIT(doc.items.TAGS.`values`[0], ',')",
+                translator.toN1ql("@Explode(Tags; \",\")"));
+    }
+
+    @Test @DisplayName("@Implode")
+    void atImplode() {
+        assertEquals("ARRAY_JOIN(doc.items.TAGS.`values`[0], '-')",
+                translator.toN1ql("@Implode(Tags; \"-\")"));
+    }
+
+    @Test @DisplayName("@Count")
+    void atCount() {
+        assertEquals("ARRAY_LENGTH(doc.items.TAGS.`values`[0])",
+                translator.toN1ql("@Count(Tags)"));
+    }
 }
