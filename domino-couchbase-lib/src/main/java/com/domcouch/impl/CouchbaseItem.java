@@ -16,6 +16,7 @@ public class CouchbaseItem implements Item {
     private int type;
     private final Vector<Object> values;
     private Object customData;
+    private CouchbaseDocument parent; // set after construction for getEmbeddedObjects()
 
     public CouchbaseItem(String name, int type, List<Object> rawValues) {
         this.name = name;
@@ -147,5 +148,15 @@ public class CouchbaseItem implements Item {
     @Override
     public String toString() {
         return "CouchbaseItem[" + name + "=" + values + "]";
+    }
+
+    void setParent(CouchbaseDocument parent) { this.parent = parent; }
+
+    @Override
+    public java.util.List<com.domcouch.api.EmbeddedObject> getEmbeddedObjects() {
+        if (parent == null) return java.util.List.of();
+        return parent.getEmbeddedObjects().stream()
+                .filter(eo -> name.equals(eo.getItemName()))
+                .toList();
     }
 }

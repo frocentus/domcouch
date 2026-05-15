@@ -17,4 +17,10 @@ public interface EmbeddedObject {
 
     /** @return the binary content, or null if not loaded */
     byte[] getBytes();
+
+    /**
+     * @return the item name this attachment belongs to, or null if
+     *         document-level (legacy attachment, not in a rich text item)
+     */
+    String getItemName();
 }

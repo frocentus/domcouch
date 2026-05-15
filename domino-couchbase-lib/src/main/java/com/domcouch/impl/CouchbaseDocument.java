@@ -93,6 +93,7 @@ public class CouchbaseDocument implements Document {
         } else {
             item = new CouchbaseItem(normalizedName, inferType(value), value);
         }
+        item.setParent(this);
         items.put(normalizedName, item);
         dirty = true;
         return item;
@@ -219,8 +220,13 @@ public class CouchbaseDocument implements Document {
 
     @Override
     public EmbeddedObject embedObject(String name, byte[] bytes, String mimeType) {
+        return embedObject(null, name, bytes, mimeType);
+    }
+
+    @Override
+    public EmbeddedObject embedObject(String itemName, String name, byte[] bytes, String mimeType) {
         var eo = new CouchbaseEmbeddedObject(name, mimeType != null ? mimeType : "application/octet-stream",
-                bytes != null ? bytes.length : 0, bytes);
+                bytes != null ? bytes.length : 0, bytes, itemName);
         attachments.add(eo);
         dirty = true;
         return eo;
@@ -229,6 +235,13 @@ public class CouchbaseDocument implements Document {
     @Override
     public List<EmbeddedObject> getEmbeddedObjects() {
         return new ArrayList<>(attachments);
+    }
+
+    @Override
+    public EmbeddedObject getAttachment(String name) {
+        return attachments.stream()
+                .filter(a -> name.equalsIgnoreCase(a.getName()))
+                .findFirst().orElse(null);
     }
 
     @Override
@@ -329,7 +342,8 @@ public class CouchbaseDocument implements Document {
                 if (a instanceof JsonObject att) {
                     this.attachments.add(new CouchbaseEmbeddedObject(
                             att.getString("name"), att.getString("type"),
-                            att.getLong("size"), null));
+                            att.getLong("size"), null,
+                            att.getString("item")));
                 }
             }
         }
@@ -349,7 +363,9 @@ public class CouchbaseDocument implements Document {
                 List<Object> rawValues = itemObj.getArray("values") != null
                         ? itemObj.getArray("values").toList()
                         : List.of();
-                this.items.put(name, new CouchbaseItem(name, type, rawValues));
+                var item = new CouchbaseItem(name, type, rawValues);
+                item.setParent(this);
+                this.items.put(name, item);
             }
         }
     }
@@ -385,10 +401,12 @@ public class CouchbaseDocument implements Document {
         if (!attachments.isEmpty()) {
             var attArray = com.couchbase.client.java.json.JsonArray.create();
             for (var att : attachments) {
-                attArray.add(com.couchbase.client.java.json.JsonObject.create()
+                var attJson = com.couchbase.client.java.json.JsonObject.create()
                         .put("name", att.getName())
                         .put("type", att.getType())
-                        .put("size", att.getFileSize()));
+                        .put("size", att.getFileSize());
+                if (att.getItemName() != null) attJson.put("item", att.getItemName());
+                attArray.add(attJson);
             }
             json.put("_attachments", attArray);
         }

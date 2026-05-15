@@ -125,7 +125,7 @@ public interface Document {
     java.util.List<String> getFolderNames();
 
     /**
-     * Attach a file to this document.
+     * Attach a file to this document (document-level).
      * @param name file name
      * @param bytes binary content
      * @param mimeType content type (e.g., "application/pdf")
@@ -133,8 +133,21 @@ public interface Document {
      */
     EmbeddedObject embedObject(String name, byte[] bytes, String mimeType) throws NotesException;
 
-    /** @return all file attachments in this document */
+    /**
+     * Attach a file to a specific item in this document.
+     * @param itemName the item to associate the attachment with
+     */
+    EmbeddedObject embedObject(String itemName, String name, byte[] bytes, String mimeType) throws NotesException;
+
+    /** @return all file attachments in this document (document-level + item-level) */
     java.util.List<EmbeddedObject> getEmbeddedObjects();
+
+    /**
+     * Find an attachment by name, searching both document-level and item-level.
+     * @param name the file name
+     * @return the attachment, or null if not found
+     */
+    EmbeddedObject getAttachment(String name);
 
     /**
      * Release Couchbase resources held by this document.

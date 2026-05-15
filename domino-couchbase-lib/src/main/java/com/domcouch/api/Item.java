@@ -87,4 +87,7 @@ public interface Item {
      * @param flag true to mark as Authors, false to unmark
      */
     void setAuthors(boolean flag);
+
+    /** @return file attachments embedded in this item */
+    java.util.List<EmbeddedObject> getEmbeddedObjects();
 }
