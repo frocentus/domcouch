@@ -80,4 +80,12 @@ public class PersonController {
                 "durationMs", elapsed
         ));
     }
+
+    /**
+     * Formula-column view: Income > 50K with computed FullName and Age.
+     */
+    @GetMapping("/view/income-over-50k")
+    public ResponseEntity<List<Map<String, Object>>> incomeOver50K() {
+        return ResponseEntity.ok(service.getIncomeOver50KView());
+    }
 }

@@ -118,15 +118,28 @@ public class CouchbaseDatabase implements Database {
 
     @Override
     public View createView(String name, String selectionFormula) {
-        return createView(name, selectionFormula, null);
+        return createView(name, selectionFormula, null, (List<ViewColumn>) null);
     }
 
     public View createView(String name, String selectionFormula, String keyItemName) {
-        String n1qlFormula = formulaTranslator.toN1ql(selectionFormula);
-        CouchbaseView view = new CouchbaseView(this, scope, name, n1qlFormula, keyItemName);
-        views.put(name, view);
+        return createView(name, selectionFormula, keyItemName, (List<ViewColumn>) null);
+    }
 
-        // Build a N1QL index that covers the key column for fast lookups
+    @Override
+    public View createView(String name, String selectionFormula, List<ViewColumn> columns) {
+        return createView(name, selectionFormula, null, columns);
+    }
+
+    @Override
+    public View createView(String name, String selectionFormula, String keyItemName, List<ViewColumn> columns) {
+        String n1qlFormula = formulaTranslator.toN1ql(selectionFormula);
+        CouchbaseView view = new CouchbaseView(this, scope, name, n1qlFormula, keyItemName, columns);
+        views.put(name, view);
+        createViewIndex(name, keyItemName);
+        return view;
+    }
+
+    private void createViewIndex(String name, String keyItemName) {
         try {
             String collectionPath = getCollectionPath();
             String indexName = "idx_view_" + name.replaceAll("[^a-zA-Z0-9]", "_");
@@ -151,7 +164,6 @@ public class CouchbaseDatabase implements Database {
         } catch (Exception e) {
             log.warn("Could not create index for view '{}': {}", name, e.getMessage());
         }
-        return view;
     }
 
     @Override

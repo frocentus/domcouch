@@ -19,10 +19,23 @@ public class CouchbaseView implements View {
     private final Scope scope;
     private final String name;
     private final String selectionFormula;
-    private final String keyColumnN1ql; // e.g. "doc.items.LastName.`values`[0]"
+    private final String keyColumnN1ql;
+    private final List<ViewColumn> columns; // null = legacy extract-all-items mode
+    private final com.domcouch.formula.translate.FormulaTranslator formulaTranslator;
+
+    /** Legacy 3-arg constructor for views without explicit columns. */
+    public CouchbaseView(CouchbaseDatabase database, Scope scope, String name) {
+        this(database, scope, name, null, null, null);
+    }
 
     public CouchbaseView(CouchbaseDatabase database, Scope scope,
                          String name, String selectionFormula, String keyItemName) {
+        this(database, scope, name, selectionFormula, keyItemName, null);
+    }
+
+    public CouchbaseView(CouchbaseDatabase database, Scope scope,
+                         String name, String selectionFormula, String keyItemName,
+                         List<ViewColumn> columns) {
         this.database = database;
         this.scope = scope;
         this.name = name;
@@ -30,10 +43,14 @@ public class CouchbaseView implements View {
         this.keyColumnN1ql = keyItemName != null
                 ? "doc.items." + keyItemName + ".`values`[0]"
                 : null;
+        this.columns = columns;
+        this.formulaTranslator = hasFormulaColumns()
+                ? new com.domcouch.formula.translate.FormulaTranslator()
+                : null;
     }
 
-    public CouchbaseView(CouchbaseDatabase database, Scope scope, String name) {
-        this(database, scope, name, null, null);
+    private boolean hasFormulaColumns() {
+        return columns != null && columns.stream().anyMatch(ViewColumn::isFormula);
     }
 
     public CouchbaseDatabase getDatabase() {
@@ -127,13 +144,35 @@ public class CouchbaseView implements View {
 
     private String buildSelectStatement(boolean countOnly) {
         String cp = database.getCollectionPath();
-        String selectClause = countOnly ? "COUNT(*) AS cnt" : "unid, doc.*";
+        String selectClause;
+        if (countOnly) {
+            selectClause = "COUNT(*) AS cnt";
+        } else if (columns != null && !columns.isEmpty()) {
+            // Build explicit column SELECT for defined columns
+            StringBuilder sb = new StringBuilder("unid");
+            for (ViewColumn col : columns) {
+                if (!col.isFormula()) {
+                    // Direct field: SELECT items.FIELD.values[0] AS COLNAME
+                    sb.append(", doc.items.").append(escapeBacktick(col.getExpression()))
+                            .append(".`values`[0] AS `").append(col.getName()).append("`");
+                }
+            }
+            // Also fetch doc.* for formula columns and reader filtering
+            if (hasFormulaColumns()) sb.append(", doc.*");
+            selectClause = sb.toString();
+        } else {
+            selectClause = "unid, doc.*";
+        }
         String stmt = "SELECT " + selectClause + " FROM " + cp + " AS doc"
                 + " WHERE doc._type = 'domcouch.document'";
         if (selectionFormula != null && !selectionFormula.isEmpty()) {
             stmt += " AND (" + selectionFormula + ")";
         }
         return stmt;
+    }
+
+    private static String escapeBacktick(String s) {
+        return s.replace("`", "\\`");
     }
 
     private String getFirstColumnName() {
@@ -184,24 +223,48 @@ public class CouchbaseView implements View {
     }
 
     private List<Object> extractColumnValues(JsonObject row) {
-        List<Object> cols = new ArrayList<>();
-        // Extract form and unid as default columns
-        cols.add(row.getString("form"));
-        cols.add(row.getString("unid"));
-        // Extract additional item values
-        JsonObject items = row.getObject("items");
-        if (items != null) {
-            for (String key : items.getNames()) {
-                JsonObject item = items.getObject(key);
-                if (item != null) {
-                    var values = item.getArray("values");
-                    if (values != null && !values.isEmpty()) {
-                        cols.add(values.get(0));
+        if (columns == null || columns.isEmpty()) {
+            // Legacy mode: extract all items
+            List<Object> cols = new ArrayList<>();
+            cols.add(row.getString("form"));
+            cols.add(row.getString("unid"));
+            JsonObject items = row.getObject("items");
+            if (items != null) {
+                for (String key : items.getNames()) {
+                    JsonObject item = items.getObject(key);
+                    if (item != null) {
+                        var values = item.getArray("values");
+                        if (values != null && !values.isEmpty()) cols.add(values.get(0));
                     }
                 }
             }
+            return cols;
+        }
+
+        // Column-aware mode: extract defined columns
+        List<Object> cols = new ArrayList<>();
+        for (ViewColumn col : columns) {
+            if (col.isFormula()) {
+                // Evaluate formula against the document
+                cols.add(evaluateFormulaColumn(row, col));
+            } else {
+                // Direct field: value was already fetched by N1QL SELECT AS
+                String colName = col.getName();
+                Object val = row.get(colName);
+                cols.add(val != null ? val : "");
+            }
         }
         return cols;
+    }
+
+    private Object evaluateFormulaColumn(JsonObject row, ViewColumn col) {
+        try {
+            CouchbaseDocument doc = new CouchbaseDocument(database, row);
+            DocumentFormulaContext ctx = new DocumentFormulaContext(doc);
+            return formulaTranslator.evaluate(col.getExpression(), ctx);
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private ViewEntryCollection textSearchFallback(String query, int maxDocs) {

@@ -1,5 +1,6 @@
 package com.domcouch.api;
 
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -69,6 +70,23 @@ public interface Database {
      * @return the newly created View
      */
     View createView(String name, String selectionFormula, String keyItemName);
+
+    /**
+     * Create a view with explicit column definitions.
+     * Direct field columns are pushed to N1QL; formula columns are
+     * evaluated via the formula engine against each document.
+     *
+     * @param name            the view name
+     * @param selectionFormula Domino selection formula
+     * @param columns         column definitions (field mappings and formula expressions)
+     * @return the newly created View
+     */
+    View createView(String name, String selectionFormula, List<ViewColumn> columns);
+
+    /**
+     * Create a view with a key column and explicit column definitions.
+     */
+    View createView(String name, String selectionFormula, String keyItemName, List<ViewColumn> columns);
 
     /**
      * Full-text search across all documents in the database.

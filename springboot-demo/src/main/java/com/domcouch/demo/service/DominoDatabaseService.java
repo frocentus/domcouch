@@ -167,6 +167,28 @@ public class DominoDatabaseService {
         return database.getTitle();
     }
 
+    /**
+     * Get entries from the IncomeOver50K view with formula columns.
+     * Returns raw column values: FirstName, LastName, FullName, Age, Income, Department.
+     */
+    public List<java.util.Map<String, Object>> getIncomeOver50KView() {
+        var view = database.getView("IncomeOver50K");
+        var entries = view.getAllEntries();
+        var result = new java.util.ArrayList<java.util.Map<String, Object>>();
+        for (var entry : entries) {
+            var cols = entry.getColumnValues();
+            var row = new java.util.LinkedHashMap<String, Object>();
+            row.put("FirstName", cols.size() > 0 ? cols.get(0) : "");
+            row.put("LastName", cols.size() > 1 ? cols.get(1) : "");
+            row.put("FullName", cols.size() > 2 ? cols.get(2) : "");
+            row.put("Age", cols.size() > 3 ? cols.get(3) : "");
+            row.put("Income", cols.size() > 4 ? cols.get(4) : "");
+            row.put("Department", cols.size() > 5 ? cols.get(5) : "");
+            result.add(row);
+        }
+        return result;
+    }
+
     // ---- bulk insert ----
 
     private void bulkInsert(List<Person> persons) throws NotesException {
@@ -214,7 +236,21 @@ public class DominoDatabaseService {
                 "Form = 'Person' AND Salary > 100000",
                 "Salary");
 
-        log.info("Views created: {}, {}, {}, {}, {}, {}, {}",
+        // View with formula columns: income > 50K, computed fullName and age
+        database.createView("IncomeOver50K",
+                "Form = 'Person' AND Income > 50000",
+                java.util.List.of(
+                        com.domcouch.api.ViewColumn.field("FirstName", "FirstName"),
+                        com.domcouch.api.ViewColumn.field("LastName", "LastName"),
+                        com.domcouch.api.ViewColumn.formula("FullName",
+                                "FirstName + \" \" + LastName"),
+                        com.domcouch.api.ViewColumn.formula("Age",
+                                "@Integer((@Today - BirthDate) / 365)"),
+                        com.domcouch.api.ViewColumn.field("Income", "Income"),
+                        com.domcouch.api.ViewColumn.field("Department", "Department")
+                ));
+
+        log.info("Views created: {}, {}, {}, {}, {}, {}, {}, IncomeOver50K",
                 VIEW_ALL, VIEW_BY_LASTNAME, VIEW_BY_DEPARTMENT, VIEW_BY_COMPANY,
                 VIEW_BY_SALARY_RANGE, VIEW_BY_CITY, VIEW_HIGH_EARNERS);
     }
