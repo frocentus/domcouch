@@ -453,7 +453,7 @@ public class CouchbaseDocument implements Document {
                 itemObj.put("values", item.getValues());
                 itemArray.add(itemObj);
             }
-            itemsJson.put(entry.getKey(), itemArray.size() == 1 ? itemArray.get(0) : itemArray);
+            itemsJson.put(entry.getKey(), itemArray);
         }
         json.put("items", itemsJson);
 

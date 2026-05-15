@@ -210,8 +210,9 @@ class TranslationCoverageTest {
 
     @Test @Order(11) @DisplayName("@DbLookup: view lookup returns matching values")
     void dbLookup() {
-        // Create a lookup view keyed by Department
-        db.createView("LookupByDept", "Form = \"TestDoc\"", "Department");
+        // Create a lookup view with Department as key and column
+        db.createView("LookupByDept", "Form = \"TestDoc\"", "Department",
+                List.of(ViewColumn.field("Department", "Department")));
 
         // Create a context with database access
         var docCtx = new DocumentFormulaContext(db.createDocument())
