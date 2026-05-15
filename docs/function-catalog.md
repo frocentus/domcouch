@@ -197,7 +197,7 @@
 | `@IsResponseDoc` | ✅ | 📋 | Delegates to `resolve("PARENTUNID")` |
 | `@IsAuthor` | ✅ | ⚠ | True (always author) |
 | `@Author` | ✅ | ⚠ | Delegates to `resolve("AUTHORS")` |
-| `@Attachments` | 🟡 | ⚠ | Delegates to `getAttachmentCount()`; Couchbase: 0 |
+| `@Attachments` | ✅ | 📋 | Delegates to `getAttachmentCount()`; document + item-level support |
 | `@GetField` | ✅ | 📋 | Delegates to `resolve()` |
 | `@DeleteDocument` | 🟡 | ⚠ | Delegates to `markForDeletion()`; Couchbase: no-op |
 | `@UndeleteDocument` | 🟡 | ⚠ | Delegates to `unmarkForDeletion()`; Couchbase: no-op |

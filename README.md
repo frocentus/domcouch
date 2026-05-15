@@ -137,12 +137,19 @@ and creates 7 N1QL-backed views.
 
 - **Session** — connect to cluster, open databases (bucket-per-DB or scope-per-DB)
 - **Database** — createDocument, getDocumentByUNID, getView, createView, FTSearch, search
-- **Document** — getFirstItem, replaceItemValue, save, remove, copyToDatabase, hierarchy
+- **Document** — getFirstItem, replaceItemValue, save, remove, copyToDatabase, hierarchy, embedObject, getAttachment
+- **EmbeddedObject** — file attachments at document-level ($FILE) and item-level
 - **View** — N1QL-backed: getAllEntries, getAllEntriesByKey, FTSearch, getEntryCount
 - **Item** — multi-type: TEXT, NUMBERS, DATETIMES, AUTHORS, READERS, RICHTEXT
 - **DateTime** — getLocalTime, toJavaDate, timeDifference, adjustDay
 
-### Document-Level Security
+### Attachment / Embedded Object Support
+
+Document-level and item-level file attachments with Domino $FILE compatibility.
+- `embedObject(name, bytes, mimeType)` — attach files to documents or items
+- `getAttachment(name)` / `getEmbeddedObjects()` — retrieve attachments
+- Document-level attachments mapped to `$FILE` items for API compatibility
+- Attachment metadata persisted in JSON `_attachments` array
 
 Reader and Author fields with Domino-compatible semantics:
 
