@@ -51,7 +51,7 @@ cd domcouch
 mvn clean install
 ```
 
-This runs all 654 tests and installs all three artifacts:
+This runs all 664 tests and installs all three artifacts:
 
 | Module                 | Artifact                                           | Notes                           |
 | ---------------------- | -------------------------------------------------- | ------------------------------- |
@@ -247,19 +247,28 @@ domcouch/
 │   └── notes_formula_documentation.md     (Official HCL Domino 14.5.1 @Function docs)
 ├── formula-engine/                        (Standalone — 0 external deps)
 │   ├── pom.xml
-│   └── src/
-│       ├── main/java/com/domcouch/formula/
-│       │   ├── Token.java, TokenType.java
-│       │   ├── Lexer.java
-│       │   ├── Expr.java
-│       │   ├── Parser.java
-│       │   ├── FormulaContext.java
-│       │   ├── Evaluator.java
-│       │   ├── CompiledFormula.java
-│       │   ├── FormulaTranslator.java
-│       │   ├── FormulaParseException.java
-│       │   └── FunctionHandler.java
-│       └── test/java/com/domcouch/formula/
+│   ├── README.md                          (FormulaContext docs + N1QL coverage)
+│   └── src/main/java/com/domcouch/formula/
+│       ├── Token.java, TokenType.java
+│       ├── Lexer.java
+│       ├── Expr.java
+│       ├── Parser.java
+│       ├── Evaluator.java
+│       ├── CompiledFormula.java
+│       ├── FormulaContext.java
+│       ├── ContextNotSupportedException.java
+│       ├── FormulaParseException.java
+│       ├── FunctionHandler.java
+│       ├── PatternUtils.java
+│       ├── handlers/                      (@Function implementations)
+│       │   ├── MathHandlers.java
+│       │   ├── StringHandlers.java
+│       │   ├── DateTimeHandlers.java
+│       │   └── MiscHandlers.java
+│       └── translate/                     (N1QL translation)
+│           ├── FormulaTranslator.java
+│           ├── N1qlTranslator.java
+│           └── FunctionNames.java
 │           ├── BaseFormulaTest.java        (shared setup)
 │           ├── LexerTest.java              (63 tests)
 │           ├── ParserTest.java             (43 tests)
@@ -291,7 +300,8 @@ domcouch/
 │       │   ├── ViewEntryCollection.java
 │       │   ├── Item.java
 │       │   ├── DateTime.java
-│       │   └── NotesException.java
+│       │   ├── NotesException.java
+│       │   └── ViewColumn.java            (Column definitions for formula views)
 │       └── impl/                          (Couchbase-backed implementations)
 │           ├── CouchbaseSession.java
 │           ├── CouchbaseDatabase.java
@@ -311,7 +321,9 @@ domcouch/
         ├── config/                        (Spring beans: Session, Database)
         ├── controller/                    (REST endpoints)
         ├── model/                         (Person POJO)
-        └── service/                       (Business logic + data gen)
+        ├── service/                       (Business logic + data gen)
+    └── src/test/java/com/domcouch/demo/
+        └── TranslationCoverageTest.java   (10 integration tests — N1QL verification)
 ```
 
 ## Test Suite
@@ -335,7 +347,8 @@ domcouch/
 | `PatternMatchingTest`       | formula-engine | 27      | @Matches (24) + @Like (6) — pattern matching                 |
 | `DataConversionTest`        | formula-engine | 24      | @Text @TextToNumber @IsNumber @IsTime @ToNumber ...          |
 | `ValidationTest`            | formula-engine | 25      | @Success @Failure @IsNull @IfError placeholders constants    |
-| **Total**                   |                | **654** |                                                              |
+| `TranslationCoverageTest`   | springboot-demo| 10      | N1QL translation integration tests (Couchbase required)      |
+| **Total**                   |                | **664** |                                                              |
 
 ## Documentation
 
