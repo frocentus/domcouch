@@ -56,6 +56,7 @@ final class FunctionNames {
     static final String NOW = "NOW";
     static final String PI = "PI";
     static final String POWER = "POWER";
+    static final String RANDOM = "RANDOM";
     static final String PROPERCASE = "PROPERCASE";
     static final String REPEAT = "REPEAT";
     static final String REPLACESUBSTRING = "REPLACESUBSTRING";

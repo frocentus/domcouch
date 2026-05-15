@@ -539,16 +539,16 @@ for (Document doc : docs) {
 
 ## N1QL Translation Coverage
 
-67 @Functions are translated to Couchbase N1QL expressions by
+68 @Functions are translated to Couchbase N1QL expressions by
 `N1qlTranslator`. The remaining functions are evaluated via the
 Java formula engine (`Evaluator`).
 
-### Translated to N1QL (67)
+### Translated to N1QL (68)
 
 | Category | @Functions |
 |----------|-----------|
 | **String** | @UpperCase, @LowerCase, @Trim, @Length, @Left, @Right, @Contains, @Begins, @Ends, @ReplaceSubstring, @Repeat, @ProperCase, @NewLine, @Word, @Middle, @MiddleBack, @Explode, @Implode |
-| **Math** | @Abs, @Sqrt, @Power, @Exp, @Log, @Ln, @Cos, @Sin, @Tan, @Pi, @Integer, @Round, @Modulo, @Sign, @Max, @Min |
+| **Math** | @Abs, @Sqrt, @Power, @Exp, @Log, @Ln, @Cos, @Sin, @Tan, @Pi, @Integer, @Round, @Modulo, @Sign, @Max, @Min, @Random |
 | **Date** | @Date, @Adjust, @Month, @Day, @Year, @Hour, @Minute, @Second, @Weekday, @Today, @Now, @Tomorrow, @Yesterday, @Created, @Modified |
 | **Type** | @Text, @TextToNumber, @IsNumber, @IsText, @IsNull |
 | **List** | @Elements, @Count, @IsMember, @IsNotMember, @Explode, @Implode |

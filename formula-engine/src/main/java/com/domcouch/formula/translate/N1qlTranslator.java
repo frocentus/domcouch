@@ -189,6 +189,10 @@ final class N1qlTranslator {
             case FunctionNames.SIN -> { sb.append("SIN("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(")"); }
             case FunctionNames.TAN -> { sb.append("TAN("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(")"); }
             case FunctionNames.PI -> sb.append("PI()");
+            case FunctionNames.RANDOM -> {
+                if (args.isEmpty()) sb.append("RANDOM()");
+                else { sb.append("RANDOM("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(")"); }
+            }
             case FunctionNames.INTEGER -> { sb.append("FLOOR("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(")"); }
             case FunctionNames.ROUND -> { sb.append("ROUND("); walkExpr(args.get(0), sb, currentUserName, valueMode); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); } sb.append(")"); }
             case FunctionNames.REPLACESUBSTRING -> { sb.append("REPLACE("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); sb.append(", "); walkExpr(args.get(2), sb, currentUserName, valueMode); sb.append(")"); }
