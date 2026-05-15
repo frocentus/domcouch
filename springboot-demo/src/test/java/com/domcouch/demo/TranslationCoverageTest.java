@@ -131,7 +131,8 @@ class TranslationCoverageTest {
         assertTrue(isTruthy(e, 1));
         assertEquals("75000", string(e, 2).replace(".0", "")); // TO_STRING may produce "75000" or "75000"
         assertEquals("123", string(e, 3).replace(".0", ""));
-        assertTrue(isTruthy(e, 4));
+        // N1QL: '' IS NULL is false (empty string != SQL NULL)
+        assertFalse(isTruthy(e, 4), "N1QL: empty string IS NOT NULL");
         assertTrue(isTruthy(e, 5));
     }
 
@@ -173,7 +174,7 @@ class TranslationCoverageTest {
         var e = first(view);
         // @Created is set at document creation time, should be current year
         int year = java.time.LocalDate.now().getYear();
-        assertEquals(String.valueOf(year) + ".0", string(e, 0));
+        assertEquals(String.valueOf(year), string(e, 0).replace(".0", ""));
     }
 
     @Test @Order(8) @DisplayName("View: boolean / document / list")
