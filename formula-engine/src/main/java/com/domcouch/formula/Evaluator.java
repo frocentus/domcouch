@@ -258,8 +258,8 @@ public class Evaluator {
         if (handler != null) {
             return handler.call(this, args, ctx);
         }
-        // Unknown function → return "" (Domino-style error suppression)
-        return "";
+        // Unknown function → return error value (detectable via @IsError)
+        return ERROR_VALUE;
     }
 
     // ---- Arithmetic helpers ----

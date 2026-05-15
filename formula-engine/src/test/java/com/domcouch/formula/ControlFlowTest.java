@@ -54,6 +54,10 @@ class ControlFlowTest extends BaseFormulaTest {
     class ErrorTests {
         @Test @DisplayName("@IsError detects @Error") void isErrorDetects() { assertEquals(1.0, eval("@IsError(@Error)")); }
         @Test @DisplayName("non-error not error") void notError() { assertEquals(0.0, eval("@IsError(42)")); }
+        @Test @DisplayName("unknown function returns error, detectable by @IsError")
+        void unknownFunctionIsError() {
+            assertEquals(1.0, eval("@IsError(@NoSuchFunction)"));
+        }
     }
 
     @Nested @DisplayName("@CheckFormulaSyntax")
