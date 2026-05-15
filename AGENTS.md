@@ -27,7 +27,7 @@ switch the backend with minimal changes.
 | Database (.nsf) | Couchbase **bucket** (single-arg) or **scope within bucket** (two-arg) |
 | Document        | JSON document in the `documents` collection                            |
 | Universal ID    | 32-char hex UUID (field: `unid`)                                       |
-| Items           | Stored in a nested `items` object: `{name: {type, values}}`            |
+| Items           | Stored in a nested `items` object as JSON arrays per name    |
 | View            | N1QL-backed query with optional index                                  |
 | Attachments     | Not yet implemented                                                    |
 
@@ -50,10 +50,21 @@ The two-arg form requires a pre-existing bucket.
   "unid": "A1B2C3D4...",
   "form": "Person",
   "items": {
-    "FirstName": { "type": 0, "values": ["Alice"] },
-    "Salary": { "type": 1, "values": [95000] },
-    "Readers": { "type": 4, "values": ["Alice", "Bob"] },
-    "Authors": { "type": 3, "values": ["Alice"] }
+    "FirstName": [{ "type": 0, "values": ["Alice"] }],
+    "Salary": [{ "type": 1, "values": [95000] }],
+    "Readers": [{ "type": 4, "values": ["Alice", "Bob"] }],
+    "Authors": [{ "type": 3, "values": ["Alice"] }],
+    "Body": [
+      { "type": 5, "values": ["First paragraph"] },
+      { "type": 5, "values": ["Second paragraph"] }
+    ]
+  },
+  "_attachments": {
+    "report.pdf": {
+      "type": "application/pdf",
+      "size": 12345,
+      "parentUnid": "A1B2C3D4..."
+    }
   },
   "created": "2026-01-01T00:00:00Z",
   "lastModified": "2026-01-01T00:00:00Z",
@@ -61,6 +72,13 @@ The two-arg form requires a pre-existing bucket.
   "folders": ["Inbox"]
 }
 ```
+
+Each item name maps to a JSON **array** of item objects, allowing multiple
+items with the same name (e.g. multiple `Body` items — Domino multi-instance
+items). Single-value names produce a single-element array.
+
+N1QL field references use `doc.items.NAME[0].values[0]` to access the first
+item's first value.
 
 ### 2.3 Item Types
 
@@ -388,6 +406,7 @@ documents and regenerates.
 | 2026-05-12 | `@Command` / `@PostedCommand` treated as no-ops             | Matches Domino `NoExternalApps=1`; formulas with UI commands still evaluate |
 | 2026-05-13 | 150+ @Functions implemented (132 ✅ + 19 🟡) | 654 tests; function-catalog.md with per-function spec verification |
 | 2026-05-14 | Extracted `formula-engine` as standalone Maven module | Zero external deps; 3-module project (formula-engine → domino-couchbase-lib → springboot-demo) |
+| 2026-05-15 | Items stored as JSON arrays `[{type, values}]` per name | Supports Domino multi-instance items (multiple items with same name); N1QL uses `items.NAME[0].values[0]`; backward-compatible loader handles old object format |
 | 2026-05-14 | Pair-wise + permuted list operators | All 12 permuted operators, list broadcasting, any-match semantics |
 | 2026-05-15 | AST-based N1QL translator replaces regex | 71 @Function translations to Couchbase N1QL; formula-column views with computed fields |
 
@@ -406,17 +425,18 @@ documents and regenerates.
    `grantAccess()`, `revokeAccess()`. All access control is per-document via
    Readers/Authors items.
 
-4. **No attachment support**: `RichTextItem` and `EmbeddedObject` not
-   implemented.
+4. **No RichText/MIME support**: `RichTextItem` is the only major item type
+   not yet implemented. Simple file attachments (document-level and item-level)
+   are supported via `embedObject()` and `getAttachment()`.
 
 5. **No replication**: Couchbase cross-data-center replication (XDCR) exists
    but no Domino-style replication objects.
 
-6. **Formula translator gaps**: `@Matches`, `@Explode`, `@Implode`,
-   `@ReplaceSubstring` not implemented. See `docs/api-coverage.md`.
+6. **@DbLookup/@DbColumn limited**: String-key lookup only. No date-range or
+   multi-column key support.
 
-7. **View column extraction naive**: `extractColumnValues` emits all item
-   values as columns; no column selection formula support.
+7. **copyAllItems() not implemented**: `removeItem()` and `copyItemToDocument()`
+   are supported, but bulk copy-across-documents is not.
 
 ---
 
@@ -425,8 +445,7 @@ documents and regenerates.
 - [ ] Push reader filtering to N1QL for better performance on large datasets
 - [ ] Implement `RichTextItem` with Couchbase binary attachments
 - [ ] Add database-level ACL (`getACL()` / `grantAccess()` / `revokeAccess()`)
-- [ ] Phase 2 @Functions: `@Matches`, `@Replace`, `@While`, `@Adjust`, `@Prompt`
 - [ ] Multi-locale date parsing in time-date constants
 - [ ] Permuted operators (`*+`, `*=`, etc.) and full list broadcasting semantics
-- [ ] `@DbLookup` / `@DbColumn` cross-database access
+- [ ] `@DbLookup` / `@DbColumn` date-range and multi-column key support
 - [ ] Password hashing / encryption for sensitive fields (SSN)

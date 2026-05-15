@@ -363,11 +363,11 @@ Date parsing uses the JVM's default locale unless overridden.
                                │
                     ┌──────────┴──────────┐
                     │                     │
-              ┌──────────┐         ┌──────────┐
-   AST ──────▶│Evaluator │         │toN1ql()  │  (existing regex path)
-              └──────────┘         └──────────┘
-                    │
-              ┌──────────┐
+              ┌──────────┐         ┌───────────────┐
+   AST ──────▶│Evaluator │         │ N1qlTranslator│  (AST-based N1QL)
+              └──────────┘         └───────────────┘
+                    │                     │
+              ┌──────────┐          N1QL string
               │  Result  │  (String | Double | DateTime | List)
               └──────────┘
 ```
@@ -381,12 +381,20 @@ com.domcouch.formula/
 ├── Expr.java                (sealed interface + record subtypes; names in uppercase)
 ├── Parser.java              (recursive descent: List<Token> → List<Expr>)
 ├── Evaluator.java           (Expr × FormulaContext → Object; 150+ @Function handlers)
-├── FormulaContext.java      (23-method interface: fields, doc metadata, locking, database, lifecycle)
+├── FormulaContext.java      (27-method interface: fields, doc metadata, locking, database, lifecycle)
 ├── ContextNotSupportedException.java (thrown by unsupported context methods; caught by Evaluator)
-├── FormulaTranslator.java   (existing — moved to this package, gained evaluate() + compile())
 ├── CompiledFormula.java     (pre-parsed AST for cached evaluation, ~16× speedup)
 ├── FunctionHandler.java     (@FunctionalInterface for @Function implementations)
-└── FormulaParseException.java (thrown by Lexer/Parser on syntax errors)
+├── FormulaParseException.java (thrown by Lexer/Parser on syntax errors)
+├── translate/
+│   ├── FormulaTranslator.java  (unified entry: toN1ql + evaluate)
+│   ├── N1qlTranslator.java     (AST → N1QL, 71 @Functions translated)
+│   └── FunctionNames.java      (string constants for @Function names)
+└── handlers/
+    ├── MathHandlers.java
+    ├── StringHandlers.java
+    ├── DateTimeHandlers.java
+    └── MiscHandlers.java
 ```
 
 ### 3.2 Expression AST (`Expr.java`)

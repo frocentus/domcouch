@@ -1,6 +1,6 @@
 # Domino API Coverage — domcouch v0.1.0
 
-> Updated: 2026-05-11 — Reader/Author security, bucket-per-database, parameterized FTS
+> Updated: 2026-05-15 — Multi-instance items, attachments, formula-column views, Couchbase 8.0.1
 
 ## Legend
 
@@ -78,9 +78,9 @@
 |                         | `getNoteID()`                                     | ❌     |                                                                         |
 |                         | `computeWithForm()`                               | ❌     |                                                                         |
 |                         | `encrypt() / decrypt() / sign()`                  | ❌     |                                                                         |
-|                         | `getAttachment()`                                 | ❌     |                                                                         |
-|                         | `getEmbeddedObjects()`                            | ❌     |                                                                         |
-|                         | `copyAllItems() / removeItem()`                   | ❌     |                                                                         |
+|                         | `getAttachment()`                                 | ✅     |                                                                         |
+|                         | `getEmbeddedObjects()`                            | ✅     |                                                                         |
+|                         | `copyAllItems() / removeItem()`                   | 🟡     | removeItem ✅, copyAllItems ❌                                           |
 |                         | `lock() / unlock() / isLocked()`                  | ❌     |                                                                         |
 |                         | `isValid() / isDeleted() / isProfile()`           | ❌     |                                                                         |
 | **DocumentCollection**  | `getFirstDocument()`                              | ✅     |                                                                         |
