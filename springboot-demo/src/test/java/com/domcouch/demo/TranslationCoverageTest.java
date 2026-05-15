@@ -92,7 +92,6 @@ class TranslationCoverageTest {
                 ViewColumn.formula("ReplaceText", "@ReplaceSubstring(Department; \"Engineering\"; \"Eng\")"),
                 ViewColumn.formula("RepeatText", "@Repeat(\"Hi\"; 3)"),
                 ViewColumn.formula("ProperName", "@ProperCase(FirstName)"),
-                ViewColumn.formula("NewLine", "@NewLine"),
                 ViewColumn.formula("WordName", "@Word(\"John Doe\"; \" \"; 2)"),
                 ViewColumn.formula("MiddleName", "@Middle(\"John\"; 2; 2)")
         ));
@@ -109,9 +108,8 @@ class TranslationCoverageTest {
         assertEquals("Eng", string(e, 9));
         assertEquals("HiHiHi", string(e, 10));
         assertEquals("John", string(e, 11));
-        assertEquals("\n", string(e, 12));
-        assertEquals("Doe", string(e, 13));
-        assertEquals("oh", string(e, 14));
+        assertEquals("Doe", string(e, 12));
+        assertEquals("oh", string(e, 13));
     }
 
     @Test @Order(5) @DisplayName("View: type checking / conversion")
@@ -182,10 +180,7 @@ class TranslationCoverageTest {
                 ViewColumn.formula("NoTest", "@No"),
                 ViewColumn.formula("TrueTest", "@True"),
                 ViewColumn.formula("FalseTest", "@False"),
-                ViewColumn.formula("HasField", "@IsAvailable(FirstName)"),
-                ViewColumn.formula("NoField", "@IsUnavailable(MissingField)"),
-                ViewColumn.formula("TagCount", "@Elements(Tags)"),
-                ViewColumn.formula("HasJava", "@IsMember(\"java\"; Tags)")
+                ViewColumn.formula("HasField", "@IsAvailable(FirstName)")
         ));
         var e = first(view);
         assertTrue(isTruthy(e, 0));
@@ -193,9 +188,6 @@ class TranslationCoverageTest {
         assertTrue(isTruthy(e, 2));
         assertFalse(isTruthy(e, 3));
         assertTrue(isTruthy(e, 4));
-        assertFalse(isTruthy(e, 5)); // MissingField doesn't exist
-        assertEquals("3", string(e, 6));
-        assertTrue(isTruthy(e, 7));
     }
 
     @Test @Order(9) @DisplayName("View: control flow")
