@@ -60,7 +60,7 @@ public class CouchbaseDatabase implements Database {
         this.title = scopeName;
         this.views = new ConcurrentHashMap<>();
         this.folderNames = ConcurrentHashMap.newKeySet();
-        this.viewIndexService = new SimpleViewIndexService(scope);
+        this.viewIndexService = new TTLViewIndexService(scope);
 
         // Ensure the collection exists by performing a lightweight query that creates the primary index
         ensurePrimaryIndex();
@@ -265,6 +265,10 @@ public class CouchbaseDatabase implements Database {
 
     @Override
     public void recycle() {
+        // Clean up stale TTL indexes
+        if (viewIndexService instanceof TTLViewIndexService ttl) {
+            ttl.cleanupStale();
+        }
         open = false;
         views.clear();
     }
