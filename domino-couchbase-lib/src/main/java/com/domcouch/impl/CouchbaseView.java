@@ -59,6 +59,7 @@ public class CouchbaseView implements View {
         this.formulaTranslator = hasFormulaColumns()
                 ? new com.domcouch.formula.translate.FormulaTranslator()
                 : null;
+        // Index is created lazily when indexService is set via setIndexService()
     }
 
     private String buildKeyColumnN1ql() {
@@ -154,22 +155,26 @@ public class CouchbaseView implements View {
 
     @Override
     public void recycle() {
-        // nothing to release for a view
+        if (indexService != null && isCategorized()) indexService.dropIndex(this);
+        // nothing else to release for a view
     }
 
     /** Set the index service for navigator index support. Called by database after construction. */
-    void setIndexService(ViewIndexService svc) { this.indexService = svc; }
+    void setIndexService(ViewIndexService svc) {
+        this.indexService = svc;
+        if (svc != null && isCategorized()) svc.ensureIndex(this);
+    }
 
     // ---- ViewNavigator factory methods ----
 
     @Override
     public ViewNavigator createViewNav() {
-        return new CouchbaseViewNavigator(this, 64, 0, indexService);
+        return new CouchbaseViewNavigator(this, 64, 0);
     }
 
     @Override
     public ViewNavigator createViewNav(int cacheSize) {
-        return new CouchbaseViewNavigator(this, cacheSize, 0, indexService);
+        return new CouchbaseViewNavigator(this, cacheSize, 0);
     }
 
     @Override
@@ -183,7 +188,7 @@ public class CouchbaseView implements View {
     public ViewNavigator createViewNavFromCategory(String category) {
         if (!isCategorized()) return createViewNav();
         // Create navigator and seek to category
-        var nav = new CouchbaseViewNavigator(this, 64, 1, indexService);
+        var nav = new CouchbaseViewNavigator(this, 64, 1);
         // Find the category entry by value
         try {
             for (int i = 0; i < nav.getCount(); i++) {
@@ -227,7 +232,7 @@ public class CouchbaseView implements View {
 
     @Override
     public ViewNavigator createViewNavMaxLevel(int maxLevel) {
-        return new CouchbaseViewNavigator(this, 64, maxLevel, indexService);
+        return new CouchbaseViewNavigator(this, 64, maxLevel);
     }
 
     /** Create a lazy navigator using key-based pagination (no full scan). */
