@@ -160,18 +160,19 @@ public class CouchbaseDatabase implements Database {
             // Check if index already exists to avoid redundant DDL on every start
             boolean exists = false;
             try {
-                scope.query("SELECT COUNT(*) FROM system:indexes WHERE name = '" + indexName + "'");
-                exists = true;
+                var result = scope.query("SELECT COUNT(*) AS cnt FROM system:indexes WHERE name = '" + indexName + "'");
+                var rows = result.rowsAsObject();
+                exists = !rows.isEmpty() && rows.get(0).getInt("cnt") > 0;
             } catch (Exception ignored) { /* query failed, assume doesn't exist */ }
             if (!exists) {
                 String createIndex;
                 if (keyItemName != null) {
                     createIndex = "CREATE INDEX `" + indexName + "` ON " + collectionPath
-                            + "((items.Form.`values`[0]), (items." + keyItemName + ".`values`[0]))"
+                            + "((items.Form[0].`values`[0]), (items." + keyItemName + "[0].`values`[0]))"
                             + " WHERE _type = 'domcouch.document'";
                 } else {
                     createIndex = "CREATE INDEX `" + indexName + "` ON " + collectionPath
-                            + "((items.Form.`values`[0])) WHERE _type = 'domcouch.document'";
+                            + "((items.Form[0].`values`[0])) WHERE _type = 'domcouch.document'";
                 }
                 scope.query(createIndex);
             }
