@@ -230,6 +230,15 @@ public class CouchbaseView implements View {
         return new CouchbaseViewNavigator(this, 64, maxLevel, indexService);
     }
 
+    /** Create a lazy navigator using key-based pagination (no full scan). */
+    public ViewNavigator createLazyViewNav() {
+        return new CouchbaseLazyViewNavigator(this);
+    }
+
+    public ViewNavigator createLazyViewNav(int maxLevel, int pageSize) {
+        return new CouchbaseLazyViewNavigator(this, maxLevel, pageSize);
+    }
+
     @Override
     public boolean isCategorized() {
         return keyColumns != null && !keyColumns.isEmpty();

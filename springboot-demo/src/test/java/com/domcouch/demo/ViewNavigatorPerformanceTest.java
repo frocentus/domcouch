@@ -1,6 +1,7 @@
 package com.domcouch.demo;
 
 import com.domcouch.api.*;
+import com.domcouch.impl.CouchbaseLazyViewNavigator;
 import com.domcouch.impl.CouchbaseSession;
 import com.domcouch.impl.CouchbaseView;
 import com.domcouch.impl.CouchbaseViewNavigator;
@@ -236,7 +237,66 @@ class ViewNavigatorPerformanceTest {
 
     // ---- helpers ----
 
-        // ---- helpers ----
+        @Test @Order(8) @DisplayName("Lazy navigator — key-based pagination vs in-memory index")
+    void lazyNavigatorComparison() throws Exception {
+        View view = db.createView("perf_lazy",
+                null,
+                List.of("Department"),
+                List.of(ViewColumn.field("Department", "Department"),
+                        ViewColumn.field("FullName", "LastName")));
+
+        // In-memory build time
+        long t0 = System.nanoTime();
+        var navMem = new CouchbaseViewNavigator((CouchbaseView) view, 64, 0);
+        long buildMsMem = (System.nanoTime() - t0) / 1_000_000;
+        int totalMem = navMem.getCount();
+
+        // Lazy build time (constructor only — no full scan)
+        t0 = System.nanoTime();
+        var navLazy = ((CouchbaseView) view).createLazyViewNav();
+        long buildMsLazy = (System.nanoTime() - t0) / 1_000_000;
+
+        // First-page fetch (real work happens here)
+        t0 = System.nanoTime();
+        ViewEntry first = navLazy.getFirst();
+        long firstMsLazy = (System.nanoTime() - t0) / 1_000_000;
+        int totalLazy = navLazy.getCount();
+
+        // Sequential walk: 100 entries
+        t0 = System.nanoTime();
+        ViewEntry e = first;
+        int walked = 0;
+        while (e != null && walked < 100) { e = navLazy.getNext(); walked++; }
+        long walkNsLazy = (System.nanoTime() - t0) / walked;
+
+        // In-memory walk for comparison
+        t0 = System.nanoTime();
+        navMem.gotoFirst();
+        e = navMem.getCurrent();
+        walked = 0;
+        while (e != null && walked < 100) { e = navMem.getNext(); walked++; }
+        long walkNsMem = (System.nanoTime() - t0) / walked;
+
+        // getNth(5000)
+        t0 = System.nanoTime();
+        navLazy.getNth(5000);
+        long nthMsLazy = (System.nanoTime() - t0) / 1_000_000;
+
+        t0 = System.nanoTime();
+        navMem.getNth(5000);
+        long nthNsMem = (System.nanoTime() - t0);
+
+        System.out.printf("  [LAZY]  build: %d ms vs %d ms | first page: %d ms%n", buildMsMem, buildMsLazy, firstMsLazy);
+        System.out.printf("  [LAZY]  total: %d vs %d | walk: %d ns vs %d ns%n", totalMem, totalLazy, walkNsMem, walkNsLazy);
+        System.out.printf("  [LAZY]  getNth(5000): %d ns vs %d ms%n", nthNsMem, nthMsLazy);
+
+        assertNotNull(first);
+        assertTrue(totalLazy > 0, "Should have entries");
+        // Lazy nav counts documents only (categories are virtual); in-memory includes categories
+        assertTrue(totalMem > totalLazy, "In-memory should have more entries (includes categories)");
+    }
+
+    // ---- helpers ----
 
     private long measureBuildTime(View view) {
         System.gc();
