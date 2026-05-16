@@ -139,6 +139,51 @@ was removed in favor of dynamic concatenation in the N1QL query itself).
 
 ## 3. GSI Indexes
 
+### The Golden Rule
+Couchbase uses a GSI index **only when the WHERE clause filters on the index key column**.
+The optimizer ignores indexes for ORDER BY unless they fully cover the SELECT.
+
+### Pattern: matching index to query
+
+```sql
+-- 1. Create index with the key you'll filter on
+CREATE INDEX idx_nav_dept ON `domcouch`.`contacts`.`documents`(
+  items.Department[0].`values`[0]
+) WHERE _type = 'domcouch.document'
+
+-- 2. Query MUST have WHERE on that key for index to be used
+SELECT unid FROM docs AS doc
+WHERE doc._type = 'domcouch.document'
+  AND doc.items.Department[0].`values`[0] > 'Engineering'  -- ← triggers index
+ORDER BY doc.items.Department[0].`values`[0]
+LIMIT 200
+
+-- EXPLAIN: IndexScan3 ✅
+```
+
+```sql
+-- Same index, no key filter → IGNORED
+SELECT unid FROM docs AS doc
+WHERE doc._type = 'domcouch.document'     -- ← no key filter
+ORDER BY doc.items.Department[0].`values`[0]
+LIMIT 200
+
+-- EXPLAIN: PrimaryScan3 → Fetch → Order ❌
+```
+
+### Verification checklist
+
+1. Create index with the EXACT key expression used in WHERE
+2. EXPLAIN: confirm `IndexScan3`, not `PrimaryScan3 → Order`
+3. USE INDEX hint only as fallback (often ignored)
+4. Alias prefix (`doc.`) in query is OK — matches un-aliased index key
+
+### When to NOT create an index
+
+- Full-collection scan (navigator build): index won't help ORDER BY
+- COUNT queries: primary index is sufficient
+- Test first with EXPLAIN before committing DDL
+
 ### Creation
 
 ```sql

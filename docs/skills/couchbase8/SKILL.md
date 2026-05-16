@@ -46,9 +46,80 @@ SELECT COUNT(*) AS cnt FROM docs AS doc WHERE doc._type = 'domcouch.document'
 
 ---
 
-## GSI Indexes
+## GSI Indexes — Best Practices for Index Usage
 
-### CREATE
+### The Golden Rule
+Couchbase uses a GSI index **only when the WHERE clause filters on the index key column**.
+The optimizer ignores indexes for ORDER BY unless they fully cover the SELECT.
+
+### Matching index to query — the formula
+
+```
+Query:     WHERE doc.items.Department[0].`values`[0] = 'Engineering'
+              + ORDER BY doc.items.Department[0].`values`[0]
+
+Index MUST: CREATE INDEX ... ON ...(items.Department[0].`values`[0])
+              WHERE _type = 'domcouch.document'
+
+Result:    EXPLAIN → IndexScan3 ✅
+```
+
+### Pattern that WORKS (key-based pagination)
+
+```sql
+-- 1. Create the index
+CREATE INDEX idx_nav_dept ON `domcouch`.`contacts`.`documents`(
+  items.Department[0].`values`[0]
+) WHERE _type = 'domcouch.document'
+
+-- 2. Query with WHERE on the indexed column
+SELECT unid, doc.items.DEPARTMENT[0].`values`[0] AS d
+FROM `domcouch`.`contacts`.`documents` AS doc
+WHERE doc._type = 'domcouch.document'
+  AND doc.items.Department[0].`values`[0] > 'Engineering'  -- ← INDEX USED HERE
+ORDER BY doc.items.Department[0].`values`[0]                 -- ← index provides order
+LIMIT 200
+
+-- EXPLAIN: IndexScan3 ✅ (not PrimaryScan3 → Order)
+```
+
+### Pattern that DOES NOT WORK (full collection scan)
+
+```sql
+-- Same index, but query has no key-column filter:
+SELECT unid FROM docs AS doc
+WHERE doc._type = 'domcouch.document'    -- ← no index key filter
+ORDER BY doc.items.Department[0].`values`[0]  -- ← full sort, index ignored
+LIMIT 200
+
+-- EXPLAIN: PrimaryScan3 → Fetch → Order ❌ (index ignored!)
+```
+
+### Verification checklist — before writing code
+
+1. **Create the index** with the EXACT key expression you'll use in WHERE
+2. **EXPLAIN the query** — confirm you see `IndexScan3`, not `PrimaryScan3 → Order`
+3. **If PrimaryScan**: check that WHERE clause references the index key column directly
+4. **USE INDEX hint** only as fallback (often ignored by optimizer anyway)
+5. **Key expression must match**: `items.Department[0].values[0]` in index = `doc.items.Department[0].values[0]` in query (alias prefix is OK)
+
+### When to NOT create an index
+
+- **Full-collection scan** (navigator build): index won't help ORDER BY
+- **Document count queries**: primary index handles COUNT(*) efficiently
+- **Complex WHERE with multiple conditions**: test with EXPLAIN first
+
+### Our navigator indexes — why they work
+
+The `CouchbaseLazyViewNavigator` uses key-based pagination:
+```sql
+WHERE keyCol > $cursor ORDER BY keyCol LIMIT pageSize
+```
+This triggers the GSI index because the WHERE clause filters on the index key.
+The in-memory navigator uses `SELECT ... ORDER BY` (no key filter) — index ignored.
+
+### CREATE (index expression must match query)
+
 ```sql
 CREATE INDEX idx_name ON `bucket`.`scope`.`documents`(
   items.Department[0].`values`[0]
@@ -56,35 +127,23 @@ CREATE INDEX idx_name ON `bucket`.`scope`.`documents`(
 ```
 
 ### DROP (correct syntax!)
+
 ```sql
 DROP INDEX idx_name ON `bucket`.`scope`.`documents`
--- NOT: DROP INDEX `bucket`.`scope`.`documents`.`idx_name`
+-- NOT: DROP INDEX `bucket`.`scope`.`documents`.`idx_name`   ← SYNTAX ERROR
 ```
-
-### When indexes are USED
-Only when WHERE clause filters on the index key column:
-```sql
--- USES index:
-WHERE items.Department[0].values[0] > 'Engineering'  -- IndexScan3 in EXPLAIN
-
--- Does NOT use index:
-WHERE _type = 'domcouch.document'  -- PrimaryScan3 in EXPLAIN
-```
-
-### USE INDEX hint — goes AFTER alias
-```sql
-FROM keyspace AS doc USE INDEX (idx_name USING GSI)
-```
-
-### Indexes DON'T help ORDER BY
-Unless the index covers ALL selected fields. Since we SELECT multiple fields,
-ORDER BY always does a full sort. This is the primary bottleneck for the
-in-memory navigator build (~30s for 50K docs).
 
 ### Index lifecycle (domcouch)
 - `TTLViewIndexService` (default): hash-based names, 1h TTL, metadata in `view_index_meta`
 - `SimpleViewIndexService`: name-based, explicit drop
 - Created on view creation, dropped on `View.recycle()`
+- Index name = `idx_nav_{SHA-256(formula+keyColumns)[0:12]}` — shared across views with same formula
+
+### USE INDEX hint — goes AFTER alias, often ignored
+
+```sql
+FROM keyspace AS doc USE INDEX (idx_name USING GSI)
+```
 
 ---
 
