@@ -365,6 +365,7 @@ domcouch/
 | Document                                | Purpose                                                                |
 | --------------------------------------- | ---------------------------------------------------------------------- |
 | `AGENTS.md`                             | Architecture decisions, security model, code conventions, decision log |
+| `docs/couchbase8-knowledge.md`          | Couchbase 8 N1QL patterns, indexes, pitfalls, performance             |
 | `docs/api-coverage.md`                  | Domino API compatibility matrix + domcouch extensions                  |
 | `docs/formula-language-architecture.md` | Complete formula language grammar, AST design, @Function catalog       |
 | `docs/function-catalog.md`              | 151 @Functions with status, spec verification, and descriptions        |
