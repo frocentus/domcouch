@@ -1,6 +1,6 @@
-# Domino API Coverage — domcouch v0.1.0
+# Domino API Coverage — domcouch v0.2.0
 
-> Updated: 2026-05-15 — Multi-instance items, attachments, formula-column views, Couchbase 8.0.1
+> Updated: 2026-05-16 — ViewNavigator, folders, lazy navigator, TTL indexes
 
 ## Legend
 
@@ -186,6 +186,50 @@
 > **Note**: The formula engine (`com.domcouch.formula`) also supports full computed
 > evaluation of 150+ @Functions (not N1QL translation).
 > See `docs/function-catalog.md` for the complete matrix.
+
+---
+
+## ViewNavigator
+
+Full Domino ViewNavigator API for categorized views.
+
+| Method                     | Status | Notes                                               |
+| -------------------------- | ------ | --------------------------------------------------- |
+| `createViewNav()`          | ✅     | Returns CouchbaseViewNavigator (in-memory index)    |
+| `createLazyViewNav()` 🆕   | ✅     | Returns CouchbaseLazyViewNavigator (key-based pages) |
+| `getFirst/Last/Next/Prev`  | ✅     |                                                     |
+| `getNth(n)`                | ✅     | O(1) in-memory; O(n) lazy                           |
+| `getNextCategory/Category` | ✅     | In-memory only; lazy: limited support               |
+| `getChild/Parent/Sibling`  | 🟡     | In-memory only; lazy: not supported                 |
+| `getPos/gotoPos`           | 🟡     | In-memory only                                      |
+| `createViewNavFrom*`       | ✅     | From entry, category, children, descendants         |
+| `createViewNavMaxLevel`    | ✅     |                                                     |
+| `markAllRead/Unread`       | ✅     | No-op (Couchbase)                                   |
+
+## Folders
+
+Database-level folder CRUD. Folders are virtual views with N1QL `'name' IN doc.folders`.
+
+| Method                  | Status | Notes                                   |
+| ----------------------- | ------ | --------------------------------------- |
+| `createFolder(name)`    | ✅     | Creates View with auto-generated N1QL   |
+| `getFolder(name)`       | ✅     | Returns cached View                     |
+| `getFolderNames()`      | ✅     | Lists all folder names                  |
+| `removeFolder(name)`    | ✅     | Removes from folderNames + views cache  |
+| `isFolder(name)`        | ✅     | Checks folderNames set                  |
+| `putInFolder(name)`     | ✅     | Adds to `folders[]` on document         |
+| `removeFromFolder(name)`| ✅     | Removes from `folders[]`                |
+| `getFolderNames()` (doc)| ✅     | Returns document's `folders[]` list     |
+
+## ViewIndexService
+
+Pluggable N1QL index lifecycle for categorized views.
+
+| Implementation            | Strategy                                          |
+| ------------------------- | ------------------------------------------------- |
+| `TTLViewIndexService` (default) | Hash-based names, 1h TTL, metadata in view_index_meta |
+| `SimpleViewIndexService`  | View-name-based, explicit drop on recycle         |
+| `ViewIndexService`        | Interface — swap for custom strategies            |
 
 ---
 
