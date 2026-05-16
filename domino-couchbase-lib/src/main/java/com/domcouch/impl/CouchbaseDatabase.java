@@ -441,6 +441,7 @@ public class CouchbaseDatabase implements Database {
 
     @Override
     public boolean isFolder(String name) throws NotesException {
+        if (name == null) return false;
         return folderNames.contains(name);
     }
 }
