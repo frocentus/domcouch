@@ -29,7 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class TTLViewIndexService implements ViewIndexService {
 
-    private static final String META_COLLECTION = "_view_index_meta";
+    private static final String META_COLLECTION = "view_index_meta";
     private static final int DEFAULT_TTL_SECONDS = 3600; // 1 hour
 
     private final Scope scope;
@@ -44,14 +44,26 @@ public class TTLViewIndexService implements ViewIndexService {
     public TTLViewIndexService(Scope scope, int ttlSeconds) {
         this.scope = scope;
         this.ttlSeconds = ttlSeconds;
-        // Ensure metadata collection exists
+        this.metaCollection = ensureMetaCollection(scope);
+    }
+
+    private static Collection ensureMetaCollection(Scope scope) {
         try {
+            // Check if collection exists
             scope.query("SELECT 1 FROM " + META_COLLECTION + " LIMIT 1");
         } catch (Exception e) {
-            // Collection doesn't exist yet — will be created on first write via KV
-            // Fallback: use scope.collection() which auto-creates if needed in CB 7+
+            // Collection doesn't exist — create it via DDL
+            try {
+                scope.query("CREATE COLLECTION `" + scope.bucketName()
+                        + "`.`" + scope.name() + "`.`" + META_COLLECTION + "` IF NOT EXISTS");
+                // Wait briefly for DDL to propagate
+                Thread.sleep(500);
+            } catch (Exception ex) {
+                System.err.println("[domcouch] Failed to create metadata collection "
+                        + META_COLLECTION + ": " + ex.getMessage());
+            }
         }
-        this.metaCollection = scope.collection(META_COLLECTION);
+        return scope.collection(META_COLLECTION);
     }
 
     // ---- ViewIndexService ----
