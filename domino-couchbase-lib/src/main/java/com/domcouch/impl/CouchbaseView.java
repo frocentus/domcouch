@@ -22,6 +22,7 @@ public class CouchbaseView implements View {
     private final String keyColumnN1ql;
     private final List<String> keyColumns; // for multi-level categorization
     private final List<ViewColumn> columns; // null = legacy extract-all-items mode
+    private ViewIndexService indexService; // set by database for navigator index support
     private final com.domcouch.formula.translate.FormulaTranslator formulaTranslator;
 
     /** Legacy 3-arg constructor for views without explicit columns. */
@@ -156,16 +157,19 @@ public class CouchbaseView implements View {
         // nothing to release for a view
     }
 
+    /** Set the index service for navigator index support. Called by database after construction. */
+    void setIndexService(ViewIndexService svc) { this.indexService = svc; }
+
     // ---- ViewNavigator factory methods ----
 
     @Override
     public ViewNavigator createViewNav() {
-        return new CouchbaseViewNavigator(this, 64, 0);
+        return new CouchbaseViewNavigator(this, 64, 0, indexService);
     }
 
     @Override
     public ViewNavigator createViewNav(int cacheSize) {
-        return new CouchbaseViewNavigator(this, cacheSize, 0);
+        return new CouchbaseViewNavigator(this, cacheSize, 0, indexService);
     }
 
     @Override
@@ -179,7 +183,7 @@ public class CouchbaseView implements View {
     public ViewNavigator createViewNavFromCategory(String category) {
         if (!isCategorized()) return createViewNav();
         // Create navigator and seek to category
-        var nav = new CouchbaseViewNavigator(this, 64, 1);
+        var nav = new CouchbaseViewNavigator(this, 64, 1, indexService);
         // Find the category entry by value
         try {
             for (int i = 0; i < nav.getCount(); i++) {
@@ -223,7 +227,7 @@ public class CouchbaseView implements View {
 
     @Override
     public ViewNavigator createViewNavMaxLevel(int maxLevel) {
-        return new CouchbaseViewNavigator(this, 64, maxLevel);
+        return new CouchbaseViewNavigator(this, 64, maxLevel, indexService);
     }
 
     @Override

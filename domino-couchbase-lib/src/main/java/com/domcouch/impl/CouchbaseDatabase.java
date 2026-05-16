@@ -47,6 +47,7 @@ public class CouchbaseDatabase implements Database {
     private boolean open;
     private final Map<String, CouchbaseView> views;
     private final Set<String> folderNames;
+    private final ViewIndexService viewIndexService;
 
     public CouchbaseDatabase(Cluster cluster, String bucketName, String scopeName) {
         this.cluster = cluster;
@@ -59,6 +60,7 @@ public class CouchbaseDatabase implements Database {
         this.title = scopeName;
         this.views = new ConcurrentHashMap<>();
         this.folderNames = ConcurrentHashMap.newKeySet();
+        this.viewIndexService = new SimpleViewIndexService(scope);
 
         // Ensure the collection exists by performing a lightweight query that creates the primary index
         ensurePrimaryIndex();
@@ -145,6 +147,7 @@ public class CouchbaseDatabase implements Database {
     public View createView(String name, String selectionFormula, List<String> keyColumns, List<ViewColumn> columns) {
         String n1qlFormula = formulaTranslator.toN1ql(selectionFormula);
         CouchbaseView view = new CouchbaseView(this, scope, name, n1qlFormula, keyColumns, columns);
+        view.setIndexService(viewIndexService);
         views.put(name, view);
         createViewIndex(name, keyColumns != null && !keyColumns.isEmpty() ? keyColumns.get(0) : null);
         return view;
@@ -404,6 +407,7 @@ public class CouchbaseDatabase implements Database {
         // Folders are views whose selection formula is auto-generated
         String n1ql = "'" + name.replace("'", "\\'") + "' IN doc.folders";
         CouchbaseView folder = new CouchbaseView(this, scope, name, n1ql, (List<String>) null, (List<ViewColumn>) null);
+        folder.setIndexService(viewIndexService);
         views.put(name, folder);
         return folder;
     }
@@ -413,7 +417,9 @@ public class CouchbaseDatabase implements Database {
         if (!folderNames.contains(name)) return null;
         return views.computeIfAbsent(name, n -> {
             String n1ql = "'" + n.replace("'", "\\'") + "' IN doc.folders";
-            return new CouchbaseView(this, scope, n, n1ql, (List<String>) null, (List<ViewColumn>) null);
+            var folder = new CouchbaseView(this, scope, n, n1ql, (List<String>) null, (List<ViewColumn>) null);
+            folder.setIndexService(viewIndexService);
+            return folder;
         });
     }
 

@@ -20,6 +20,7 @@ import java.util.*;
 public class CouchbaseViewNavigator implements ViewNavigator {
 
     private final CouchbaseView parentView;
+    private final ViewIndexService indexService;
     private final List<CouchbaseViewEntry> index;
     private final Map<String, Integer> unidToPos;
     private int cursorPos; // 0-based, -1 = before first
@@ -30,21 +31,34 @@ public class CouchbaseViewNavigator implements ViewNavigator {
      * Create a navigator over all entries in the view.
      */
     public CouchbaseViewNavigator(CouchbaseView parentView, int cacheSize, int maxLevel) {
-        this(parentView, cacheSize, maxLevel, false);
+        this(parentView, cacheSize, maxLevel, null, false);
+        if (indexService != null) indexService.ensureIndex(parentView);
+        buildCategorizedIndex();
+    }
+
+    /**
+     * Create a navigator with a specific index service.
+     */
+    public CouchbaseViewNavigator(CouchbaseView parentView, int cacheSize, int maxLevel,
+                                   ViewIndexService indexService) {
+        this(parentView, cacheSize, maxLevel, indexService, false);
+        if (this.indexService != null) this.indexService.ensureIndex(parentView);
         buildCategorizedIndex();
     }
 
     /**
      * Internal constructor that skips index building (for subset navigators loaded via loadSubset).
      */
-    private CouchbaseViewNavigator(CouchbaseView parentView, int cacheSize, int maxLevel, boolean skipBuild) {
+    private CouchbaseViewNavigator(CouchbaseView parentView, int cacheSize, int maxLevel,
+                                    ViewIndexService indexService, boolean skipBuild) {
         this.parentView = parentView;
+        this.indexService = indexService;
         this.cacheSize = cacheSize;
         this.maxLevel = maxLevel;
         this.index = new ArrayList<>();
         this.unidToPos = new HashMap<>();
         this.cursorPos = -1;
-        // buildCategorizedIndex() called by public constructor only
+        // buildCategorizedIndex() called by public constructors only
     }
 
     void loadSubset(List<CouchbaseViewEntry> entries) {
@@ -725,6 +739,7 @@ public class CouchbaseViewNavigator implements ViewNavigator {
 
     @Override
     public void recycle() {
+        if (indexService != null) indexService.dropIndex(parentView);
         index.clear();
         unidToPos.clear();
     }
@@ -761,7 +776,7 @@ public class CouchbaseViewNavigator implements ViewNavigator {
      * @param endExclusive   0-based exclusive end index (matches List.subList semantics)
      */
     CouchbaseViewNavigator createSubset(int startInclusive, int endExclusive) {
-        CouchbaseViewNavigator nav = new CouchbaseViewNavigator(parentView, cacheSize, maxLevel, false);
+        CouchbaseViewNavigator nav = new CouchbaseViewNavigator(parentView, cacheSize, maxLevel, null, false);
         nav.loadSubset(new ArrayList<>(index.subList(startInclusive, endExclusive)));
         return nav;
     }
