@@ -261,7 +261,8 @@ domcouch/
 │   ├── formula-language-architecture.md
 │   ├── function-catalog.md
 │   ├── notes_formula_documentation.md
-│   └── couchbase8-knowledge.md
+│   ├── couchbase8-knowledge.md
+│   └── skills/couchbase8/SKILL.md
 ├── formula-engine/                    (Standalone module — 0 external deps)
 │   ├── pom.xml
 │   └── src/main/java/com/domcouch/formula/
