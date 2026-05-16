@@ -84,7 +84,7 @@ public class CouchbaseViewNavigator implements ViewNavigator {
     }
 
     private void buildFlatIndex() {
-        String stmt = parentView.buildSelectStatement(false);
+        String stmt = parentView.buildNavigatorSelect();
         QueryResult result = parentView.getScope().query(stmt);
         int pos = 0;
         for (JsonObject row : result.rowsAsObject()) {
@@ -106,7 +106,8 @@ public class CouchbaseViewNavigator implements ViewNavigator {
             orderBy.append(parentView.buildKeyColumnRef(keyCols.get(i)));
         }
 
-        String baseStmt = parentView.buildSelectStatement(false);
+        // Use navigator-specific SELECT that avoids doc.*
+        String baseStmt = parentView.buildNavigatorSelect();
         // Append ORDER BY after the WHERE clause (N1QL requires WHERE before ORDER BY)
         String stmt;
         if (baseStmt.contains("WHERE")) {

@@ -250,6 +250,42 @@ public class CouchbaseView implements View {
         return scope;
     }
 
+    String buildNavigatorSelect() {
+        String cp = database.getCollectionPath();
+        StringBuilder sb = new StringBuilder("unid");
+        if (columns != null && !columns.isEmpty()) {
+            for (ViewColumn col : columns) {
+                if (col.isFormula()) {
+                    try {
+                        String n1ql = database.formulaTranslator.toN1qlValue(col.getExpression());
+                        if (n1ql != null) {
+                            sb.append(", (").append(n1ql).append(") AS `").append(col.getName()).append("`");
+                            continue;
+                        }
+                    } catch (Exception ignored) {}
+                }
+                // Direct field — SELECT only the one value, not doc.*
+                sb.append(", doc.items.").append(escapeBacktick(col.getExpression().toUpperCase()))
+                        .append("[0].`values`[0] AS `").append(col.getName()).append("`");
+            }
+        } else {
+            // Legacy: no columns defined — still avoid doc.* for navigator speed
+            // Extract key column values if categorized, otherwise just unid
+            if (keyColumns != null && !keyColumns.isEmpty()) {
+                for (String kc : keyColumns) {
+                    sb.append(", doc.items.").append(escapeBacktick(kc.toUpperCase()))
+                            .append("[0].`values`[0]");
+                }
+            }
+        }
+        String stmt = "SELECT " + sb + " FROM " + cp + " AS doc"
+                + " WHERE doc._type = 'domcouch.document'";
+        if (selectionFormula != null && !selectionFormula.isEmpty()) {
+            stmt += " AND (" + selectionFormula + ")";
+        }
+        return stmt;
+    }
+
     String buildSelectStatement(boolean countOnly) {
         String cp = database.getCollectionPath();
         String selectClause;
