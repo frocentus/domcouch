@@ -6,13 +6,13 @@ import com.domcouch.api.View;
  * Service for managing N1QL indexes used by categorized ViewNavigators.
  * <p>
  * Implementations control the lifecycle of sort indexes — creation, reuse,
- * and cleanup. The default {@link SimpleViewIndexService} creates indexes
- * on first navigator access and drops them on {@link #dropIndex}.
+ * and cleanup. The default {@link TTLViewIndexService} uses hash-based
+ * index names with TTL-driven cleanup.
  * <p>
  * Swap implementations for different strategies:
  * <ul>
- *   <li>TTL-based: auto-drop after idle time</li>
- *   <li>Pre-warming: create all indexes on database open</li>
+ *   <li>{@link TTLViewIndexService}: hash-based, automatic TTL cleanup (default)</li>
+ *   <li>{@link SimpleViewIndexService}: view-name-based, explicit drop-only</li>
  *   <li>No-op: skip index creation (fall back to full scan)</li>
  * </ul>
  */

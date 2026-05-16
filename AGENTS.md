@@ -409,6 +409,11 @@ documents and regenerates.
 | 2026-05-15 | Items stored as JSON arrays `[{type, values}]` per name | Supports Domino multi-instance items (multiple items with same name); N1QL uses `items.NAME[0].values[0]`; backward-compatible loader handles old object format |
 | 2026-05-14 | Pair-wise + permuted list operators | All 12 permuted operators, list broadcasting, any-match semantics |
 | 2026-05-15 | AST-based N1QL translator replaces regex | 71 @Function translations to Couchbase N1QL; formula-column views with computed fields |
+| 2026-05-15 | ViewNavigator with in-memory categorized index | Full Domino ViewNavigator API (27 get + 23 goto methods); N1QL ORDER BY + client-side category row insertion; O(1) getNth/gotoPos via flat List<ViewEntry>; hierarchy links (parent/child/sibling) |
+| 2026-05-15 | CouchbaseLazyViewNavigator — key-based pagination | No full scan on build; WHERE keyCol > $cursorKey ORDER BY keyCol LIMIT pageSize; build 1ms vs 33s; first page visible in ~1s; sequential walk 16μs/entry |
+| 2026-05-15 | Folder support via `doc.folders` array | createFolder/getFolder/removeFolder/isFolder on Database; folders are virtual views with N1QL `'name' IN doc.folders` |
+| 2026-05-16 | ViewIndexService — pluggable index lifecycle | TTLViewIndexService (default): SHA-256 hash-based index names, metadata in view_index_meta collection, 1h TTL with cleanupStale(). SimpleViewIndexService: view-name-based, drop on recycle only. Index lifecycle = view lifecycle, not navigator lifecycle |
+| 2026-05-16 | Indexes fixed for multi-instance array schema | createViewIndex bugs: (1) exists-check always true, (2) CREATE INDEX used old object format `items.X.values[0]` instead of `items.X[0].values[0]`. Demo views now have 9 idx_view_* indexes online |
 
 ---
 

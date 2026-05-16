@@ -140,6 +140,8 @@ and creates 7 N1QL-backed views.
 - **Document** — getFirstItem, replaceItemValue (overwrites all instances), save, remove, copyToDatabase, hierarchy, embedObject, getAttachment, multi-instance items
 - **EmbeddedObject** — file attachments at document-level ($FILE) and item-level
 - **View** — N1QL-backed: getAllEntries, getAllEntriesByKey, FTSearch, getEntryCount
+- **ViewNavigator** — categorized views with in-memory index (O(1) random access) or lazy key-based pagination (1ms build)
+- **ViewIndexService** — TTL-based hash-index lifecycle, shared across views with same formula
 - **Item** — multi-type: TEXT, NUMBERS, DATETIMES, AUTHORS, READERS, RICHTEXT; multiple instances per name (like Domino multi-Body)
 - **DateTime** — getLocalTime, toJavaDate, timeDifference, adjustDay
 
