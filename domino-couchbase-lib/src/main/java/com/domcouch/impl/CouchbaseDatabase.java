@@ -233,6 +233,7 @@ public class CouchbaseDatabase implements Database {
             // IDs via N1QL, bodies via KV — same approach as getAllDocuments()
             String stmt = "SELECT meta().id AS _id FROM " + getCollectionPath()
                     + " AS doc WHERE doc._type = 'domcouch.document' AND (" + n1qlFormula + ")";
+            log.info("search: full SQL: {}", stmt);
             String userName = getCurrentUserName();
             for (JsonObject row : scope.query(stmt, QueryOptions.queryOptions().scanConsistency(QueryScanConsistency.REQUEST_PLUS)).rowsAsObject()) {
                 String unid = row.getString("_id");
