@@ -32,7 +32,6 @@ public class KanbanService {
         List<KanbanBoard> boards = new ArrayList<>();
         DocumentCollection results = db.search("Form = \"KanbanBoard\"");
         for (Document d : results) boards.add(new KanbanBoard(d));
-        }
         return boards;
     }
 
