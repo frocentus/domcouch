@@ -107,27 +107,36 @@ public class CouchbaseDatabase implements Database {
         try {
             var result = collection.get(unid);
             if (result == null) {
-                // KV read may fail immediately after write on some Couchbase SDK versions.
-                // Fall back to N1QL USE KEYS query.
-                String stmt = "SELECT doc FROM " + getCollectionPath()
-                        + " AS doc USE KEYS '" + unid + "'";
-                var rows = scope.query(stmt).rowsAsObject();
-                if (!rows.isEmpty()) {
-                    JsonObject row = rows.get(0);
-                    JsonObject json = row.getObject("doc");
-                    System.out.println("getDocumentByUNID: N1QL fallback found doc=" + (json != null));
-                    if (json != null && canRead(json, getCurrentUserName())) {
-                        return new CouchbaseDocument(this, json);
-                    }
-                }
-                return null;
+                return getDocumentByUNIDviaN1ql(unid);
             }
-            JsonObject json = result.contentAsObject();
-            if (!canRead(json, getCurrentUserName())) return null;
-            return new CouchbaseDocument(this, json);
-        } catch (Exception e) {
+            // Use contentAs(Object.class) with instanceof to avoid
+            // ClassCastException from contentAsObject() with nested arrays.
+            Object content = result.contentAs(Object.class);
+            if (content instanceof JsonObject json) {
+                if (canRead(json, getCurrentUserName())) {
+                    return new CouchbaseDocument(this, json);
+                }
+            }
             return null;
+        } catch (Exception e) {
+            return getDocumentByUNIDviaN1ql(unid);
         }
+    }
+
+    private Document getDocumentByUNIDviaN1ql(String unid) {
+        try {
+            String stmt = "SELECT doc FROM " + getCollectionPath()
+                    + " AS doc USE KEYS '" + unid + "'";
+            var rows = scope.query(stmt).rowsAsObject();
+            if (!rows.isEmpty()) {
+                JsonObject row = rows.get(0);
+                JsonObject json = row.getObject("doc");
+                if (json != null && canRead(json, getCurrentUserName())) {
+                    return new CouchbaseDocument(this, json);
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
     }
 
     @Override
@@ -240,21 +249,9 @@ public class CouchbaseDatabase implements Database {
                 String unid = row.getString("_id");
                 if (unid == null) continue;
                 try {
-                    var result = collection.get(unid);
-                    if (result == null) {
-                        Document doc = getDocumentByUNID(unid);
-                        if (doc != null) docs.add(doc);
-                        continue;
-                    }
-                    JsonObject docJson = result.contentAsObject();
-                    if (canRead(docJson, userName)) {
-                        docs.add(new CouchbaseDocument(this, docJson));
-                    }
-                } catch (Exception kvEx) {
-                    System.out.println("search: KV fetch failed for " + unid.substring(0,8) + " — trying N1QL fallback");
                     Document doc = getDocumentByUNID(unid);
                     if (doc != null) docs.add(doc);
-                }
+                } catch (Exception kvEx) { /* skip */ }
             }
             return new CouchbaseDocumentCollection(docs);
         } catch (Exception e) {
@@ -277,18 +274,9 @@ public class CouchbaseDatabase implements Database {
                 String unid = row.getString("_id");
                 if (unid == null) continue;
                 try {
-                    var result = collection.get(unid);
-                    if (result != null) {
-                        JsonObject docJson = result.contentAsObject();
-                        if (canRead(docJson, userName)) {
-                            docs.add(new CouchbaseDocument(this, docJson));
-                        }
-                    }
-                } catch (Exception kvEx) {
-                    // KV fetch threw — try N1QL fallback
                     Document doc = getDocumentByUNID(unid);
                     if (doc != null) docs.add(doc);
-                }
+                } catch (Exception kvEx) { /* skip */ }
             }
         } catch (Exception e) {
             log.warn("getAllDocuments failed: {}", e.getMessage());
@@ -307,20 +295,9 @@ public class CouchbaseDatabase implements Database {
                 String unid = row.getString("_id");
                 if (unid != null) {
                     try {
-                        var result = collection.get(unid);
-                        if (result == null) {
-                            Document doc = getDocumentByUNID(unid);
-                            if (doc != null) docs.add(doc);
-                            continue;
-                        }
-                        JsonObject docJson = result.contentAsObject();
-                        if (canRead(docJson, userName)) {
-                            docs.add(new CouchbaseDocument(this, docJson));
-                        }
-                    } catch (Exception kvEx) {
                         Document doc = getDocumentByUNID(unid);
                         if (doc != null) docs.add(doc);
-                    }
+                    } catch (Exception kvEx) { /* skip */ }
                 }
             }
         } catch (Exception e) {
