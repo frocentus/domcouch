@@ -326,6 +326,12 @@ public class CouchbaseDatabase implements Database {
         collection.upsert(unid, json);
     }
 
+    /** N1QL query with request_plus scan consistency for read-your-writes. */
+    private QueryResult queryWithConsistency(String stmt) {
+        return scope.query(stmt, QueryOptions.queryOptions()
+                .scanConsistency(QueryScanConsistency.REQUEST_PLUS));
+    }
+
     void removeDocument(String unid) {
         try {
             collection.remove(unid);
