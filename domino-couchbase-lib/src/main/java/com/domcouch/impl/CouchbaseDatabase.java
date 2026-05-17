@@ -116,6 +116,9 @@ public class CouchbaseDatabase implements Database {
                 if (canRead(json, getCurrentUserName())) {
                     return new CouchbaseDocument(this, json);
                 }
+                System.out.println("getDocumentByUNID: KV found doc but canRead=false for " + unid.substring(0,8));
+            } else {
+                System.out.println("getDocumentByUNID: KV content is " + (content != null ? content.getClass().getSimpleName() : "null") + " for " + unid.substring(0,8));
             }
             return null;
         } catch (Exception e) {
@@ -134,8 +137,13 @@ public class CouchbaseDatabase implements Database {
                 if (json != null && canRead(json, getCurrentUserName())) {
                     return new CouchbaseDocument(this, json);
                 }
+                System.out.println("getDocumentByUNIDviaN1ql: row found but doc=" + (json != null) + " canRead=" + (json != null ? canRead(json, getCurrentUserName()) : false));
+            } else {
+                System.out.println("getDocumentByUNIDviaN1ql: N1QL returned 0 rows for " + unid.substring(0,8));
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ex) {
+            System.out.println("getDocumentByUNIDviaN1ql: exception: " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
+        }
         return null;
     }
 
