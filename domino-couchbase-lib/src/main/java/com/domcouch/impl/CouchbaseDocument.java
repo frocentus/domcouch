@@ -412,17 +412,15 @@ public class CouchbaseDocument implements Document {
                     System.out.println("    EXCEPTION: " + ex.getClass().getSimpleName());
                 }
                 var itemList = new ArrayList<CouchbaseItem>();
-                // Handle both single-object and array formats
-                var array = itemsObj.getArray(name);
-                if (array != null) {
-                    // Array format: multiple items with same name
-                    for (Object o : array.toList()) {
-                        if (o instanceof JsonObject io) itemList.add(parseItem(name, io));
+                // Use get(name) + instanceof to avoid SDK ClassCastException
+                Object val = itemsObj.get(name);
+                if (val instanceof com.couchbase.client.java.json.JsonArray arr) {
+                    for (int i = 0; i < arr.size(); i++) {
+                        var io = arr.getObject(i);
+                        if (io != null) itemList.add(parseItem(name, io));
                     }
-                } else {
-                    // Single-object format: one item
-                    var io = itemsObj.getObject(name);
-                    if (io != null) itemList.add(parseItem(name, io));
+                } else if (val instanceof JsonObject io) {
+                    itemList.add(parseItem(name, io));
                 }
                 if (!itemList.isEmpty()) this.items.put(name, itemList);
             }
