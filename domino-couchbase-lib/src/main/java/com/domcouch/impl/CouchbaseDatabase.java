@@ -9,6 +9,7 @@ import com.couchbase.client.java.Scope;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.query.QueryOptions;
 import com.couchbase.client.java.query.QueryResult;
+import com.couchbase.client.java.query.QueryScanConsistency;
 import com.domcouch.api.*;
 import com.domcouch.formula.CompiledFormula;
 import com.domcouch.formula.FormulaContext;
@@ -219,7 +220,7 @@ public class CouchbaseDatabase implements Database {
             String stmt = "SELECT meta().id AS _id FROM " + getCollectionPath()
                     + " WHERE _type = 'domcouch.document' AND (" + n1qlFormula + ")";
             String userName = getCurrentUserName();
-            for (JsonObject row : scope.query(stmt).rowsAsObject()) {
+            for (JsonObject row : scope.query(stmt, QueryOptions.queryOptions().scanConsistency(QueryScanConsistency.REQUEST_PLUS)).rowsAsObject()) {
                 String unid = row.getString("_id");
                 if (unid == null) continue;
                 try {

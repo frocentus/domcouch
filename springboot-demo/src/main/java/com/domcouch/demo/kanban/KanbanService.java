@@ -4,9 +4,6 @@ import com.domcouch.api.*;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
-/**
- * Service layer for Kanban board operations using domcouch Database API.
- */
 @Service
 public class KanbanService {
 
@@ -20,28 +17,26 @@ public class KanbanService {
         return KanbanBoard.create(db, title);
     }
 
+    /** Create board with default lanes (avoids KV read-after-write issue). */
+    public KanbanBoard createBoardWithLanes(String title) throws NotesException {
+        KanbanBoard board = KanbanBoard.create(db, title);
+        String[] lanes = {"Backlog", "Development", "Testing", "Deployment", "Finished"};
+        for (int i = 0; i < lanes.length; i++) {
+            KanbanLane.create(db, board, lanes[i], i);
+        }
+        return board;
+    }
+
     public List<KanbanBoard> getBoards() throws NotesException {
         List<KanbanBoard> boards = new ArrayList<>();
-        // db.search() uses N1QL IDs + KV fetch, avoids scanning all docs
         DocumentCollection results = db.search("Form = \"KanbanBoard\"");
-        for (Document d : results) {
-            boards.add(new KanbanBoard(d));
-        }
+        for (Document d : results) boards.add(new KanbanBoard(d));
         return boards;
     }
 
     public KanbanBoard getBoard(String unid) throws NotesException {
-        // Retry KV read — Couchbase may need a moment after write
-        for (int attempt = 0; attempt < 5; attempt++) {
-            Document doc = db.getDocumentByUNID(unid);
-            if (doc != null) return new KanbanBoard(doc);
-            if (attempt < 4) try { Thread.sleep(200); } catch (InterruptedException ignored) {}
-        }
-        // KV failed — fallback to N1QL scan
-        for (KanbanBoard b : getBoards()) {
-            if (unid.equals(b.getUnid())) return b;
-        }
-        return null;
+        Document doc = db.getDocumentByUNID(unid);
+        return doc != null ? new KanbanBoard(doc) : null;
     }
 
     public void deleteBoard(String unid) throws NotesException {
@@ -52,14 +47,6 @@ public class KanbanService {
             lane.delete();
         }
         b.delete();
-    }
-
-    // ---- Lane ----
-
-    public KanbanLane addLane(String boardUnid, String title, int order) throws NotesException {
-        KanbanBoard board = getBoard(boardUnid);
-        if (board == null) throw new NotesException(4000, "Board not found: " + boardUnid);
-        return KanbanLane.create(db, board, title, order);
     }
 
     // ---- Task ----
@@ -82,7 +69,6 @@ public class KanbanService {
         if (doc != null) new KanbanTask(doc).delete();
     }
 
-    /** Get all lanes with tasks for a board as a flat list. */
     public Map<String, Object> getBoardState(String boardUnid) throws NotesException {
         KanbanBoard board = getBoard(boardUnid);
         if (board == null) return Map.of();
@@ -92,19 +78,13 @@ public class KanbanService {
             List<Map<String, Object>> tasks = new ArrayList<>();
             for (KanbanTask task : lane.getTasks(db)) {
                 tasks.add(Map.of(
-                    "unid", task.getUnid(),
-                    "title", task.getTitle(),
-                    "priority", task.getPriority(),
-                    "assignee", task.getAssignee(),
+                    "unid", task.getUnid(), "title", task.getTitle(),
+                    "priority", task.getPriority(), "assignee", task.getAssignee(),
                     "status", task.getStatus()
                 ));
             }
-            lanes.add(Map.of(
-                "unid", lane.getUnid(),
-                "title", lane.getTitle(),
-                "order", lane.getOrder(),
-                "tasks", tasks
-            ));
+            lanes.add(Map.of("unid", lane.getUnid(), "title", lane.getTitle(),
+                    "order", lane.getOrder(), "tasks", tasks));
         }
         return Map.of("unid", board.getUnid(), "title", board.getTitle(), "lanes", lanes);
     }

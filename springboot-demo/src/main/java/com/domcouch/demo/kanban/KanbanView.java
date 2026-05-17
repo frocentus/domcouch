@@ -71,14 +71,8 @@ public class KanbanView extends VerticalLayout {
         Dialog dialog = new Dialog(titleField);
         Button createBtn = new Button("Create", e -> {
             try {
-                KanbanBoard board = service.createBoard(titleField.getValue());
+                KanbanBoard board = service.createBoardWithLanes(titleField.getValue());
                 currentBoardUnid = board.getUnid();
-                try { Thread.sleep(500); } catch (InterruptedException ignored) {}
-                // Create default lanes
-                String[] lanes = {"Backlog", "Development", "Testing", "Deployment", "Finished"};
-                for (int i = 0; i < lanes.length; i++) {
-                    service.addLane(currentBoardUnid, lanes[i], i);
-                }
                 refreshBoard();
                 dialog.close();
                 Notification.show("Board created: " + board.getTitle());
