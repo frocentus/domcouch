@@ -404,8 +404,16 @@ public class CouchbaseView implements View {
             JsonObject items = row.getObject("items");
             if (items != null) {
                 for (String key : items.getNames()) {
-                    JsonObject item = items.getObject(key);
-                    if (item != null) {
+                    Object val = items.get(key);
+                    if (val instanceof com.couchbase.client.java.json.JsonArray arr) {
+                        for (int i = 0; i < arr.size(); i++) {
+                            JsonObject item = arr.getObject(i);
+                            if (item != null) {
+                                var values = item.getArray("values");
+                                if (values != null && !values.isEmpty()) cols.add(values.get(0));
+                            }
+                        }
+                    } else if (val instanceof JsonObject item) {
                         var values = item.getArray("values");
                         if (values != null && !values.isEmpty()) cols.add(values.get(0));
                     }

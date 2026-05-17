@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.couchbase.client.java.Scope;
 import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.kv.GetOptions;
 import com.couchbase.client.java.codec.RawJsonTranscoder;
 import com.couchbase.client.java.query.QueryOptions;
@@ -107,25 +108,17 @@ public class CouchbaseDatabase implements Database {
     @Override
     public Document getDocumentByUNID(String unid) {
         try {
-            System.out.println("getDocumentByUNID: BEFORE get " + unid.substring(0,8));
             var result = collection.get(unid,
                     GetOptions.getOptions().transcoder(RawJsonTranscoder.INSTANCE));
-            System.out.println("getDocumentByUNID: AFTER get, result=" + (result != null));
             if (result == null) return null;
             String rawJson = result.contentAs(String.class);
-            System.out.println("getDocumentByUNID: rawJson length=" + (rawJson != null ? rawJson.length() : 0));
             if (rawJson == null) return null;
             JsonObject json = JsonObject.fromJson(rawJson);
-            System.out.println("getDocumentByUNID: fromJson OK");
             if (canRead(json, getCurrentUserName())) {
-                var doc = new CouchbaseDocument(this, json);
-                System.out.println("getDocumentByUNID: RETURNING doc");
-                return doc;
+                return new CouchbaseDocument(this, json);
             }
-            System.out.println("getDocumentByUNID: canRead=false");
             return null;
         } catch (Exception e) {
-            System.out.println("getDocumentByUNID: exception " + e.getClass().getSimpleName());
             return null;
         }
     }
@@ -409,14 +402,32 @@ public class CouchbaseDatabase implements Database {
 
         boolean hasReaderField = false;
         for (String name : items.getNames()) {
-            JsonObject item = items.getObject(name);
-            if (item != null && item.getInt("type") == Item.READERS) {
-                hasReaderField = true;
-                var values = item.getArray("values");
-                if (values != null) {
-                    for (Object v : values.toList()) {
-                        if (v != null && v.toString().equals(userName)) {
-                            return true;
+            // Handle both object and array formats (multi-instance schema)
+            Object val = items.get(name);
+            if (val instanceof JsonArray arr) {
+                for (int i = 0; i < arr.size(); i++) {
+                    JsonObject item = arr.getObject(i);
+                    if (item != null && item.getInt("type") == Item.READERS) {
+                        hasReaderField = true;
+                        var values = item.getArray("values");
+                        if (values != null) {
+                            for (Object v : values.toList()) {
+                                if (v != null && v.toString().equals(userName)) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (val instanceof JsonObject item) {
+                if (item.getInt("type") == Item.READERS) {
+                    hasReaderField = true;
+                    var values = item.getArray("values");
+                    if (values != null) {
+                        for (Object v : values.toList()) {
+                            if (v != null && v.toString().equals(userName)) {
+                                return true;
+                            }
                         }
                     }
                 }
