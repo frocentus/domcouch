@@ -234,19 +234,29 @@ public class CouchbaseDatabase implements Database {
     public DocumentCollection getAllDocuments() {
         List<Document> docs = new ArrayList<>();
         try {
-            String stmt = "SELECT meta().id, doc.* FROM " + getCollectionPath() + " AS doc"
+            // SELECT without doc.* to avoid top-level array fields (folders)
+            // that cause Couchbase SDK ClassCastException.
+            String stmt = "SELECT meta().id AS `_id`, doc.form, doc.unid, doc._type,"
+                    + " doc.items, doc.created, doc.lastModified, doc.parentUNID,"
+                    + " COALESCE(doc.folders, []) AS `folders`, doc._attachments"
+                    + " FROM " + getCollectionPath() + " AS doc"
                     + " WHERE doc._type = 'domcouch.document'";
             QueryResult result = scope.query(stmt);
             String userName = getCurrentUserName();
-            // Use raw rows to avoid SDK cast issues with nested arrays
-            for (com.couchbase.client.java.query.QueryRow row : result.rows()) {
-                try {
-                    JsonObject obj = row.contentAsObject();
-                    if (canRead(obj, userName)) {
-                        docs.add(new CouchbaseDocument(this, obj));
-                    }
-                } catch (Exception ignored) {
-                    // Skip rows that can't be parsed
+            for (JsonObject row : result.rowsAsObject()) {
+                // Map flat N1QL result back to nested doc format
+                JsonObject doc = JsonObject.create();
+                doc.put("unid", row.getString("unid"));
+                doc.put("_type", row.getString("_type"));
+                doc.put("form", row.getString("form"));
+                doc.put("items", row.get("items"));
+                doc.put("created", row.getString("created"));
+                doc.put("lastModified", row.getString("lastModified"));
+                doc.put("parentUNID", row.getString("parentUNID"));
+                doc.put("folders", row.get("folders"));
+                if (row.containsKey("_attachments")) doc.put("_attachments", row.get("_attachments"));
+                if (canRead(doc, userName)) {
+                    docs.add(new CouchbaseDocument(this, doc));
                 }
             }
         } catch (Exception e) {
