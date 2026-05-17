@@ -234,26 +234,21 @@ public class CouchbaseDatabase implements Database {
     public DocumentCollection getAllDocuments() {
         List<Document> docs = new ArrayList<>();
         try {
-            // SELECT explicit scalar fields only — top-level JSON arrays
-            // (folders, _attachments) cause Couchbase SDK ClassCastException.
-            // Load these fields lazily when the document is accessed.
-            String stmt = "SELECT meta().id AS _id, doc.form, doc.unid, doc._type,"
-                    + " doc.items, doc.created, doc.lastModified, doc.parentUNID"
-                    + " FROM " + getCollectionPath() + " AS doc"
-                    + " WHERE doc._type = 'domcouch.document'";
-            QueryResult result = scope.query(stmt);
+            // Use TOSTRING(doc) to get raw JSON strings — bypasses
+            // Couchbase SDK ClassCastException with nested JSON arrays
+            // (multi-instance items schema: items.X = [{type, values}]).
+            String stmt = "SELECT TOSTRING(doc) AS _json FROM " + getCollectionPath()
+                    + " AS doc WHERE doc._type = 'domcouch.document'";
             String userName = getCurrentUserName();
-            for (JsonObject row : result.rowsAsObject()) {
-                JsonObject doc = JsonObject.create();
-                doc.put("unid", row.getString("unid"));
-                doc.put("_type", row.getString("_type"));
-                doc.put("form", row.getString("form"));
-                doc.put("items", row.get("items"));
-                doc.put("created", row.getString("created"));
-                doc.put("lastModified", row.getString("lastModified"));
-                doc.put("parentUNID", row.getString("parentUNID"));
-                if (canRead(doc, userName)) {
-                    docs.add(new CouchbaseDocument(this, doc));
+            for (JsonObject row : scope.query(stmt).rowsAsObject()) {
+                try {
+                    String jsonStr = row.getString("_json");
+                    JsonObject docJson = JsonObject.fromJson(jsonStr);
+                    if (canRead(docJson, userName)) {
+                        docs.add(new CouchbaseDocument(this, docJson));
+                    }
+                } catch (Exception rowEx) {
+                    // Skip rows that can't be parsed
                 }
             }
         } catch (Exception e) {
