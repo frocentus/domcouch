@@ -73,8 +73,7 @@ public class KanbanView extends VerticalLayout {
             try {
                 KanbanBoard board = service.createBoard(titleField.getValue());
                 currentBoardUnid = board.getUnid();
-                // Small delay — Couchbase KV write may not be visible to reads yet
-                Thread.sleep(500);
+                try { Thread.sleep(500); } catch (InterruptedException ignored) {}
                 // Create default lanes
                 String[] lanes = {"Backlog", "Development", "Testing", "Deployment", "Finished"};
                 for (int i = 0; i < lanes.length; i++) {
