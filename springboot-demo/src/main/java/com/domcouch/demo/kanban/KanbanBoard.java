@@ -29,8 +29,6 @@ public class KanbanBoard {
     }
     public String getCreated() { return itemStr("Created"); }
     public Document getDocument() { return doc; }
-    public String getCreated() { return itemStr("Created"); }
-    public Document getDocument() { return doc; }
 
     public List<KanbanLane> getLanes(Database db) throws NotesException {
         List<KanbanLane> lanes = new ArrayList<>();
