@@ -271,6 +271,31 @@ public class CouchbaseDatabase implements Database {
         return new CouchbaseDocumentCollection(docs);
     }
 
+    /** Find documents whose parentUNID matches (for getResponses). */
+    DocumentCollection findByParentUNID(String parentUnid) {
+        List<Document> docs = new ArrayList<>();
+        try {
+            String stmt = "SELECT meta().id AS _id FROM " + getCollectionPath()
+                    + " WHERE _type = 'domcouch.document' AND parentUNID = '" + parentUnid + "'";
+            String userName = getCurrentUserName();
+            for (JsonObject row : queryWithConsistency(stmt).rowsAsObject()) {
+                String unid = row.getString("_id");
+                if (unid != null) {
+                    var result = collection.get(unid);
+                    if (result != null) {
+                        JsonObject docJson = result.contentAsObject();
+                        if (canRead(docJson, userName)) {
+                            docs.add(new CouchbaseDocument(this, docJson));
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("findByParentUNID failed: {}", e.getMessage());
+        }
+        return new CouchbaseDocumentCollection(docs);
+    }
+
     @Override
     public int getDocumentCount() {
         try {

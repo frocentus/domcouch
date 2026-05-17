@@ -198,7 +198,7 @@ public class CouchbaseDocument implements Document {
 
     @Override
     public DocumentCollection getResponses() throws NotesException {
-        return database.search("doc.parentUNID = '" + unid + "'");
+        return database.findByParentUNID(unid);
     }
 
     @Override
