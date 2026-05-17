@@ -107,20 +107,25 @@ public class CouchbaseDatabase implements Database {
     @Override
     public Document getDocumentByUNID(String unid) {
         try {
+            System.out.println("getDocumentByUNID: BEFORE get " + unid.substring(0,8));
             var result = collection.get(unid,
                     GetOptions.getOptions().transcoder(RawJsonTranscoder.INSTANCE));
+            System.out.println("getDocumentByUNID: AFTER get, result=" + (result != null));
             if (result == null) return null;
             String rawJson = result.contentAs(String.class);
+            System.out.println("getDocumentByUNID: rawJson length=" + (rawJson != null ? rawJson.length() : 0));
             if (rawJson == null) return null;
             JsonObject json = JsonObject.fromJson(rawJson);
-            System.out.println("getDocumentByUNID: RawJson OK for " + unid.substring(0,8));
+            System.out.println("getDocumentByUNID: fromJson OK");
             if (canRead(json, getCurrentUserName())) {
-                return new CouchbaseDocument(this, json);
+                var doc = new CouchbaseDocument(this, json);
+                System.out.println("getDocumentByUNID: RETURNING doc");
+                return doc;
             }
-            System.out.println("getDocumentByUNID: canRead=false for " + unid.substring(0,8));
+            System.out.println("getDocumentByUNID: canRead=false");
             return null;
         } catch (Exception e) {
-            System.out.println("getDocumentByUNID: exception " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            System.out.println("getDocumentByUNID: exception " + e.getClass().getSimpleName());
             return null;
         }
     }
