@@ -106,50 +106,22 @@ public class CouchbaseDatabase implements Database {
     public Document getDocumentByUNID(String unid) {
         try {
             var result = collection.get(unid);
-            if (result == null) {
-                return getDocumentByUNIDviaN1ql(unid);
-            }
-            // Use contentAs(Object.class) with instanceof to avoid
-            // ClassCastException from contentAsObject() with nested arrays.
+            if (result == null) return null;
+            // contentAs(Object.class) avoids ClassCastException from
+            // contentAsObject() with nested JSON arrays (our items schema).
+            // Couchbase SDK uses Jackson internally — returns LinkedHashMap
+            // for objects, ArrayList for arrays.
             Object content = result.contentAs(Object.class);
-            if (content instanceof JsonObject json) {
-                if (canRead(json, getCurrentUserName())) {
-                    return new CouchbaseDocument(this, json);
-                }
-            }
-            // contentAs(Object.class) may return LinkedHashMap (Jackson)
             if (content instanceof java.util.Map map) {
                 JsonObject json = JsonObject.from(map);
                 if (canRead(json, getCurrentUserName())) {
                     return new CouchbaseDocument(this, json);
                 }
             }
-            // Fall back to N1QL
-            return getDocumentByUNIDviaN1ql(unid);
+            return null;
         } catch (Exception e) {
-            return getDocumentByUNIDviaN1ql(unid);
+            return null;
         }
-    }
-
-    private Document getDocumentByUNIDviaN1ql(String unid) {
-        try {
-            String stmt = "SELECT doc FROM " + getCollectionPath()
-                    + " AS doc USE KEYS '" + unid + "'";
-            var rows = scope.query(stmt).rowsAsObject();
-            if (!rows.isEmpty()) {
-                JsonObject row = rows.get(0);
-                JsonObject json = row.getObject("doc");
-                if (json != null && canRead(json, getCurrentUserName())) {
-                    return new CouchbaseDocument(this, json);
-                }
-                System.out.println("getDocumentByUNIDviaN1ql: row found but doc=" + (json != null) + " canRead=" + (json != null ? canRead(json, getCurrentUserName()) : false));
-            } else {
-                System.out.println("getDocumentByUNIDviaN1ql: N1QL returned 0 rows for " + unid.substring(0,8));
-            }
-        } catch (Exception ex) {
-            System.out.println("getDocumentByUNIDviaN1ql: exception: " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
-        }
-        return null;
     }
 
     @Override
@@ -252,11 +224,9 @@ public class CouchbaseDatabase implements Database {
         try {
             List<Document> docs = new ArrayList<>();
             String n1qlFormula = formulaTranslator.toN1ql(formula);
-            log.info("search: formula='{}' → N1QL='{}'", formula, n1qlFormula);
             // IDs via N1QL, bodies via KV — same approach as getAllDocuments()
             String stmt = "SELECT meta().id AS _id FROM " + getCollectionPath()
                     + " AS doc WHERE doc._type = 'domcouch.document' AND (" + n1qlFormula + ")";
-            log.info("search: full SQL: {}", stmt);
             String userName = getCurrentUserName();
             for (JsonObject row : scope.query(stmt, QueryOptions.queryOptions().scanConsistency(QueryScanConsistency.REQUEST_PLUS)).rowsAsObject()) {
                 String unid = row.getString("_id");

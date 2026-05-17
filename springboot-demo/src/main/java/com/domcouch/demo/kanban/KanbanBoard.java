@@ -29,11 +29,8 @@ public class KanbanBoard {
     public List<KanbanLane> getLanes(Database db) throws NotesException {
         List<KanbanLane> lanes = new ArrayList<>();
         DocumentCollection responses = doc.getResponses();
-        System.out.println("getLanes: responses count=" + responses.getCount() + " for board " + getTitle());
         for (Document d : responses) {
             Item f = d.getFirstItem("Form");
-            String form = f != null ? f.getValueString() : "NULL";
-            System.out.println("  response: unid=" + d.getUniversalID().substring(0,8) + " form=" + form);
             if (f != null && "KanbanLane".equals(f.getValueString())) {
                 lanes.add(new KanbanLane(d));
             }
