@@ -251,7 +251,9 @@ public class CouchbaseDatabase implements Database {
                         docs.add(new CouchbaseDocument(this, docJson));
                     }
                 } catch (Exception kvEx) {
-                    System.out.println("search: KV fetch failed for " + unid.substring(0,8) + ": " + kvEx.getMessage());
+                    System.out.println("search: KV fetch failed for " + unid.substring(0,8) + " — trying N1QL fallback");
+                    Document doc = getDocumentByUNID(unid);
+                    if (doc != null) docs.add(doc);
                 }
             }
             return new CouchbaseDocumentCollection(docs);
@@ -283,7 +285,9 @@ public class CouchbaseDatabase implements Database {
                         }
                     }
                 } catch (Exception kvEx) {
-                    // Skip individual KV fetch failures
+                    // KV fetch threw — try N1QL fallback
+                    Document doc = getDocumentByUNID(unid);
+                    if (doc != null) docs.add(doc);
                 }
             }
         } catch (Exception e) {
@@ -302,12 +306,20 @@ public class CouchbaseDatabase implements Database {
             for (JsonObject row : queryWithConsistency(stmt).rowsAsObject()) {
                 String unid = row.getString("_id");
                 if (unid != null) {
-                    var result = collection.get(unid);
-                    if (result != null) {
+                    try {
+                        var result = collection.get(unid);
+                        if (result == null) {
+                            Document doc = getDocumentByUNID(unid);
+                            if (doc != null) docs.add(doc);
+                            continue;
+                        }
                         JsonObject docJson = result.contentAsObject();
                         if (canRead(docJson, userName)) {
                             docs.add(new CouchbaseDocument(this, docJson));
                         }
+                    } catch (Exception kvEx) {
+                        Document doc = getDocumentByUNID(unid);
+                        if (doc != null) docs.add(doc);
                     }
                 }
             }
