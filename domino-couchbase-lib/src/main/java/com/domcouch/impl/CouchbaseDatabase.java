@@ -241,8 +241,6 @@ public class CouchbaseDatabase implements Database {
                 try {
                     var result = collection.get(unid);
                     if (result == null) {
-                        // KV get may return null — fall back to getDocumentByUNID
-                        // which has N1QL USE KEYS fallback.
                         Document doc = getDocumentByUNID(unid);
                         if (doc != null) docs.add(doc);
                         continue;
@@ -250,7 +248,6 @@ public class CouchbaseDatabase implements Database {
                     JsonObject docJson = result.contentAsObject();
                     if (canRead(docJson, userName)) {
                         docs.add(new CouchbaseDocument(this, docJson));
-                    }
                     }
                 } catch (Exception kvEx) { /* skip */ }
             }
