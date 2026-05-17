@@ -244,8 +244,10 @@ public class KanbanView extends VerticalLayout {
             Map<String, Object> state = service.getBoardState(currentBoardUnid);
             @SuppressWarnings("unchecked")
             var lanes = (List<Map<String, Object>>) state.get("lanes");
-            laneSelect.setItems(lanes.stream().map(l -> (String) l.get("title")).toList());
-            laneSelect.setValue((String) lanes.get(0).get("title"));
+            if (lanes != null && !lanes.isEmpty()) {
+                laneSelect.setItems(lanes.stream().map(l -> (String) l.get("title")).toList());
+                laneSelect.setValue((String) lanes.get(0).get("title"));
+            }
         } catch (NotesException ignored) {}
 
         Select<String> prioSelect = new Select<>();
@@ -261,9 +263,9 @@ public class KanbanView extends VerticalLayout {
                 Map<String, Object> state = service.getBoardState(currentBoardUnid);
                 @SuppressWarnings("unchecked")
                 var lanes = (List<Map<String, Object>>) state.get("lanes");
-                String laneUnid = lanes.stream()
+                String laneUnid = (lanes != null) ? lanes.stream()
                         .filter(l -> laneSelect.getValue().equals(l.get("title")))
-                        .findFirst().map(l -> (String) l.get("unid")).orElse(null);
+                        .findFirst().map(l -> (String) l.get("unid")).orElse(null) : null;
                 if (laneUnid != null) {
                     service.addTask(laneUnid, titleField.getValue(),
                             prioSelect.getValue(), assigneeField.getValue());
@@ -293,7 +295,7 @@ public class KanbanView extends VerticalLayout {
             Map<String, Object> state = service.getBoardState(currentBoardUnid);
             @SuppressWarnings("unchecked")
             var lanes = (List<Map<String, Object>>) state.get("lanes");
-            moveSelect.setItems(lanes.stream().map(l -> (String) l.get("title")).toList());
+            if (lanes != null) moveSelect.setItems(lanes.stream().map(l -> (String) l.get("title")).toList());
         } catch (NotesException ignored) {}
 
         Button moveBtn = new Button("Move", e -> {
