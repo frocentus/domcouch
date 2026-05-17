@@ -33,8 +33,17 @@ public class KanbanService {
     }
 
     public KanbanBoard getBoard(String unid) throws NotesException {
-        Document doc = db.getDocumentByUNID(unid);
-        return doc != null ? new KanbanBoard(doc) : null;
+        // Retry KV read — Couchbase may need a moment after write
+        for (int attempt = 0; attempt < 5; attempt++) {
+            Document doc = db.getDocumentByUNID(unid);
+            if (doc != null) return new KanbanBoard(doc);
+            if (attempt < 4) Thread.sleep(200);
+        }
+        // KV failed — fallback to N1QL scan
+        for (KanbanBoard b : getBoards()) {
+            if (unid.equals(b.getUnid())) return b;
+        }
+        return null;
     }
 
     public void deleteBoard(String unid) throws NotesException {
