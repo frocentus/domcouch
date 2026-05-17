@@ -20,6 +20,7 @@ public class KanbanView extends VerticalLayout {
 
     private final KanbanService service;
     private String currentBoardUnid;
+    private Button addTaskBtn;
 
     public KanbanView(KanbanService service) {
         this.service = service;
@@ -141,10 +142,12 @@ public class KanbanView extends VerticalLayout {
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> lanes = (List<Map<String, Object>>) state.get("lanes");
 
-            // Always show Add Task button when board is loaded
+            // Always show one Add Task button when board is loaded
+            if (addTaskBtn != null) remove(addTaskBtn);
             Button newTaskBtn = new Button("+ Add Task", e -> showNewTaskDialog());
             newTaskBtn.addThemeVariants(ButtonVariant.LUMO_SMALL);
             add(newTaskBtn);
+            addTaskBtn = newTaskBtn;
 
             if (lanes == null || lanes.isEmpty()) {
                 container.add(new Span("No tasks yet — use '+ Add Task' to create one."));
