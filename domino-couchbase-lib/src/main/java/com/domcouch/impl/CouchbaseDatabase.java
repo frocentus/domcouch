@@ -234,17 +234,16 @@ public class CouchbaseDatabase implements Database {
     public DocumentCollection getAllDocuments() {
         List<Document> docs = new ArrayList<>();
         try {
-            // SELECT without doc.* to avoid top-level array fields (folders)
-            // that cause Couchbase SDK ClassCastException.
-            String stmt = "SELECT meta().id AS `_id`, doc.form, doc.unid, doc._type,"
-                    + " doc.items, doc.created, doc.lastModified, doc.parentUNID,"
-                    + " COALESCE(doc.folders, []) AS `folders`, doc._attachments"
+            // SELECT explicit scalar fields only — top-level JSON arrays
+            // (folders, _attachments) cause Couchbase SDK ClassCastException.
+            // Load these fields lazily when the document is accessed.
+            String stmt = "SELECT meta().id AS _id, doc.form, doc.unid, doc._type,"
+                    + " doc.items, doc.created, doc.lastModified, doc.parentUNID"
                     + " FROM " + getCollectionPath() + " AS doc"
                     + " WHERE doc._type = 'domcouch.document'";
             QueryResult result = scope.query(stmt);
             String userName = getCurrentUserName();
             for (JsonObject row : result.rowsAsObject()) {
-                // Map flat N1QL result back to nested doc format
                 JsonObject doc = JsonObject.create();
                 doc.put("unid", row.getString("unid"));
                 doc.put("_type", row.getString("_type"));
@@ -253,8 +252,6 @@ public class CouchbaseDatabase implements Database {
                 doc.put("created", row.getString("created"));
                 doc.put("lastModified", row.getString("lastModified"));
                 doc.put("parentUNID", row.getString("parentUNID"));
-                doc.put("folders", row.get("folders"));
-                if (row.containsKey("_attachments")) doc.put("_attachments", row.get("_attachments"));
                 if (canRead(doc, userName)) {
                     docs.add(new CouchbaseDocument(this, doc));
                 }
