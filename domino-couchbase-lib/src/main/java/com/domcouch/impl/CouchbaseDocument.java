@@ -404,9 +404,13 @@ public class CouchbaseDocument implements Document {
             System.out.println("loadFromJson: itemsObj type=" + itemsObj.getClass().getSimpleName() + " names=" + itemsObj.getNames());
             for (String name : itemsObj.getNames()) {
                 System.out.println("  name=" + name);
-                var arr = itemsObj.getArray(name);
-                var obj = itemsObj.getObject(name);
-                System.out.println("    array=" + (arr != null ? arr.size() : "null") + " obj=" + (obj != null));
+                try {
+                    var arr = itemsObj.getArray(name);
+                    var obj = itemsObj.getObject(name);
+                    System.out.println("    array=" + (arr != null ? arr.size() : "null") + " obj=" + (obj != null));
+                } catch (Exception ex) {
+                    System.out.println("    EXCEPTION: " + ex.getClass().getSimpleName());
+                }
                 var itemList = new ArrayList<CouchbaseItem>();
                 // Handle both single-object and array formats
                 var array = itemsObj.getArray(name);
