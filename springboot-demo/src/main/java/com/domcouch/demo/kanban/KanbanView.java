@@ -224,7 +224,7 @@ public class KanbanView extends VerticalLayout {
         assigneeSpan.getStyle().set("font-size", "11px");
         assigneeSpan.getStyle().set("color", "#666");
 
-        card.add(titleSpan, new Html("<br>"), prioBadge, new Html("&nbsp;"), assigneeSpan);
+        card.add(titleSpan, new com.vaadin.flow.component.html.Span(" · "), prioBadge);
 
         // Context menu: move to another lane, delete
         card.addClickListener(e -> showTaskContextMenu(taskUnid, title, parentLaneUnid));
