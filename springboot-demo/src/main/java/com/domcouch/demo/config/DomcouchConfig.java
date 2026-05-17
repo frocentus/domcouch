@@ -47,4 +47,11 @@ public class DomcouchConfig {
                 db.getTitle(), bucketName, databaseName);
         return db;
     }
+
+    @Bean
+    public Database kanbanDatabase(Session session) throws Exception {
+        var db = session.getDatabase(bucketName, "kanban");
+        log.info("Kanban database opened: {}.kanban", bucketName);
+        return db;
+    }
 }

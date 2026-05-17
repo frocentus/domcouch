@@ -1,6 +1,7 @@
 package com.domcouch.demo.kanban;
 
 import com.domcouch.api.*;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
@@ -9,7 +10,7 @@ public class KanbanService {
 
     private final Database db;
 
-    public KanbanService(Database db) { this.db = db; }
+    public KanbanService(@Qualifier("kanbanDatabase") Database db) { this.db = db; }
 
     // ---- Board ----
 

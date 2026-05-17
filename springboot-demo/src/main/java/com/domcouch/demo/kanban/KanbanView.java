@@ -136,6 +136,10 @@ public class KanbanView extends VerticalLayout {
             Map<String, Object> state = service.getBoardState(currentBoardUnid);
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> lanes = (List<Map<String, Object>>) state.get("lanes");
+            if (lanes == null || lanes.isEmpty()) {
+                container.add(new Span("Board is empty — add tasks to get started."));
+                return;
+            }
 
             Button newTaskBtn = new Button("+ Add Task", e -> showNewTaskDialog());
             newTaskBtn.addThemeVariants(ButtonVariant.LUMO_SMALL);
