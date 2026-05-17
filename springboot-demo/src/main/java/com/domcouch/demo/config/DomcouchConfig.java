@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 /**
  * Spring configuration that establishes a Domino-style Session
@@ -41,6 +42,7 @@ public class DomcouchConfig {
     }
 
     @Bean
+    @Primary
     public Database contactsDatabase(Session session) throws Exception {
         var db = session.getDatabase(bucketName, databaseName);
         log.info("Opened database '{}' (bucket '{}', scope '{}')",
