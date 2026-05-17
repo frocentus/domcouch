@@ -218,7 +218,7 @@ public class CouchbaseDatabase implements Database {
             String n1qlFormula = formulaTranslator.toN1ql(formula);
             // IDs via N1QL, bodies via KV — same approach as getAllDocuments()
             String stmt = "SELECT meta().id AS _id FROM " + getCollectionPath()
-                    + " WHERE _type = 'domcouch.document' AND (" + n1qlFormula + ")";
+                    + " AS doc WHERE doc._type = 'domcouch.document' AND (" + n1qlFormula + ")";
             String userName = getCurrentUserName();
             for (JsonObject row : scope.query(stmt, QueryOptions.queryOptions().scanConsistency(QueryScanConsistency.REQUEST_PLUS)).rowsAsObject()) {
                 String unid = row.getString("_id");
@@ -248,7 +248,7 @@ public class CouchbaseDatabase implements Database {
             // Solution: SELECT only meta().id via N1QL, then fetch each
             // document via KV (collection.get) which handles arrays correctly.
             String stmt = "SELECT meta().id AS _id FROM " + getCollectionPath()
-                    + " WHERE _type = 'domcouch.document'";
+                    + " AS doc WHERE doc._type = 'domcouch.document'";
             String userName = getCurrentUserName();
             for (JsonObject row : scope.query(stmt).rowsAsObject()) {
                 String unid = row.getString("_id");
@@ -276,7 +276,7 @@ public class CouchbaseDatabase implements Database {
         List<Document> docs = new ArrayList<>();
         try {
             String stmt = "SELECT meta().id AS _id FROM " + getCollectionPath()
-                    + " WHERE _type = 'domcouch.document' AND parentUNID = '" + parentUnid + "'";
+                    + " AS doc WHERE doc._type = 'domcouch.document' AND parentUNID = '" + parentUnid + "'";
             String userName = getCurrentUserName();
             for (JsonObject row : queryWithConsistency(stmt).rowsAsObject()) {
                 String unid = row.getString("_id");
@@ -300,7 +300,7 @@ public class CouchbaseDatabase implements Database {
     public int getDocumentCount() {
         try {
             String stmt = "SELECT COUNT(*) AS cnt FROM " + getCollectionPath()
-                    + " WHERE _type = 'domcouch.document'";
+                    + " AS doc WHERE doc._type = 'domcouch.document'";
             QueryResult result = scope.query(stmt);
             var rows = result.rowsAsObject();
             if (!rows.isEmpty()) {
