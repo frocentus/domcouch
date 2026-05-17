@@ -17,7 +17,11 @@ public class KanbanBoard {
         d.replaceItemValue("Form", "KanbanBoard");
         d.replaceItemValue("Title", title);
         d.replaceItemValue("Created", Instant.now().toString());
-        d.save();
+        boolean saved = d.save();
+        System.out.println("KanbanBoard.create: save()=" + saved + " unid=" + d.getUniversalID());
+        // Verify via KV read
+        Document verify = db.getDocumentByUNID(d.getUniversalID());
+        System.out.println("KanbanBoard.create: verify=" + (verify != null ? "OK" : "MISSING!"));
         return new KanbanBoard(d);
     }
 

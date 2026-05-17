@@ -19,6 +19,7 @@ public class KanbanLane {
         d.replaceItemValue("WIPLimit", 10);
         d.makeResponse(board.getDocument());
         d.save();
+        System.out.println("KanbanLane.create: save() unid=" + d.getUniversalID() + " parent=" + (board != null ? board.getUnid() : "null"));
         return new KanbanLane(d);
     }
 
