@@ -89,7 +89,11 @@ public class KanbanView extends VerticalLayout {
         Dialog dialog = new Dialog();
         VerticalLayout content = new VerticalLayout();
         try {
-            for (KanbanBoard board : service.getBoards()) {
+            var boards = service.getBoards();
+            if (boards.isEmpty()) {
+                content.add(new Span("No boards found. Create one with '+ New Board'."));
+            }
+            for (KanbanBoard board : boards) {
                 Button btn = new Button(board.getTitle(), e -> {
                     currentBoardUnid = board.getUnid();
                     refreshBoard();
@@ -136,14 +140,16 @@ public class KanbanView extends VerticalLayout {
             Map<String, Object> state = service.getBoardState(currentBoardUnid);
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> lanes = (List<Map<String, Object>>) state.get("lanes");
-            if (lanes == null || lanes.isEmpty()) {
-                container.add(new Span("Board is empty — add tasks to get started."));
-                return;
-            }
 
+            // Always show Add Task button when board is loaded
             Button newTaskBtn = new Button("+ Add Task", e -> showNewTaskDialog());
             newTaskBtn.addThemeVariants(ButtonVariant.LUMO_SMALL);
             add(newTaskBtn);
+
+            if (lanes == null || lanes.isEmpty()) {
+                container.add(new Span("No tasks yet — use '+ Add Task' to create one."));
+                return;
+            }
 
             for (Map<String, Object> laneData : lanes) {
                 container.add(createLaneColumn(laneData));
