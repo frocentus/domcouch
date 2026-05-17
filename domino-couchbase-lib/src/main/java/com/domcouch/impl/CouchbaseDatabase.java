@@ -117,7 +117,14 @@ public class CouchbaseDatabase implements Database {
                     return new CouchbaseDocument(this, json);
                 }
             }
-            // Content is wrong type (LinkedHashMap etc.) — fall back to N1QL
+            // contentAs(Object.class) may return LinkedHashMap (Jackson)
+            if (content instanceof java.util.Map map) {
+                JsonObject json = JsonObject.from(map);
+                if (canRead(json, getCurrentUserName())) {
+                    return new CouchbaseDocument(this, json);
+                }
+            }
+            // Fall back to N1QL
             return getDocumentByUNIDviaN1ql(unid);
         } catch (Exception e) {
             return getDocumentByUNIDviaN1ql(unid);
