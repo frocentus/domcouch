@@ -234,13 +234,19 @@ public class CouchbaseDatabase implements Database {
     public DocumentCollection getAllDocuments() {
         List<Document> docs = new ArrayList<>();
         try {
-            String stmt = "SELECT doc.* FROM " + getCollectionPath() + " AS doc"
+            String stmt = "SELECT meta().id, doc.* FROM " + getCollectionPath() + " AS doc"
                     + " WHERE doc._type = 'domcouch.document'";
             QueryResult result = scope.query(stmt);
             String userName = getCurrentUserName();
-            for (JsonObject row : result.rowsAsObject()) {
-                if (canRead(row, userName)) {
-                    docs.add(new CouchbaseDocument(this, row));
+            // Use raw rows to avoid SDK cast issues with nested arrays
+            for (com.couchbase.client.java.query.QueryRow row : result.rows()) {
+                try {
+                    JsonObject obj = row.contentAsObject();
+                    if (canRead(obj, userName)) {
+                        docs.add(new CouchbaseDocument(this, obj));
+                    }
+                } catch (Exception ignored) {
+                    // Skip rows that can't be parsed
                 }
             }
         } catch (Exception e) {
