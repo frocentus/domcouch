@@ -104,6 +104,7 @@ public class CouchbaseDatabase implements Database {
 
     @Override
     public Document getDocumentByUNID(String unid) {
+        System.out.println("getDocumentByUNID: START " + unid.substring(0,8));
         try {
             var result = collection.get(unid);
             if (result == null) return null;
@@ -116,7 +117,9 @@ public class CouchbaseDatabase implements Database {
                 JsonObject json = JsonObject.from(map);
                 if (canRead(json, getCurrentUserName())) {
                     try {
-                        return new CouchbaseDocument(this, json);
+                        var doc = new CouchbaseDocument(this, json);
+                        System.out.println("getDocumentByUNID: ctor OK, returning " + doc.getUniversalID().substring(0,8));
+                        return doc;
                     } catch (Exception ex) {
                         System.out.println("getDocumentByUNID: ctor threw: " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
                         return null;
@@ -129,6 +132,7 @@ public class CouchbaseDatabase implements Database {
             }
             return null;
         } catch (Exception e) {
+            System.out.println("getDocumentByUNID: EXCEPTION " + e.getClass().getSimpleName());
             return null;
         }
     }
