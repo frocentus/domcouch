@@ -23,12 +23,17 @@ public class KanbanService {
     public List<KanbanBoard> getBoards() throws NotesException {
         List<KanbanBoard> boards = new ArrayList<>();
         DocumentCollection docs = db.getAllDocuments();
+        System.out.println("getAllDocuments returned " + docs.getCount() + " docs");
         for (Document d : docs) {
             Item f = d.getFirstItem("Form");
-            if (f != null && "KanbanBoard".equals(f.getValueString())) {
+            String form = f != null ? f.getValueString() : "NULL";
+            if ("KanbanBoard".equals(form)) {
                 boards.add(new KanbanBoard(d));
+            } else if (docs.getCount() < 10) {
+                System.out.println("  doc " + d.getUniversalID().substring(0,8) + " form=" + form);
             }
         }
+        System.out.println("Found " + boards.size() + " KanbanBoard docs");
         return boards;
     }
 
