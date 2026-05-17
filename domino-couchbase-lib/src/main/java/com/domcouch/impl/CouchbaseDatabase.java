@@ -107,18 +107,20 @@ public class CouchbaseDatabase implements Database {
     @Override
     public Document getDocumentByUNID(String unid) {
         try {
-            // RawJsonTranscoder avoids SDK ClassCastException with nested arrays
             var result = collection.get(unid,
                     GetOptions.getOptions().transcoder(RawJsonTranscoder.INSTANCE));
             if (result == null) return null;
             String rawJson = result.contentAs(String.class);
             if (rawJson == null) return null;
             JsonObject json = JsonObject.fromJson(rawJson);
+            System.out.println("getDocumentByUNID: RawJson OK for " + unid.substring(0,8));
             if (canRead(json, getCurrentUserName())) {
                 return new CouchbaseDocument(this, json);
             }
+            System.out.println("getDocumentByUNID: canRead=false for " + unid.substring(0,8));
             return null;
         } catch (Exception e) {
+            System.out.println("getDocumentByUNID: exception " + e.getClass().getSimpleName() + ": " + e.getMessage());
             return null;
         }
     }
