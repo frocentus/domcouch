@@ -114,13 +114,18 @@ public class CouchbaseDatabase implements Database {
             Object content = result.contentAs(Object.class);
             if (content instanceof java.util.Map map) {
                 JsonObject json = JsonObject.from(map);
-                System.out.println("getDocumentByUNID: Map→JsonObject OK for " + unid.substring(0,8));
                 if (canRead(json, getCurrentUserName())) {
-                    return new CouchbaseDocument(this, json);
+                    try {
+                        return new CouchbaseDocument(this, json);
+                    } catch (Exception ex) {
+                        System.out.println("getDocumentByUNID: ctor threw: " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
+                        return null;
+                    }
+                } else {
+                    System.out.println("getDocumentByUNID: canRead=false for " + unid.substring(0,8));
                 }
-                System.out.println("getDocumentByUNID: canRead=false for " + unid.substring(0,8));
             } else {
-                System.out.println("getDocumentByUNID: content is " + (content != null ? content.getClass().getSimpleName() : "null") + " for " + unid.substring(0,8));
+                System.out.println("getDocumentByUNID: content is " + (content != null ? content.getClass().getSimpleName() : "null"));
             }
             return null;
         } catch (Exception e) {
