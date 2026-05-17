@@ -32,6 +32,7 @@ public class KanbanService {
         List<KanbanBoard> boards = new ArrayList<>();
         DocumentCollection results = db.search("Form = \"KanbanBoard\"");
         for (Document d : results) {
+            System.out.println("getBoards: found " + d.getUniversalID().substring(0,8));
             boards.add(new KanbanBoard(d));
         }
         return boards;
