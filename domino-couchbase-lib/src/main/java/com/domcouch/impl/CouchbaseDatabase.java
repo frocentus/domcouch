@@ -386,7 +386,7 @@ public class CouchbaseDatabase implements Database {
         return !hasReaderField;
     }
 
-    String getCollectionPath() {
+    public String getCollectionPath() {
         return "`" + bucketName + "`.`" + scopeName + "`.`" + COLLECTION_NAME + "`";
     }
 
