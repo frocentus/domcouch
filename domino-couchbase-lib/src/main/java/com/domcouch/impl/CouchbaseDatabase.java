@@ -132,7 +132,20 @@ public class CouchbaseDatabase implements Database {
             }
             return null;
         } catch (Exception e) {
-            System.out.println("getDocumentByUNID: EXCEPTION " + e.getClass().getSimpleName());
+            // collection.get() throws ClassCastException with nested arrays.
+            // Fall back to N1QL USE KEYS.
+            try {
+                String stmt = "SELECT doc FROM " + getCollectionPath()
+                        + " AS doc USE KEYS '" + unid + "'";
+                var rows = scope.query(stmt).rowsAsObject();
+                if (!rows.isEmpty()) {
+                    JsonObject row = rows.get(0);
+                    JsonObject json = row.getObject("doc");
+                    if (json != null && canRead(json, getCurrentUserName())) {
+                        return new CouchbaseDocument(this, json);
+                    }
+                }
+            } catch (Exception ignored) {}
             return null;
         }
     }
@@ -244,14 +257,10 @@ public class CouchbaseDatabase implements Database {
             for (JsonObject row : scope.query(stmt, QueryOptions.queryOptions().scanConsistency(QueryScanConsistency.REQUEST_PLUS)).rowsAsObject()) {
                 String unid = row.getString("_id");
                 if (unid == null) continue;
-                System.out.println("search: N1QL found unid=" + unid.substring(0,8));
                 try {
                     Document doc = getDocumentByUNID(unid);
-                    System.out.println("search: getDocumentByUNID returned " + (doc != null ? "doc" : "NULL"));
                     if (doc != null) docs.add(doc);
-                } catch (Exception kvEx) {
-                    System.out.println("search: exception: " + kvEx.getMessage());
-                }
+                } catch (Exception kvEx) { /* skip */ }
             }
             return new CouchbaseDocumentCollection(docs);
         } catch (Exception e) {

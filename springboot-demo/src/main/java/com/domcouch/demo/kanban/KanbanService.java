@@ -31,9 +31,7 @@ public class KanbanService {
     public List<KanbanBoard> getBoards() throws NotesException {
         List<KanbanBoard> boards = new ArrayList<>();
         DocumentCollection results = db.search("Form = \"KanbanBoard\"");
-        for (Document d : results) {
-            System.out.println("getBoards: found " + d.getUniversalID().substring(0,8));
-            boards.add(new KanbanBoard(d));
+        for (Document d : results) boards.add(new KanbanBoard(d));
         }
         return boards;
     }
