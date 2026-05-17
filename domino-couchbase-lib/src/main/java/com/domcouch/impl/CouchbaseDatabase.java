@@ -114,6 +114,7 @@ public class CouchbaseDatabase implements Database {
             String rawJson = result.contentAs(String.class);
             if (rawJson == null) return null;
             JsonObject json = JsonObject.fromJson(rawJson);
+            System.out.println("getDocumentByUNID: RAW JSON: " + rawJson);
             if (canRead(json, getCurrentUserName())) {
                 return new CouchbaseDocument(this, json);
             }
