@@ -168,7 +168,7 @@ public class CouchbaseDatabase implements Database {
                 String createIndex;
                 if (keyItemName != null) {
                     createIndex = "CREATE INDEX `" + indexName + "` ON " + collectionPath
-                            + "((items.Form[0].`values`[0]), (items." + keyItemName + "[0].`values`[0]))"
+                            + "((items.Form[0].`values`[0]), (items." + keyItemName.toUpperCase() + "[0].`values`[0]))"
                             + " WHERE _type = 'domcouch.document'";
                 } else {
                     createIndex = "CREATE INDEX `" + indexName + "` ON " + collectionPath

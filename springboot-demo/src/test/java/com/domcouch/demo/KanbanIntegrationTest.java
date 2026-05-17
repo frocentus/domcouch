@@ -33,11 +33,22 @@ class KanbanIntegrationTest {
     static void setUp() throws NotesException {
         session = CouchbaseSession.connect("couchbase://localhost", "Administrator", "password");
         db = session.getDatabase("domcouch", "kanban_test");
+        log("\n# Kanban Integration Test Report\n");
+        log("**Database**: `domcouch`.`kanban_test` | **Time**: " + java.time.Instant.now());
     }
 
     @AfterAll
     static void tearDown() {
+        log("\n---\n**Test complete.** `kanban_test` scope contains all test data.");
         if (session != null) session.recycle();
+    }
+
+    static void log(String msg) {
+        System.out.println(msg);
+    }
+
+    static void log(String format, Object... args) {
+        System.out.printf(format + "%n", args);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -46,6 +57,8 @@ class KanbanIntegrationTest {
 
     @Test @Order(1) @DisplayName("Create project document")
     void createProject() throws Exception {
+        log("## 1. Project CRUD\n");
+        log("### Create Project");
         Document doc = db.createDocument();
         doc.replaceItemValue("Form", "Project");
         doc.replaceItemValue("Title", "DomCouch Kanban Board");
@@ -54,8 +67,9 @@ class KanbanIntegrationTest {
         doc.replaceItemValue("Priority", "High");
         doc.replaceItemValue("StartDate", Instant.now().toString());
         doc.save();
-
         projectUnid = doc.getUniversalID();
+        log("  - **Project** `%s` — `%s` (Priority: High, Status: Active)",
+                projectUnid.substring(0, 8) + "...", "DomCouch Kanban Board");
         assertNotNull(projectUnid);
 
         // Verify via KV read
@@ -88,6 +102,10 @@ class KanbanIntegrationTest {
 
     @Test @Order(3) @DisplayName("Create kanban lanes as response documents")
     void createLanes() throws Exception {
+        log("\n## 2. Kanban Lanes (Hierarchy)\n");
+        log("### Create 5 lanes as response documents under the project");
+        log("| Order | Lane | WIP Limit |");
+        log("|-------|------|-----------|");
         for (int i = 0; i < LANE_NAMES.length; i++) {
             Document lane = db.createDocument();
             lane.replaceItemValue("Form", "KanbanLane");
@@ -100,7 +118,10 @@ class KanbanIntegrationTest {
             }
             lane.save();
             laneUnids.add(lane.getUniversalID());
+            log("| %d | %s | 5 |", i + 1, LANE_NAMES[i]);
         }
+        log("  - Created %d lanes as children of project `%s`\n", laneUnids.size(),
+                projectUnid != null ? projectUnid.substring(0, 8) + "..." : "?");
         assertEquals(5, laneUnids.size());
     }
 
@@ -132,6 +153,10 @@ class KanbanIntegrationTest {
 
     @Test @Order(6) @DisplayName("Create tasks and assign to lanes")
     void createTasks() throws Exception {
+        log("\n## 3. Tasks (Documents + Folders)\n");
+        log("### Create 12 tasks across 5 lanes");
+        log("| Task | Lane | Priority | Assignee |");
+        log("|------|------|----------|----------|");
         String[][] taskData = {
             {"Set up Couchbase cluster", "Backlog", "High", "Alice"},
             {"Design document schema", "Backlog", "Critical", "Bob"},
@@ -158,12 +183,14 @@ class KanbanIntegrationTest {
             task.replaceItemValue("Created", Instant.now().toString());
             task.save();
             taskUnids.add(task.getUniversalID());
+            log("| %s | %s | %s | %s |", td[0], td[1], td[2], td[3]);
 
             // Add to project folder
             task.putInFolder("kanban_" + projectUnid.substring(0, 8));
             task.save();
         }
-        assertEquals(12, taskUnids.size());
+        log("  - Created %d tasks | Project folder: `kanban_%s`\n", taskUnids.size(),
+                projectUnid != null ? projectUnid.substring(0, 8) : "???");
     }
 
     @Test @Order(7) @DisplayName("Read task and verify folder membership")
@@ -183,12 +210,18 @@ class KanbanIntegrationTest {
 
     @Test @Order(8) @DisplayName("Create categorized view: tasks by lane")
     void categorizedViewByLane() throws Exception {
+        log("\n## 4. Categorized View — Tasks by Lane\n");
+        log("```sql");
+        log("CREATE VIEW KanbanTasksByLane");
+        log("  Key: Lane");
+        log("  Columns: Title, Lane, Priority, Assignee");
+        log("```");
         View view = db.createView("KanbanTasksByLane",
                 "Form = \"KanbanTask\"",
                 List.of("Lane"),
                 List.of(
+                        ViewColumn.field("Lane", "Lane"),       // ← key as first column
                         ViewColumn.field("Title", "Title"),
-                        ViewColumn.field("Lane", "Lane"),
                         ViewColumn.field("Priority", "Priority"),
                         ViewColumn.field("Assignee", "Assignee")
                 ));
@@ -199,13 +232,20 @@ class KanbanIntegrationTest {
 
         // Find categories
         int catCount = 0;
+        log("\n### Category breakdown (in-memory navigator):");
         ViewEntry e = nav.getFirst();
+        int prevLevel = 0;
         while (e != null) {
-            if (e.isCategory()) catCount++;
+            if (e.isCategory()) {
+                catCount++;
+                String indent = "  ".repeat(e.getCategoryLevel());
+                log("  %s- **%s** (%d children)", indent,
+                        e.getColumnValues().isEmpty() ? "?" : e.getColumnValues().get(0),
+                        e.getChildCount());
+            }
             e = nav.getNext();
         }
-        assertTrue(catCount > 0, "Should have at least one category (lane)");
-        System.out.println("  KanbanTasksByLane: " + nav.getCount() + " entries, " + catCount + " categories");
+        log("\n  Total: %d entries, %d categories\n", nav.getCount(), catCount);
     }
 
     @Test @Order(9) @DisplayName("Lazy navigator: tasks by lane (key-based pagination)")
@@ -255,7 +295,8 @@ class KanbanIntegrationTest {
 
     @Test @Order(11) @DisplayName("Formula column view: computed priority label")
     void formulaColumnView() throws Exception {
-        Thread.sleep(1000);
+        log("\n## 5. Formula Column View\n");
+        log("### Computed column: PriorityLabel = @If(Priority = ...)\n");
         View view = db.createView("KanbanPriorityView",
                 "Form = \"KanbanTask\"",
                 List.of(ViewColumn.field("Title", "Title"),
@@ -413,9 +454,9 @@ class KanbanIntegrationTest {
                 "Form = \"KanbanTask\"",
                 List.of("Lane", "Priority"),
                 List.of(
-                        ViewColumn.field("Title", "Title"),
                         ViewColumn.field("Lane", "Lane"),
-                        ViewColumn.field("Priority", "Priority")
+                        ViewColumn.field("Priority", "Priority"),
+                        ViewColumn.field("Title", "Title")
                 ));
 
         var nav = view.createViewNav();

@@ -391,7 +391,7 @@ public class CouchbaseView implements View {
 
     /** Build N1QL field reference for a key column name. */
     String buildKeyColumnRef(String colName) {
-        return "doc.items." + colName + "[0].`values`[0]";
+        return "doc.items." + colName.toUpperCase() + "[0].`values`[0]";
     }
 
     /** Extract column values from a query result row (package-private for navigator). */

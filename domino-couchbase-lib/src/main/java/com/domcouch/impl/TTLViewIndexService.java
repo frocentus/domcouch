@@ -175,7 +175,7 @@ public class TTLViewIndexService implements ViewIndexService {
                 .append("(");
         for (int i = 0; i < keyColumns.size(); i++) {
             if (i > 0) sb.append(", ");
-            sb.append("items.").append(keyColumns.get(i)).append("[0].`values`[0]");
+            sb.append("items.").append(keyColumns.get(i).toUpperCase()).append("[0].`values`[0]");
         }
         sb.append(") WHERE _type = 'domcouch.document'");
         try {
