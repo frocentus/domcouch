@@ -106,9 +106,22 @@ public class CouchbaseDatabase implements Database {
     public Document getDocumentByUNID(String unid) {
         try {
             var result = collection.get(unid);
-            if (result == null) return null;
+            if (result == null) {
+                // KV read may fail immediately after write on some Couchbase SDK versions.
+                // Fall back to N1QL USE KEYS query.
+                String stmt = "SELECT doc FROM " + getCollectionPath()
+                        + " AS doc USE KEYS '" + unid + "'";
+                var rows = scope.query(stmt).rowsAsObject();
+                if (!rows.isEmpty()) {
+                    JsonObject row = rows.get(0);
+                    JsonObject json = row.getObject("doc");
+                    if (json != null && canRead(json, getCurrentUserName())) {
+                        return new CouchbaseDocument(this, json);
+                    }
+                }
+                return null;
+            }
             JsonObject json = result.contentAsObject();
-            // Reader-field enforcement BEFORE full deserialization
             if (!canRead(json, getCurrentUserName())) return null;
             return new CouchbaseDocument(this, json);
         } catch (Exception e) {
