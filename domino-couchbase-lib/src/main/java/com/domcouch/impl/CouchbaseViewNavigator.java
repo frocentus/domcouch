@@ -214,8 +214,8 @@ public class CouchbaseViewNavigator implements ViewNavigator {
         // Try from raw JSON
         JsonObject items = row.getObject("items");
         if (items != null) {
-            var arr = items.getArray(colName);
-            if (arr != null && !arr.isEmpty()) {
+            Object val = items.get(colName);
+            if (val instanceof com.couchbase.client.java.json.JsonArray arr && !arr.isEmpty()) {
                 var itemObj = arr.getObject(0);
                 if (itemObj != null) {
                     var vals = itemObj.getArray("values");

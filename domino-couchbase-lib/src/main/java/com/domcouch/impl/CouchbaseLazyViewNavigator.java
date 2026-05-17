@@ -401,8 +401,8 @@ public class CouchbaseLazyViewNavigator implements ViewNavigator {
     private String extractKeyFromRow(JsonObject row, String colName) {
         var items = row.getObject("items");
         if (items != null) {
-            var arr = items.getArray(colName);
-            if (arr != null && !arr.isEmpty()) {
+            Object val = items.get(colName);
+            if (val instanceof com.couchbase.client.java.json.JsonArray arr && !arr.isEmpty()) {
                 var io = arr.getObject(0);
                 if (io != null) {
                     var vs = io.getArray("values");

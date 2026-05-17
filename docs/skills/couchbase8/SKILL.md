@@ -172,6 +172,52 @@ WHERE bucket_id = 'domcouch' AND scope_id = 'contacts' AND name = 'x'
 
 ---
 
+## Couchbase SDK ClassCastException — The Universal Fix
+
+**Couchbase SDK methods `getObject(name)`, `getArray(name)`, and `contentAsObject()` throw**
+`ClassCastException: JsonArray cannot be cast to JsonObject` **when the JSON value is the
+opposite type. This affects ALL SDK methods that do type-specific access on objects
+containing arrays (our multi-instance item schema).**
+
+### Rule: NEVER use getObject/getArray/contentAsObject directly
+
+```java
+// WRONG — throws ClassCastException for array values
+JsonObject item = itemsObj.getObject(name);
+JsonArray arr = itemsObj.getArray(name);
+JsonObject doc = result.contentAsObject();
+
+// CORRECT — use generic get() + instanceof
+Object val = itemsObj.get(name);
+if (val instanceof JsonArray arr) { ... }
+else if (val instanceof JsonObject io) { ... }
+```
+
+### For KV reads specifically: use RawJsonTranscoder
+
+```java
+import com.couchbase.client.java.kv.GetOptions;
+import com.couchbase.client.java.codec.RawJsonTranscoder;
+
+GetResult result = collection.get(unid,
+    GetOptions.getOptions().transcoder(RawJsonTranscoder.INSTANCE));
+String rawJson = result.contentAs(String.class);
+JsonObject json = JsonObject.fromJson(rawJson);
+```
+
+### Affected methods (all fixed in domcouch)
+
+| Method | Location | Fix |
+|---|---|---|
+| `collection.get()` | CouchbaseDatabase | RawJsonTranscoder |
+| `items.getObject(name)` | canRead(), loadFromJson() | `get(name)` + instanceof |
+| `items.getArray(name)` | loadFromJson() | `get(name)` + instanceof |
+| `result.contentAsObject()` | getAllDocuments(), search() | Avoided — use `getDocumentByUNID()` |
+| `items.getArray(name)` | CouchbaseViewNavigator, CouchbaseLazyViewNavigator | `get(name)` + instanceof |
+
+---
+
+
 ## EXPLAIN
 
 ```sql
