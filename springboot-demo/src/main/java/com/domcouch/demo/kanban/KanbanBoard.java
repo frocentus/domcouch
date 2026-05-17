@@ -22,11 +22,7 @@ public class KanbanBoard {
     }
 
     public String getUnid() { return doc.getUniversalID(); }
-    public String getTitle() {
-        String t = itemStr("Title");
-        System.out.println("KanbanBoard.getTitle: '" + t + "'");
-        return t;
-    }
+    public String getTitle() { return itemStr("Title"); }
     public String getCreated() { return itemStr("Created"); }
     public Document getDocument() { return doc; }
 
