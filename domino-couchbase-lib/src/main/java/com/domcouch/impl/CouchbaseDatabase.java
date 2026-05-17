@@ -234,21 +234,26 @@ public class CouchbaseDatabase implements Database {
     public DocumentCollection getAllDocuments() {
         List<Document> docs = new ArrayList<>();
         try {
-            // Use TOSTRING(doc) to get raw JSON strings — bypasses
-            // Couchbase SDK ClassCastException with nested JSON arrays
-            // (multi-instance items schema: items.X = [{type, values}]).
-            String stmt = "SELECT TOSTRING(doc) AS _json FROM " + getCollectionPath()
-                    + " AS doc WHERE doc._type = 'domcouch.document'";
+            // Workaround for Couchbase SDK ClassCastException:
+            // rowsAsObject() fails with nested JSON arrays (our items schema).
+            // Solution: SELECT only meta().id via N1QL, then fetch each
+            // document via KV (collection.get) which handles arrays correctly.
+            String stmt = "SELECT meta().id AS _id FROM " + getCollectionPath()
+                    + " WHERE _type = 'domcouch.document'";
             String userName = getCurrentUserName();
             for (JsonObject row : scope.query(stmt).rowsAsObject()) {
+                String unid = row.getString("_id");
+                if (unid == null) continue;
                 try {
-                    String jsonStr = row.getString("_json");
-                    JsonObject docJson = JsonObject.fromJson(jsonStr);
-                    if (canRead(docJson, userName)) {
-                        docs.add(new CouchbaseDocument(this, docJson));
+                    var result = collection.get(unid);
+                    if (result != null) {
+                        JsonObject docJson = result.contentAsObject();
+                        if (canRead(docJson, userName)) {
+                            docs.add(new CouchbaseDocument(this, docJson));
+                        }
                     }
-                } catch (Exception rowEx) {
-                    // Skip rows that can't be parsed
+                } catch (Exception kvEx) {
+                    // Skip individual KV fetch failures
                 }
             }
         } catch (Exception e) {
