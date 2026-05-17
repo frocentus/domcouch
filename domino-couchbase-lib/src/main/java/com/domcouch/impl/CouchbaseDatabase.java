@@ -235,10 +235,14 @@ public class CouchbaseDatabase implements Database {
             for (JsonObject row : scope.query(stmt, QueryOptions.queryOptions().scanConsistency(QueryScanConsistency.REQUEST_PLUS)).rowsAsObject()) {
                 String unid = row.getString("_id");
                 if (unid == null) continue;
+                System.out.println("search: N1QL found unid=" + unid.substring(0,8));
                 try {
                     Document doc = getDocumentByUNID(unid);
+                    System.out.println("search: getDocumentByUNID returned " + (doc != null ? "doc" : "NULL"));
                     if (doc != null) docs.add(doc);
-                } catch (Exception kvEx) { /* skip */ }
+                } catch (Exception kvEx) {
+                    System.out.println("search: exception: " + kvEx.getMessage());
+                }
             }
             return new CouchbaseDocumentCollection(docs);
         } catch (Exception e) {
