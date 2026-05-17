@@ -24,7 +24,10 @@ public class KanbanBoard {
     public String getUnid() { return doc.getUniversalID(); }
     public String getTitle() {
         String t = itemStr("Title");
-        System.out.println("KanbanBoard.getTitle: '" + t + "'");
+        System.out.println("KanbanBoard.getTitle: '" + t + "' items=" + doc.getItems().size());
+        for (Item it : doc.getItems()) {
+            System.out.println("  item: " + ((com.domcouch.impl.CouchbaseItem)it).getName() + "=" + it.getValueString());
+        }
         return t;
     }
     public String getCreated() { return itemStr("Created"); }
