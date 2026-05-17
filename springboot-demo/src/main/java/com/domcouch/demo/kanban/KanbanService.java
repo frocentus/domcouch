@@ -23,17 +23,12 @@ public class KanbanService {
     public List<KanbanBoard> getBoards() throws NotesException {
         List<KanbanBoard> boards = new ArrayList<>();
         DocumentCollection docs = db.getAllDocuments();
-        System.out.println("getAllDocuments returned " + docs.getCount() + " docs");
         for (Document d : docs) {
             Item f = d.getFirstItem("Form");
-            String form = f != null ? f.getValueString() : "NULL";
-            if ("KanbanBoard".equals(form)) {
+            if (f != null && "KanbanBoard".equals(f.getValueString())) {
                 boards.add(new KanbanBoard(d));
-            } else if (docs.getCount() < 10) {
-                System.out.println("  doc " + d.getUniversalID().substring(0,8) + " form=" + form);
             }
         }
-        System.out.println("Found " + boards.size() + " KanbanBoard docs");
         return boards;
     }
 
@@ -42,7 +37,7 @@ public class KanbanService {
         for (int attempt = 0; attempt < 5; attempt++) {
             Document doc = db.getDocumentByUNID(unid);
             if (doc != null) return new KanbanBoard(doc);
-            if (attempt < 4) Thread.sleep(200);
+            if (attempt < 4) try { Thread.sleep(200); } catch (InterruptedException ignored) {}
         }
         // KV failed — fallback to N1QL scan
         for (KanbanBoard b : getBoards()) {
