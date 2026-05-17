@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.couchbase.client.java.Scope;
 import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.client.java.kv.GetOptions;
+import com.couchbase.client.java.codec.RawJsonTranscoder;
 import com.couchbase.client.java.query.QueryOptions;
 import com.couchbase.client.java.query.QueryResult;
 import com.couchbase.client.java.query.QueryScanConsistency;
@@ -104,48 +106,19 @@ public class CouchbaseDatabase implements Database {
 
     @Override
     public Document getDocumentByUNID(String unid) {
-        System.out.println("getDocumentByUNID: START " + unid.substring(0,8));
         try {
-            var result = collection.get(unid);
+            // RawJsonTranscoder avoids SDK ClassCastException with nested arrays
+            var result = collection.get(unid,
+                    GetOptions.getOptions().transcoder(RawJsonTranscoder.INSTANCE));
             if (result == null) return null;
-            // contentAs(Object.class) avoids ClassCastException from
-            // contentAsObject() with nested JSON arrays (our items schema).
-            // Couchbase SDK uses Jackson internally — returns LinkedHashMap
-            // for objects, ArrayList for arrays.
-            Object content = result.contentAs(Object.class);
-            if (content instanceof java.util.Map map) {
-                JsonObject json = JsonObject.from(map);
-                if (canRead(json, getCurrentUserName())) {
-                    try {
-                        var doc = new CouchbaseDocument(this, json);
-                        System.out.println("getDocumentByUNID: ctor OK, returning " + doc.getUniversalID().substring(0,8));
-                        return doc;
-                    } catch (Exception ex) {
-                        System.out.println("getDocumentByUNID: ctor threw: " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
-                        return null;
-                    }
-                } else {
-                    System.out.println("getDocumentByUNID: canRead=false for " + unid.substring(0,8));
-                }
-            } else {
-                System.out.println("getDocumentByUNID: content is " + (content != null ? content.getClass().getSimpleName() : "null"));
+            String rawJson = result.contentAs(String.class);
+            if (rawJson == null) return null;
+            JsonObject json = JsonObject.fromJson(rawJson);
+            if (canRead(json, getCurrentUserName())) {
+                return new CouchbaseDocument(this, json);
             }
             return null;
         } catch (Exception e) {
-            // collection.get() throws ClassCastException with nested arrays.
-            // Fall back to N1QL USE KEYS.
-            try {
-                String stmt = "SELECT doc FROM " + getCollectionPath()
-                        + " AS doc USE KEYS '" + unid + "'";
-                var rows = scope.query(stmt).rowsAsObject();
-                if (!rows.isEmpty()) {
-                    JsonObject row = rows.get(0);
-                    JsonObject json = row.getObject("doc");
-                    if (json != null && canRead(json, getCurrentUserName())) {
-                        return new CouchbaseDocument(this, json);
-                    }
-                }
-            } catch (Exception ignored) {}
             return null;
         }
     }
