@@ -116,11 +116,9 @@ public class CouchbaseDatabase implements Database {
                 if (canRead(json, getCurrentUserName())) {
                     return new CouchbaseDocument(this, json);
                 }
-                System.out.println("getDocumentByUNID: KV found doc but canRead=false for " + unid.substring(0,8));
-            } else {
-                System.out.println("getDocumentByUNID: KV content is " + (content != null ? content.getClass().getSimpleName() : "null") + " for " + unid.substring(0,8));
             }
-            return null;
+            // Content is wrong type (LinkedHashMap etc.) — fall back to N1QL
+            return getDocumentByUNIDviaN1ql(unid);
         } catch (Exception e) {
             return getDocumentByUNIDviaN1ql(unid);
         }
