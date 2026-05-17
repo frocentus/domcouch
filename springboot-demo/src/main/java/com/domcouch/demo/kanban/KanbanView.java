@@ -125,6 +125,7 @@ public class KanbanView extends VerticalLayout {
     }
 
     private void refreshBoard() {
+        System.out.println("refreshBoard: currentBoardUnid=" + currentBoardUnid);
         Div container = (Div) getChildren()
                 .filter(c -> c.getId().map("board-container"::equals).orElse(false))
                 .findFirst().orElse(null);
@@ -138,6 +139,7 @@ public class KanbanView extends VerticalLayout {
 
         try {
             Map<String, Object> state = service.getBoardState(currentBoardUnid);
+            System.out.println("refreshBoard: state keys=" + state.keySet() + " lanes=" + (state.get("lanes") != null ? ((java.util.List)state.get("lanes")).size() : "null"));
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> lanes = (List<Map<String, Object>>) state.get("lanes");
 
