@@ -115,6 +115,7 @@ public class CouchbaseDatabase implements Database {
                 if (!rows.isEmpty()) {
                     JsonObject row = rows.get(0);
                     JsonObject json = row.getObject("doc");
+                    System.out.println("getDocumentByUNID: N1QL fallback found doc=" + (json != null));
                     if (json != null && canRead(json, getCurrentUserName())) {
                         return new CouchbaseDocument(this, json);
                     }
@@ -249,7 +250,9 @@ public class CouchbaseDatabase implements Database {
                     if (canRead(docJson, userName)) {
                         docs.add(new CouchbaseDocument(this, docJson));
                     }
-                } catch (Exception kvEx) { /* skip */ }
+                } catch (Exception kvEx) {
+                    System.out.println("search: KV fetch failed for " + unid.substring(0,8) + ": " + kvEx.getMessage());
+                }
             }
             return new CouchbaseDocumentCollection(docs);
         } catch (Exception e) {
