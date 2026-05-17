@@ -215,14 +215,22 @@ public class CouchbaseDatabase implements Database {
         try {
             List<Document> docs = new ArrayList<>();
             String n1qlFormula = formulaTranslator.toN1ql(formula);
-            String stmt = "SELECT doc.* FROM " + getCollectionPath() + " AS doc"
-                    + " WHERE doc._type = 'domcouch.document' AND (" + n1qlFormula + ")";
-            QueryResult result = scope.query(stmt);
+            // IDs via N1QL, bodies via KV — same approach as getAllDocuments()
+            String stmt = "SELECT meta().id AS _id FROM " + getCollectionPath()
+                    + " WHERE _type = 'domcouch.document' AND (" + n1qlFormula + ")";
             String userName = getCurrentUserName();
-            for (JsonObject row : result.rowsAsObject()) {
-                if (canRead(row, userName)) {
-                    docs.add(new CouchbaseDocument(this, row));
-                }
+            for (JsonObject row : scope.query(stmt).rowsAsObject()) {
+                String unid = row.getString("_id");
+                if (unid == null) continue;
+                try {
+                    var result = collection.get(unid);
+                    if (result != null) {
+                        JsonObject docJson = result.contentAsObject();
+                        if (canRead(docJson, userName)) {
+                            docs.add(new CouchbaseDocument(this, docJson));
+                        }
+                    }
+                } catch (Exception kvEx) { /* skip */ }
             }
             return new CouchbaseDocumentCollection(docs);
         } catch (Exception e) {
@@ -389,6 +397,7 @@ public class CouchbaseDatabase implements Database {
     public String getCollectionPath() {
         return "`" + bucketName + "`.`" + scopeName + "`.`" + COLLECTION_NAME + "`";
     }
+
 
     private void ensurePrimaryIndex() {
         try {

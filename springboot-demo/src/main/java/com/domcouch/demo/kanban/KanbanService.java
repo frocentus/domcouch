@@ -22,26 +22,12 @@ public class KanbanService {
 
     public List<KanbanBoard> getBoards() throws NotesException {
         List<KanbanBoard> boards = new ArrayList<>();
-        // N1QL for IDs only, then KV fetch — avoids scanning 60K docs.
-        String stmt = "SELECT meta().id AS _id FROM " + db.getCollectionPath()
-                + " WHERE _type = 'domcouch.document' AND form = 'KanbanBoard'";
-        try {
-            for (var row : scope.query(stmt).rowsAsObject()) {
-                String unid = row.getString("_id");
-                if (unid != null) {
-                    Document doc = db.getDocumentByUNID(unid);
-                    if (doc != null) boards.add(new KanbanBoard(doc));
-                }
-            }
-        } catch (Exception e) {
-            // Id-only query also triggers SDK bug — fallback
+        // db.search() uses N1QL IDs + KV fetch, avoids scanning all docs
+        DocumentCollection results = db.search("Form = \"KanbanBoard\"");
+        for (Document d : results) {
+            boards.add(new KanbanBoard(d));
         }
         return boards;
-    }
-
-    // Direct scope access for internal N1QL queries
-    private com.couchbase.client.java.Scope scope() {
-        return ((com.domcouch.impl.CouchbaseDatabase) db).getScope();
     }
 
     public KanbanBoard getBoard(String unid) throws NotesException {
