@@ -229,6 +229,7 @@ public class CouchbaseDatabase implements Database {
         try {
             List<Document> docs = new ArrayList<>();
             String n1qlFormula = formulaTranslator.toN1ql(formula);
+            log.info("search: formula='{}' → N1QL='{}'", formula, n1qlFormula);
             // IDs via N1QL, bodies via KV — same approach as getAllDocuments()
             String stmt = "SELECT meta().id AS _id FROM " + getCollectionPath()
                     + " AS doc WHERE doc._type = 'domcouch.document' AND (" + n1qlFormula + ")";
