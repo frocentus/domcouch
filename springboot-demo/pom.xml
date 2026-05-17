@@ -7,13 +7,16 @@
     <parent>
         <groupId>com.domcouch</groupId>
         <artifactId>domcouch-parent</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
+        <version>0.2.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>springboot-demo</artifactId>
     <packaging>jar</packaging>
     <name>DomCouch Spring Boot Demo</name>
     <description>Self-hosting Spring Boot application demonstrating Domino-Couchbase integration</description>
+    <properties>
+        <vaadin.version>24.4.6</vaadin.version>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -25,6 +28,10 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.vaadin</groupId>
+            <artifactId>vaadin-spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.domcouch</groupId>
             <artifactId>domino-couchbase-lib</artifactId>
         </dependency>
@@ -34,6 +41,18 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.vaadin</groupId>
+                <artifactId>vaadin-bom</artifactId>
+                <version>${vaadin.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <plugins>
