@@ -436,8 +436,8 @@ public class CouchbaseDocument implements Document {
 
         // Derive top-level form from the Form item if not explicitly set
         String effectiveForm = form;
-        if ((effectiveForm == null || effectiveForm.isEmpty()) && items.containsKey("Form")) {
-            var formList = items.get("Form");
+        if ((effectiveForm == null || effectiveForm.isEmpty()) && items.containsKey("FORM")) {
+            var formList = items.get("FORM");
             if (formList != null && !formList.isEmpty()) effectiveForm = formList.get(0).getValueString();
         }
         json.put("form", effectiveForm != null ? effectiveForm : "");
