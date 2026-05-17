@@ -401,7 +401,9 @@ public class CouchbaseDocument implements Document {
 
         JsonObject itemsObj = doc.getObject("items");
         if (itemsObj != null) {
+            System.out.println("loadFromJson: itemsObj type=" + itemsObj.getClass().getSimpleName() + " names=" + itemsObj.getNames());
             for (String name : itemsObj.getNames()) {
+                System.out.println("  name=" + name);
                 var itemList = new ArrayList<CouchbaseItem>();
                 // Handle both single-object and array formats
                 var array = itemsObj.getArray(name);
