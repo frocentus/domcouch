@@ -181,7 +181,7 @@ Implementation is trivial: `setCacheSize()` changes pageSize and re-fetches the 
 | Requirement | Status |
 |---|---|
 | `recycle()` clears caches | ✅ Views cleared, navigator index cleared, KV connections released |
-| No lingering caches | 🟡 `formulaCache` in CouchbaseDatabase never cleared, `views` map only cleared on `recycle()` |
+| No lingering caches | ✅ `formulaCache` cleared on `recycle()`, `views` map intentionally long-lived (navigators are transient, views persist) |
 | JVM GC handles objects | ✅ No manual memory management |
 
 ---

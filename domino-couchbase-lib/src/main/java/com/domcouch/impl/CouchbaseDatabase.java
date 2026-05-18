@@ -289,12 +289,12 @@ public class CouchbaseDatabase implements Database {
 
     @Override
     public void recycle() {
-        // Clean up stale TTL indexes
         if (viewIndexService instanceof TTLViewIndexService ttl) {
             ttl.cleanupStale();
         }
         open = false;
         views.clear();
+        formulaCache.clear();
     }
 
     // ---- internal (package-private) ----
