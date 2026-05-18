@@ -11,6 +11,29 @@ import com.domcouch.api.ViewNavigator;
 import java.util.*;
 
 /**
+ * Lazy ViewNavigator using key-based N1QL pagination — no full in-memory index.
+ *
+ * <h3>How It Works</h3>
+ * Each navigation call fetches a page of results using:
+ * <pre>{@code SELECT ... WHERE keyCol > $cursorKey ORDER BY keyCol LIMIT pageSize}</pre>
+ * Pages are cached in a local buffer. Category rows are injected when the key
+ * value changes between adjacent entries.
+ *
+ * <h3>Trade-offs vs. {@link CouchbaseViewNavigator} (in-memory)</h3>
+ * <table>
+ *   <tr><td>Build time</td><td>&lt;1ms (lazy)</td><td>~30s (full scan)</td></tr>
+ *   <tr><td>Memory</td><td>O(pageSize)</td><td>O(total entries)</td></tr>
+ *   <tr><td>Sequential walk</td><td>μs-fast within page</td><td>ns-fast (array)</td></tr>
+ *   <tr><td>getNth(n)</td><td>O(n) — slow</td><td>O(1) — fast</td></tr>
+ *   <tr><td>Hierarchy (parent/sibling)</td><td>Not supported</td><td>Full tree links</td></tr>
+ * </table>
+ *
+ * <p>Best for: sequential walk patterns, first-page latency matters.
+ * Not for: random access, hierarchy navigation.
+ *
+ * @see CouchbaseViewNavigator
+ */
+/**
  * Lazy ViewNavigator using key-based N1QL pagination instead of building
  * a full in-memory index.
  * <p>

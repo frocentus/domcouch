@@ -13,6 +13,30 @@ import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
+ * Couchbase-backed implementation of {@link Document}.
+ *
+ * <p>Documents are stored as JSON in Couchbase with the following schema:
+ * <pre>
+ * {
+ *   "_type": "domcouch.document",
+ *   "unid": "32-char hex",
+ *   "form": "Person",
+ *   "items": { "FIELD": [{ "type": 0, "values": ["val"] }] },
+ *   "folders": ["Inbox"],
+ *   "parentUNID": "...",
+ *   "_attachments": [...],
+ *   "created": "ISO-8601",
+ *   "lastModified": "ISO-8601"
+ * }
+ * </pre>
+ *
+ * <p>Items are stored as JSON arrays per name, supporting Domino multi-instance
+ * items (multiple items with the same name). Item loading is lazy — the full
+ * {@link CouchbaseItem} objects are only deserialized on first access.
+ *
+ * <p>Thread-safe: {@link ConcurrentHashMap} for the items map.
+ */
+/**
  * Couchbase-backed Document implementation.
  *
  * The Couchbase JSON schema for a document:
@@ -81,6 +105,14 @@ public class CouchbaseDocument implements Document {
 
     // ---- public API ----
 
+    /**
+     * Returns the first item with the given name, or {@code null}.
+     * Item names are case-insensitive (stored uppercased).
+     * Triggers lazy item loading if items haven't been accessed yet.
+     *
+     * @param name item name (case-insensitive)
+     * @return the first matching item, or null
+     */
     @Override
     public Item getFirstItem(String name) {
         ensureItemsLoaded();
@@ -88,6 +120,13 @@ public class CouchbaseDocument implements Document {
         return (list != null && !list.isEmpty()) ? list.get(0) : null;
     }
 
+    /**
+     * Returns all items in this document. Multi-instance items (multiple
+     * items with the same name) each appear as separate entries.
+     * Triggers lazy item loading on first access.
+     *
+     * @return vector of all items
+     */
     @Override
     public Vector<Item> getItems() {
         ensureItemsLoaded();
@@ -96,6 +135,12 @@ public class CouchbaseDocument implements Document {
         return all;
     }
 
+    /**
+     * Checks whether this document has at least one item with the given name.
+     *
+     * @param name item name (case-insensitive)
+     * @return true if an item with this name exists
+     */
     @Override
     public boolean hasItem(String name) {
         ensureItemsLoaded();
@@ -103,6 +148,15 @@ public class CouchbaseDocument implements Document {
         return list != null && !list.isEmpty();
     }
 
+    /**
+     * Replaces ALL items with the given name with a single new item.
+     * Accepts a single value (String, Number, etc.) or a {@code Vector}
+     * for multi-value items. Item type is inferred from the value class.
+     *
+     * @param name  item name (case-insensitive, stored uppercased)
+     * @param value single value or Vector of values
+     * @return the created item
+     */
     @Override
     public Item replaceItemValue(String name, Object value) {
         String normalizedName = name.toUpperCase();
@@ -118,12 +172,21 @@ public class CouchbaseDocument implements Document {
         return item;
     }
 
+    /** Removes all items with the given name. */
     @Override
     public void removeItem(String name) {
         items.remove(name.toUpperCase());
         dirty = true;
     }
 
+    /**
+     * Persists this document to Couchbase via KV upsert.
+     * Enforces Author-field access control: if the document has Author items,
+     * the current session user must be listed in at least one of them.
+     *
+     * @return true on success
+     * @throws NotesException if author check fails (4010) or save fails (4000)
+     */
     @Override
     public boolean save() throws NotesException {
         if (!dirty) return true;
@@ -147,6 +210,13 @@ public class CouchbaseDocument implements Document {
         }
     }
 
+    /**
+     * Permanently deletes this document from Couchbase.
+     * Enforces the same Author-field check as {@link #save()}.
+     *
+     * @return true on success
+     * @throws NotesException if author check fails (4010) or remove fails (4001)
+     */
     @Override
     public boolean remove() throws NotesException {
         // Author-field enforcement: same check as save()
@@ -165,11 +235,13 @@ public class CouchbaseDocument implements Document {
         }
     }
 
+    /** @return 32-character uppercase hex universal ID */
     @Override
     public String getUniversalID() {
         return unid;
     }
 
+    /** @return creation timestamp, or null for unsaved documents */
     @Override
     public DateTime getCreated() {
         return created != null ? new CouchbaseDateTime(created) : null;
