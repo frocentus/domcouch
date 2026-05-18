@@ -157,13 +157,21 @@ var nav = ((CouchbaseView) view).createLazyViewNav(/*maxLevel*/ 0, /*pageSize*/ 
 
 ### Gap: API surface
 
-| Method | Domino has | We have |
-|---|---|---|
-| `setCacheSize(int)` | ✅ | ❌ — pageSize is constructor param, not settable |
-| `setAutoUpdate(boolean)` | ✅ | ❌ — not implemented |
-| `getCacheSize()` | ✅ | ❌ |
+| Method | Domino has | We have | Maps to |
+|---|---|---|---|
+| `setCacheSize(int)` | ✅ | ❌ | Lazy nav `pageSize` — number of entries pre-fetched into buffer |
+| `getCacheSize()` | ✅ | ❌ | |
+| `setBufferMaxEntries(int)` | ✅ | ❌ | LIMIT clause in N1QL — max rows per server request |
+| `getBufferMaxEntries()` | ✅ | ❌ | |
+| `setAutoUpdate(boolean)` | ✅ | ❌ | Controls whether navigator refreshes on each access |
+| `isAutoUpdate()` | ✅ | ❌ | |
 
-Adding these methods to `ViewNavigator` would complete the Domino compatibility surface.
+In Domino, `setCacheSize` and `setBufferMaxEntries` work together:
+- `setBufferMaxEntries(50)` — "don't fetch more than 50 entries per network round-trip"
+- `setCacheSize(200)` — "keep up to 200 entries in local memory"
+
+This maps cleanly to our lazy navigator: `pageSize` = buffer max, with potential for a
+larger in-memory ring buffer beyond the current page.
 Implementation is trivial: `setCacheSize()` changes pageSize and re-fetches the current page.
 
 ---
