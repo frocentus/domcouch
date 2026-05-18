@@ -132,30 +132,39 @@ public Item getFirstItem(String name) {
 
 ---
 
-## 5. Batching Logic — ❌ None
+## 5. Batching Logic — 🟡 Good Pattern, Missing API
 
-### Requirement
-> Traditional Domino code loops through a View and calls `getNextDocument()`, fetching documents one by one. Your facade MUST implement lazy loading, internal batch-fetching behind the scenes.
+### Domino's Built-in Caching
 
-### Current State
-- **In-memory navigator**: Builds full index upfront (30s for 50K docs). O(1) `getNext()` but terrible first-access latency.
-- **Lazy navigator**: Key-based pagination with page size 200. Sequential walk is μs-fast within a page. But `getNth()` uses slow OFFSET.
-- **No batching in `DocumentCollection`**: Iterating `getAllDocuments()` does N+1.
+Domino ViewNavigator supports:
+- `setCacheSize(int n)` — pre-fetches `n` entries into a local buffer
+- `setAutoUpdate(false)` — disables automatic refresh, enables caching
+- When cache is exhausted, next batch is pre-fetched automatically
 
-### Recommendation
-Add `getNextDocument()` batching to `DocumentCollection`:
+This is the batch-fetch anti-N+1 pattern that the architecture review requires.
+
+### Our Implementation
+
+**`CouchbaseLazyViewNavigator` already implements this pattern** — the `pageSize` parameter IS the
+cache size. Each page fetch uses key-based pagination (`WHERE keyCol > $cursor LIMIT n`).
+Sequential `getNext()` is μs-fast within the page, and the next page is fetched in one N1QL
+query when exhausted. No N+1.
+
 ```java
-public Document getNextDocument() {
-    if (buffer.isEmpty() && hasMore) {
-        // Fetch next batch of 100 document IDs
-        List<String> batch = n1qlPage(cursorKey, 100);
-        // Bulk KV fetch
-        buffer = collection.getAll(batch);
-        cursorKey = batch.get(batch.size() - 1).key;
-    }
-    return buffer.poll();
-}
+// Lazy navigator — pageSize behaves like Domino's setCacheSize():
+var nav = ((CouchbaseView) view).createLazyViewNav(/*maxLevel*/ 0, /*pageSize*/ 200);
 ```
+
+### Gap: API surface
+
+| Method | Domino has | We have |
+|---|---|---|
+| `setCacheSize(int)` | ✅ | ❌ — pageSize is constructor param, not settable |
+| `setAutoUpdate(boolean)` | ✅ | ❌ — not implemented |
+| `getCacheSize()` | ✅ | ❌ |
+
+Adding these methods to `ViewNavigator` would complete the Domino compatibility surface.
+Implementation is trivial: `setCacheSize()` changes pageSize and re-fetches the current page.
 
 ---
 
@@ -189,6 +198,6 @@ public Document getNextDocument() {
 | 1 | N+1 in `getAllDocuments()`/`search()` | 30-60s for 50K docs | Medium — batch KV reads |
 | 2 | Lazy document loading | 1M unnecessary CouchbaseItem objects for 50K docs | Low — defer `loadFromJson` |
 | 3 | `lotus.domino.*` package | True drop-in compatibility | Low — wrapper classes |
-| 4 | Batching in DocumentCollection | Prevents N+1 in legacy code patterns | Medium |
+| 4 | Add `setCacheSize`/`setAutoUpdate` to ViewNavigator | Matches Domino API surface | Low — expose pageSize as settable |
 | 5 | ClassCastException in SDK accessors | **✅ Fixed** — `get(name)+instanceof`, `RawJsonTranscoder` | Done |
-| 6 | Schema migration to flat fields | **❌ Rejected** — `{type, values}` schema is correct for Domino semantics | N/A |
+| 6 | Schema migration to flat fields | **❌ Rejected** — `{type, values}` schema is correct | N/A |
