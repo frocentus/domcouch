@@ -39,32 +39,30 @@
 }
 ```
 
-### Issues
+### Issues — and why the current schema is actually correct
 
-| Concern | Impact |
+| Concern | Analysis |
 |---|---|
-| **Deep nesting**: `items.NAME[0].values[0]` | Couchbase SDK `getObject()`/`getArray()` throw `ClassCastException` — required custom `get(name)+instanceof` workaround |
-| **Type-per-item overhead**: Each field stores `{type, values}` wrapper | ~30% storage overhead vs. direct typed values |
-| **Multi-instance items as arrays**: Correct for Domino semantics (multiple Body items) | Makes N1QL queries verbose: `items.BODY[0].values[0]` |
+| **Deep nesting**: `items.NAME[0].values[0]` triggers Couchbase SDK `ClassCastException` | **Root cause is the SDK, not the schema.** Fixed via `get(name)+instanceof` and `RawJsonTranscoder`. Schema nesting is fine. |
+| **Type-per-item overhead**: Each field stores `{type, values}` | ~30% storage overhead, but enables seamless multi-value→multi-instance upgrade. Worth it. |
+| **Multi-instance items as arrays**: N1QL queries are verbose | N1QL `items.BODY[0].values[0]` is consistent — all fields use the same path. |
 
-### Recommendation
-```json
-{
-  "_type": "domcouch.document",
-  "unid": "...",
-  "form": "KanbanBoard",
-  "fields": {
-    "Title": "My Board",
-    "Priority": 3,
-    "Readers": ["Alice", "Bob"],
-    "Tags": ["java", "couchbase"]
-  },
-  "_multi": {
-    "Body": ["Para 1", "Para 2"]  // only for multi-instance items
-  }
-}
-```
-Flat `fields` for 95% of single-value items, `_multi` for the rare multi-instance case. N1QL: `doc.fields.Title`, `doc._multi.Body[0]`. No more `getObject()`/`getArray()` SDK issues.
+### Why NOT flatten
+
+Consider `Tags` as multi-value: `["java", "couchbase"]`. If it later needs per-instance metadata
+(split into two `Tag` items with different formatting), the `{type, values}` schema handles this
+transparently — just add a second array element. Callers see the same `getValues()` result.
+
+A flat `"fields": {"Tags": ["java","couchbase"]}` has **no upgrade path** to multi-instance —
+you'd need to migrate from `fields.Tags` to `_multi.Tags`, breaking all N1QL queries and
+API accessors. The current schema avoids this class of migration entirely.
+
+### Recommendation (revised)
+
+**Keep the current `{type, values}` array schema.** It correctly models Domino's flexible
+field semantics where any single-value field can become multi-value, and any multi-value field
+can become multi-instance — all without schema migration. The SDK access issues are solved
+once (see ClassCastException section below), not repeatedly per field type.
 
 ---
 
@@ -190,7 +188,7 @@ public Document getNextDocument() {
 |---|---|---|---|
 | 1 | N+1 in `getAllDocuments()`/`search()` | 30-60s for 50K docs | Medium — batch KV reads |
 | 2 | Lazy document loading | 1M unnecessary CouchbaseItem objects for 50K docs | Low — defer `loadFromJson` |
-| 3 | Flat `fields` schema | Eliminates all ClassCastException workarounds | High — schema migration |
-| 4 | `lotus.domino.*` package | True drop-in compatibility | Low — wrapper classes |
-| 5 | Batching in DocumentCollection | Prevents N+1 in legacy code patterns | Medium |
-| 6 | `_multi` for multi-instance items | 90% reduction in array nesting | Medium — tied to #3 |
+| 3 | `lotus.domino.*` package | True drop-in compatibility | Low — wrapper classes |
+| 4 | Batching in DocumentCollection | Prevents N+1 in legacy code patterns | Medium |
+| 5 | ClassCastException in SDK accessors | **✅ Fixed** — `get(name)+instanceof`, `RawJsonTranscoder` | Done |
+| 6 | Schema migration to flat fields | **❌ Rejected** — `{type, values}` schema is correct for Domino semantics | N/A |
