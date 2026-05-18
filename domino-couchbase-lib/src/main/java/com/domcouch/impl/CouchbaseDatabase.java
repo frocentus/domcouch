@@ -221,21 +221,10 @@ public class CouchbaseDatabase implements Database {
             return getAllDocuments();
         }
         try {
-            List<Document> docs = new ArrayList<>();
             String n1qlFormula = formulaTranslator.toN1ql(formula);
-            // IDs via N1QL, bodies via KV — same approach as getAllDocuments()
             String stmt = "SELECT meta().id AS _id FROM " + getCollectionPath()
                     + " AS doc WHERE doc._type = 'domcouch.document' AND (" + n1qlFormula + ")";
-            String userName = getCurrentUserName();
-            for (JsonObject row : scope.query(stmt, QueryOptions.queryOptions().scanConsistency(QueryScanConsistency.REQUEST_PLUS)).rowsAsObject()) {
-                String unid = row.getString("_id");
-                if (unid == null) continue;
-                try {
-                    Document doc = getDocumentByUNID(unid);
-                    if (doc != null) docs.add(doc);
-                } catch (Exception kvEx) { /* skip */ }
-            }
-            return new CouchbaseDocumentCollection(docs);
+            return fetchDocumentsByN1qlIds(stmt, getCurrentUserName());
         } catch (Exception e) {
             throw new NotesException(4003, "Search failed: " + e.getMessage(), e);
         }
@@ -243,52 +232,48 @@ public class CouchbaseDatabase implements Database {
 
     @Override
     public DocumentCollection getAllDocuments() {
-        List<Document> docs = new ArrayList<>();
-        try {
-            // Workaround for Couchbase SDK ClassCastException:
-            // rowsAsObject() fails with nested JSON arrays (our items schema).
-            // Solution: SELECT only meta().id via N1QL, then fetch each
-            // document via KV (collection.get) which handles arrays correctly.
-            String stmt = "SELECT meta().id AS _id FROM " + getCollectionPath()
-                    + " AS doc WHERE doc._type = 'domcouch.document'";
-            String userName = getCurrentUserName();
-            for (JsonObject row : scope.query(stmt).rowsAsObject()) {
-                String unid = row.getString("_id");
-                if (unid == null) continue;
-                try {
-                    Document doc = getDocumentByUNID(unid);
-                    if (doc != null) docs.add(doc);
-                } catch (Exception kvEx) { /* skip */ }
-            }
-        } catch (Exception e) {
-            log.warn("getAllDocuments failed: {}", e.getMessage());
-        }
-        return new CouchbaseDocumentCollection(docs);
+        String stmt = "SELECT meta().id AS _id FROM " + getCollectionPath()
+                + " AS doc WHERE doc._type = 'domcouch.document'";
+        return fetchDocumentsByN1qlIds(stmt, getCurrentUserName());
     }
 
-    /** Find documents whose parentUNID matches (for getResponses). */
     DocumentCollection findByParentUNID(String parentUnid) {
+        String stmt = "SELECT meta().id AS _id FROM " + getCollectionPath()
+                + " AS doc WHERE doc._type = 'domcouch.document'"
+                + " AND parentUNID = '" + parentUnid + "'";
+        return fetchDocumentsByN1qlIds(stmt, getCurrentUserName());
+    }
+
+    /**
+     * Fetch documents in batches of 100 via N1QL USE KEYS to avoid N+1 KV reads.
+     */
+    private DocumentCollection fetchDocumentsByN1qlIds(String idStmt, String userName) {
         List<Document> docs = new ArrayList<>();
         try {
-            String stmt = "SELECT meta().id AS _id FROM " + getCollectionPath()
-                    + " AS doc WHERE doc._type = 'domcouch.document' AND parentUNID = '" + parentUnid + "'";
-            String userName = getCurrentUserName();
-            for (JsonObject row : queryWithConsistency(stmt).rowsAsObject()) {
+            List<String> allIds = new ArrayList<>();
+            for (JsonObject row : scope.query(idStmt).rowsAsObject()) {
                 String unid = row.getString("_id");
-                if (unid != null) {
-                    try {
-                        Document doc = getDocumentByUNID(unid);
-                        if (doc != null) docs.add(doc);
-                    } catch (Exception kvEx) { /* skip */ }
+                if (unid != null) allIds.add(unid);
+            }
+            if (allIds.isEmpty()) return new CouchbaseDocumentCollection(docs);
+            String cp = getCollectionPath();
+            for (int i = 0; i < allIds.size(); i += 100) {
+                int end = Math.min(i + 100, allIds.size());
+                String keysList = "'" + String.join("','", allIds.subList(i, end)) + "'";
+                String batchStmt = "SELECT doc FROM " + cp
+                        + " AS doc USE KEYS [" + keysList + "]";
+                for (JsonObject row : scope.query(batchStmt).rowsAsObject()) {
+                    JsonObject docJson = row.getObject("doc");
+                    if (docJson != null && canRead(docJson, userName)) {
+                        docs.add(new CouchbaseDocument(this, docJson));
+                    }
                 }
             }
         } catch (Exception e) {
-            log.warn("findByParentUNID failed: {}", e.getMessage());
+            log.warn("fetchDocumentsByN1qlIds failed: {}", e.getMessage());
         }
         return new CouchbaseDocumentCollection(docs);
     }
-
-    @Override
     public int getDocumentCount() {
         try {
             String stmt = "SELECT COUNT(*) AS cnt FROM " + getCollectionPath()
