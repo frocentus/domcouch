@@ -33,6 +33,8 @@ public class CouchbaseDocument implements Document {
 
     private final CouchbaseDatabase database;
     private final Map<String, List<CouchbaseItem>> items;
+    private JsonObject rawDoc;   // stored for lazy item loading
+    private boolean itemsLoaded; // true when loadItems() has been called
     private String unid;
     private String form;
     private boolean dirty;
@@ -56,7 +58,7 @@ public class CouchbaseDocument implements Document {
         this.lastModified = this.created;
     }
 
-    /** Load an existing document from a Couchbase JsonObject. */
+    /** Load an existing document from a Couchbase JsonObject (lazy items). */
     public CouchbaseDocument(CouchbaseDatabase database, JsonObject doc) {
         this.database = database;
         this.items = new ConcurrentHashMap<>();
@@ -64,19 +66,31 @@ public class CouchbaseDocument implements Document {
         this.attachments = new ArrayList<>();
         this.isNew = false;
         this.dirty = false;
-        loadFromJson(doc);
+        this.rawDoc = doc;
+        this.itemsLoaded = false;
+        loadMetadata(doc); // loads everything except items
+    }
+
+    private void ensureItemsLoaded() {
+        if (!itemsLoaded && rawDoc != null) {
+            loadItems(rawDoc);
+            rawDoc = null;
+            itemsLoaded = true;
+        }
     }
 
     // ---- public API ----
 
     @Override
     public Item getFirstItem(String name) {
+        ensureItemsLoaded();
         var list = items.get(name.toUpperCase());
         return (list != null && !list.isEmpty()) ? list.get(0) : null;
     }
 
     @Override
     public Vector<Item> getItems() {
+        ensureItemsLoaded();
         var all = new Vector<Item>();
         for (var list : items.values()) all.addAll(list);
         return all;
@@ -84,6 +98,7 @@ public class CouchbaseDocument implements Document {
 
     @Override
     public boolean hasItem(String name) {
+        ensureItemsLoaded();
         var list = items.get(name.toUpperCase());
         return list != null && !list.isEmpty();
     }
@@ -174,6 +189,7 @@ public class CouchbaseDocument implements Document {
 
     @Override
     public Document copyToDatabase(Database targetDb) throws NotesException {
+        ensureItemsLoaded();
         Document copy = targetDb.createDocument();
         copy.replaceItemValue("Form", form);
         for (var entry : items.entrySet()) {
@@ -288,6 +304,7 @@ public class CouchbaseDocument implements Document {
      * @return true if the user may read this document
      */
     public boolean isReadableBy(String userName) {
+        ensureItemsLoaded();
         boolean hasReaderField = false;
         for (var itemList : items.values()) {
             for (CouchbaseItem item : itemList) {
@@ -319,6 +336,7 @@ public class CouchbaseDocument implements Document {
      * @return true if the user may edit this document
      */
     public boolean isEditableBy(String userName) {
+        ensureItemsLoaded();
         boolean hasAuthorField = false;
         for (var itemList : items.values()) {
             for (CouchbaseItem item : itemList) {
@@ -347,7 +365,7 @@ public class CouchbaseDocument implements Document {
 
     // ---- internal ----
 
-    void loadFromJson(JsonObject doc) {
+    void loadMetadata(JsonObject doc) {
         this.unid = doc.getString("unid");
         this.form = doc.getString("form");
         this.parentUNID = doc.getString("parentUNID");
@@ -398,12 +416,13 @@ public class CouchbaseDocument implements Document {
 
         String modStr = doc.getString("lastModified");
         this.lastModified = modStr != null ? Instant.parse(modStr) : this.created;
+    }
 
+    private void loadItems(JsonObject doc) {
         JsonObject itemsObj = doc.getObject("items");
         if (itemsObj != null) {
             for (String name : itemsObj.getNames()) {
                 var itemList = new ArrayList<CouchbaseItem>();
-                // Use get(name) + instanceof to avoid SDK ClassCastException
                 Object val = itemsObj.get(name);
                 if (val instanceof com.couchbase.client.java.json.JsonArray arr) {
                     for (int i = 0; i < arr.size(); i++) {
@@ -428,6 +447,7 @@ public class CouchbaseDocument implements Document {
     }
 
     JsonObject toJson() {
+        ensureItemsLoaded();
         JsonObject json = JsonObject.create();
         json.put("_type", "domcouch.document");
         json.put("unid", unid);
