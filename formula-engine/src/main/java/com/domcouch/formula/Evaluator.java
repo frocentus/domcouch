@@ -15,7 +15,7 @@ import java.util.*;
 public class Evaluator {
 
     private final Map<String, FunctionHandler> functions;
-    private volatile String currentUserName;
+    private final ThreadLocal<String> currentUserName;
     public final ThreadLocal<Map<String, Object>> tempScope =
             ThreadLocal.withInitial(HashMap::new);
     public static final DateTimeFormatter DT_FMT = DateTimeFormatter
@@ -30,18 +30,25 @@ public class Evaluator {
     }
 
     /** Create an Evaluator for a specific user (for @UserName). */
+    /** Convenience: create with fixed user name. For use in tests/single-threaded code. */
     public Evaluator(String currentUserName) {
-        this.currentUserName = currentUserName != null ? currentUserName : "Anonymous";
+        this(ThreadLocal.withInitial(() ->
+                currentUserName != null ? currentUserName : "Anonymous"));
+    }
+
+    /** Create an Evaluator with a shared ThreadLocal for user name. */
+    public Evaluator(ThreadLocal<String> currentUserName) {
+        this.currentUserName = currentUserName;
         this.functions = new HashMap<>();
         registerBuiltins();
     }
 
-    /** Update the user name for {@code @UserName} resolution in subsequent evaluations. */
+    /** Update the user name for the current thread. Thread-safe. */
     public void setCurrentUserName(String currentUserName) {
-        this.currentUserName = currentUserName != null ? currentUserName : "Anonymous";
+        this.currentUserName.set(currentUserName != null ? currentUserName : "Anonymous");
     }
 
-    public String getCurrentUserName() { return currentUserName; }
+    public String getCurrentUserName() { return currentUserName.get(); }
 
     /** Parse and evaluate a single formula. Convenience for testing. */
     public Object evalExpr(String formula, FormulaContext ctx) {

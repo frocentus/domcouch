@@ -226,6 +226,24 @@ class CodeReviewFixesTest {
     @Test @DisplayName("Session isValid uses lightweight ping")
     void isValidUsesPing() {
         assertTrue(session.isValid());
-        // Should return quickly (not a full bucket enumeration)
+    }
+
+    @Test @DisplayName("FormulaTranslator setCurrentUserName is thread-safe")
+    void formulaTranslatorThreadSafety() throws Exception {
+        var ft = new com.domcouch.formula.translate.FormulaTranslator();
+        int threads = 5;
+        CountDownLatch latch = new CountDownLatch(threads);
+        List<String> results = java.util.Collections.synchronizedList(new ArrayList<>());
+        for (int t = 0; t < threads; t++) {
+            final String name = "User" + t;
+            new Thread(() -> {
+                ft.setCurrentUserName(name);
+                results.add(ft.getCurrentUserName());
+                latch.countDown();
+            }).start();
+        }
+        latch.await();
+        assertTrue(results.contains("User0"));
+        assertTrue(results.contains("User4"));
     }
 }

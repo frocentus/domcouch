@@ -47,31 +47,31 @@ import com.domcouch.formula.*;
 public class FormulaTranslator {
 
     private final Evaluator evaluator;
-    private volatile String currentUserName = "Anonymous";
+    private final ThreadLocal<String> currentUserName =
+            ThreadLocal.withInitial(() -> "Anonymous");
 
     /** Create a translator with the default user ({@code "Anonymous"}). */
     public FormulaTranslator() {
-        this("Anonymous");
+        this.evaluator = new Evaluator();
     }
 
     /**
      * Create a translator for a specific user.
      * @param currentUserName the username for {@code @UserName} resolution
      */
-    public FormulaTranslator(String currentUserName) {
-        this.currentUserName = currentUserName != null ? currentUserName : "Anonymous";
+    public FormulaTranslator(String userName) {
+        currentUserName.set(userName != null ? userName : "Anonymous");
         this.evaluator = new Evaluator(currentUserName);
     }
 
     /** Update the user name for both query translation and formula evaluation. */
-    public void setCurrentUserName(String currentUserName) {
-        this.currentUserName = currentUserName != null ? currentUserName : "Anonymous";
-        this.evaluator.setCurrentUserName(this.currentUserName);
+    public void setCurrentUserName(String userName) {
+        currentUserName.set(userName != null ? userName : "Anonymous");
     }
 
     /** @return the current user name used for {@code @UserName} resolution */
     public String getCurrentUserName() {
-        return currentUserName;
+        return currentUserName.get();
     }
 
     // ---- Query mode (regex-based) ----
@@ -110,7 +110,7 @@ public class FormulaTranslator {
      */
     public String toN1qlValue(String formula) {
         if (formula == null) return null;
-        return N1qlTranslator.translateValue(formula, currentUserName);
+        return N1qlTranslator.translateValue(formula, currentUserName.get());
     }
 
     // ---- Evaluation mode (Lexer → Parser → Evaluator) ----
@@ -170,6 +170,6 @@ public class FormulaTranslator {
     // ---- internal helpers ----
 
     private String translate(String formula) {
-        return N1qlTranslator.translate(formula, currentUserName);
+        return N1qlTranslator.translate(formula, currentUserName.get());
     }
 }
