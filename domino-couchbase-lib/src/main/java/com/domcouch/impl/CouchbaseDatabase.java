@@ -580,7 +580,7 @@ public class CouchbaseDatabase implements Database {
             throw new NotesException(4000, "Invalid folder name: " + name);
         }
         // Folders are views whose selection formula is auto-generated
-        String n1ql = "$folderName IN doc.folders";
+        String n1ql = "'" + name + "' IN doc.folders";
         CouchbaseView folder = new CouchbaseView(this, scope, name, n1ql, (List<String>) null, (List<ViewColumn>) null);
         folder.setIndexService(viewIndexService);
         views.put(name, folder);
@@ -591,7 +591,7 @@ public class CouchbaseDatabase implements Database {
     public View getFolder(String name) throws NotesException {
         if (!folderNames.contains(name)) return null;
         return views.computeIfAbsent(name, n -> {
-            String n1ql = "'" + n.replace("'", "\\'") + "' IN doc.folders";
+            String n1ql = "'" + n + "' IN doc.folders";
             var folder = new CouchbaseView(this, scope, n, n1ql, (List<String>) null, (List<ViewColumn>) null);
             folder.setIndexService(viewIndexService);
             return folder;
