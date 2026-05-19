@@ -162,6 +162,11 @@ public class CouchbaseDatabase implements Database {
     }
 
     private void createViewIndex(String name, String keyItemName) {
+        // Validate keyItemName: only alphanumeric, underscore
+        if (keyItemName != null && !keyItemName.matches("[a-zA-Z0-9_]+")) {
+            log.warn("Skipping index for unsafe key column: {}", keyItemName);
+            return;
+        }
         try {
             String collectionPath = getCollectionPath();
             String indexName = "idx_view_" + name.replaceAll("[^a-zA-Z0-9]", "_");
@@ -240,14 +245,44 @@ public class CouchbaseDatabase implements Database {
     DocumentCollection findByParentUNID(String parentUnid) {
         String stmt = "SELECT meta().id AS _id FROM " + getCollectionPath()
                 + " AS doc WHERE doc._type = 'domcouch.document'"
-                + " AND parentUNID = '" + parentUnid + "'";
-        return fetchDocumentsByN1qlIds(stmt, getCurrentUserName());
+                + " AND parentUNID = $parentUnid";
+        try {
+            List<Document> docs = new ArrayList<>();
+            List<String> allIds = new ArrayList<>();
+            for (JsonObject row : scope.query(stmt,
+                    QueryOptions.queryOptions()
+                            .parameters(JsonObject.create().put("parentUnid", parentUnid)))
+                    .rowsAsObject()) {
+                String unid = row.getString("_id");
+                if (unid != null) allIds.add(unid);
+            }
+            if (allIds.isEmpty()) return new CouchbaseDocumentCollection(docs);
+            return fetchDocumentsByN1qlIds(allIds, getCurrentUserName());
+        } catch (Exception e) {
+            log.warn("findByParentUNID failed: {}", e.getMessage());
+        }
+        return new CouchbaseDocumentCollection(docs);
     }
 
     /**
      * Fetch documents in batches of 100 via N1QL USE KEYS to avoid N+1 KV reads.
      */
     private DocumentCollection fetchDocumentsByN1qlIds(String idStmt, String userName) {
+        try {
+            List<String> allIds = new ArrayList<>();
+            for (JsonObject row : scope.query(idStmt).rowsAsObject()) {
+                String unid = row.getString("_id");
+                if (unid != null) allIds.add(unid);
+            }
+            return fetchDocumentsByN1qlIds(allIds, userName);
+        } catch (Exception e) {
+            log.warn("fetchDocumentsByN1qlIds failed: {}", e.getMessage());
+        }
+        return new CouchbaseDocumentCollection(new ArrayList<>());
+    }
+
+    /** Batch-fetch documents from a pre-collected list of IDs. */
+    private DocumentCollection fetchDocumentsByN1qlIds(List<String> allIds, String userName) {
         List<Document> docs = new ArrayList<>();
         try {
             List<String> allIds = new ArrayList<>();
@@ -458,8 +493,12 @@ public class CouchbaseDatabase implements Database {
             throw new NotesException(4000, "Folder name cannot be null or empty");
         }
         folderNames.add(name);
+        // Validate folder name: only alphanumeric, dash, underscore, space
+        if (!name.matches("[a-zA-Z0-9 _-]+")) {
+            throw new NotesException(4000, "Invalid folder name: " + name);
+        }
         // Folders are views whose selection formula is auto-generated
-        String n1ql = "'" + name.replace("'", "\\'") + "' IN doc.folders";
+        String n1ql = "$folderName IN doc.folders";
         CouchbaseView folder = new CouchbaseView(this, scope, name, n1ql, (List<String>) null, (List<ViewColumn>) null);
         folder.setIndexService(viewIndexService);
         views.put(name, folder);

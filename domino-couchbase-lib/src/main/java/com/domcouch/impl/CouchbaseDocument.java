@@ -57,8 +57,8 @@ public class CouchbaseDocument implements Document {
 
     private final CouchbaseDatabase database;
     private final Map<String, List<CouchbaseItem>> items;
-    private JsonObject rawDoc;   // stored for lazy item loading
-    private boolean itemsLoaded; // true when loadItems() has been called
+    private volatile JsonObject rawDoc;
+    private volatile boolean itemsLoaded;
     private String unid;
     private String form;
     private boolean dirty;
@@ -95,7 +95,7 @@ public class CouchbaseDocument implements Document {
         loadMetadata(doc); // loads everything except items
     }
 
-    private void ensureItemsLoaded() {
+    private synchronized void ensureItemsLoaded() {
         if (!itemsLoaded && rawDoc != null) {
             loadItems(rawDoc);
             rawDoc = null;
@@ -228,7 +228,7 @@ public class CouchbaseDocument implements Document {
 
         try {
             database.removeDocument(unid);
-            dirty = true;
+            isNew = false;
             return true;
         } catch (Exception e) {
             throw new NotesException(4001, "Failed to remove document " + unid, e);
