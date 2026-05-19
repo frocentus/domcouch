@@ -285,11 +285,6 @@ public class CouchbaseDatabase implements Database {
     private DocumentCollection fetchDocumentsByN1qlIds(List<String> allIds, String userName) {
         List<Document> docs = new ArrayList<>();
         try {
-            List<String> allIds = new ArrayList<>();
-            for (JsonObject row : scope.query(idStmt).rowsAsObject()) {
-                String unid = row.getString("_id");
-                if (unid != null) allIds.add(unid);
-            }
             if (allIds.isEmpty()) return new CouchbaseDocumentCollection(docs);
             String cp = getCollectionPath();
             for (int i = 0; i < allIds.size(); i += 100) {
