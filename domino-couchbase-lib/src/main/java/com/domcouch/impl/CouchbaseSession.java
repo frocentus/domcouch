@@ -88,17 +88,18 @@ public class CouchbaseSession implements Session {
      */
     @Override
     public Database getDatabase(String databaseName) throws NotesException {
-        return databases.computeIfAbsent(databaseName, name -> {
-            try {
-                ensureBucketExists(name);
-                ensureScopeExists(name, CouchbaseDatabase.DEFAULT_SCOPE);
-                CouchbaseDatabase db = new CouchbaseDatabase(cluster, name, CouchbaseDatabase.DEFAULT_SCOPE);
-                db.setCurrentUserName(username);
-                return db;
-            } catch (Exception e) {
-                throw new RuntimeException("Cannot open database: " + name, e);
-            }
-        });
+        CouchbaseDatabase db = databases.get(databaseName);
+        if (db != null) return db;
+        try {
+            ensureBucketExists(databaseName);
+            ensureScopeExists(databaseName, CouchbaseDatabase.DEFAULT_SCOPE);
+            db = new CouchbaseDatabase(cluster, databaseName, CouchbaseDatabase.DEFAULT_SCOPE);
+            db.setCurrentUserName(username);
+            databases.put(databaseName, db);
+            return db;
+        } catch (Exception e) {
+            throw new NotesException(4000, "Cannot open database: " + databaseName, e);
+        }
     }
 
     /**
@@ -109,16 +110,17 @@ public class CouchbaseSession implements Session {
     @Override
     public Database getDatabase(String bucketName, String databaseName) throws NotesException {
         String key = bucketName + "/" + databaseName;
-        return databases.computeIfAbsent(key, k -> {
-            try {
-                ensureScopeExists(bucketName, databaseName);
-                CouchbaseDatabase db = new CouchbaseDatabase(cluster, bucketName, databaseName);
-                db.setCurrentUserName(username);
-                return db;
-            } catch (Exception e) {
-                throw new RuntimeException("Cannot open database: " + key, e);
-            }
-        });
+        CouchbaseDatabase db = databases.get(key);
+        if (db != null) return db;
+        try {
+            ensureScopeExists(bucketName, databaseName);
+            db = new CouchbaseDatabase(cluster, bucketName, databaseName);
+            db.setCurrentUserName(username);
+            databases.put(key, db);
+            return db;
+        } catch (Exception e) {
+            throw new NotesException(4000, "Cannot open database: " + key, e);
+        }
     }
 
     @Override
