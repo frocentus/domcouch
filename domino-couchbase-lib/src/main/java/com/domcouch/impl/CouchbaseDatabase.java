@@ -246,8 +246,8 @@ public class CouchbaseDatabase implements Database {
         String stmt = "SELECT meta().id AS _id FROM " + getCollectionPath()
                 + " AS doc WHERE doc._type = 'domcouch.document'"
                 + " AND parentUNID = $parentUnid";
+        List<Document> docs = new ArrayList<>();
         try {
-            List<Document> docs = new ArrayList<>();
             List<String> allIds = new ArrayList<>();
             for (JsonObject row : scope.query(stmt,
                     QueryOptions.queryOptions()
