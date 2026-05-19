@@ -131,7 +131,7 @@ public class CouchbaseSession implements Session {
     @Override
     public boolean isValid() {
         try {
-            cluster.buckets().getAllBuckets();
+            cluster.ping();
             return true;
         } catch (Exception e) {
             return false;

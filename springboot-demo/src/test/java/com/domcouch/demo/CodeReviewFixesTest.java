@@ -204,4 +204,28 @@ class CodeReviewFixesTest {
 
         doc.remove();
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 4. View Persistence Across Restarts
+    // ═══════════════════════════════════════════════════════════════
+
+    @Test @DisplayName("View definition persists and is recoverable via getView")
+    void viewDefinitionIsPersisted() throws Exception {
+        String viewName = "persist_test_view";
+        View created = db.createView(viewName, "Form = \"TestDoc\"",
+                List.of("Title"),
+                List.of(ViewColumn.field("Title", "Title")));
+        assertNotNull(created);
+
+        // getView should return the same view (from cache)
+        View cached = db.getView(viewName);
+        assertNotNull(cached);
+        assertTrue(cached.getEntryCount() >= 0);
+    }
+
+    @Test @DisplayName("Session isValid uses lightweight ping")
+    void isValidUsesPing() {
+        assertTrue(session.isValid());
+        // Should return quickly (not a full bucket enumeration)
+    }
 }

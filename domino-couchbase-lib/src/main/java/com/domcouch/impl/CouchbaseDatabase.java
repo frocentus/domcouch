@@ -125,8 +125,94 @@ public class CouchbaseDatabase implements Database {
 
     @Override
     public View getView(String name) {
-        return views.computeIfAbsent(name,
-                k -> new CouchbaseView(this, scope, name));
+        return views.computeIfAbsent(name, k -> {
+            // Try to reconstruct from persisted definition
+            CouchbaseView loaded = loadViewDefinition(name);
+            if (loaded != null) {
+                loaded.setIndexService(viewIndexService);
+                return loaded;
+            }
+            // No persisted definition — return shell view
+            return new CouchbaseView(this, scope, name);
+        });
+    }
+
+    /** Persist view definition as a Couchbase document. */
+    private void persistViewDefinition(String name, String formula, List<String> keyColumns, List<ViewColumn> columns) {
+        try {
+            JsonObject def = JsonObject.create()
+                    .put("_type", "domcouch.view_def")
+                    .put("name", name)
+                    .put("formula", formula != null ? formula : "");
+            if (keyColumns != null && !keyColumns.isEmpty()) {
+                var arr = com.couchbase.client.java.json.JsonArray.create();
+                keyColumns.forEach(arr::add);
+                def.put("keyColumns", arr);
+            }
+            if (columns != null && !columns.isEmpty()) {
+                var arr = com.couchbase.client.java.json.JsonArray.create();
+                for (ViewColumn col : columns) {
+                    JsonObject c = JsonObject.create()
+                            .put("name", col.getName())
+                            .put("expression", col.getExpression());
+                    if (col.isFormula()) c.put("formula", true);
+                    arr.add(c);
+                }
+                def.put("columns", arr);
+            }
+            collection.upsert("view_def_" + name, def);
+        } catch (Exception e) {
+            log.warn("Failed to persist view definition {}: {}", name, e.getMessage());
+        }
+    }
+
+    /** Load a persisted view definition. Returns null if not found. */
+    private CouchbaseView loadViewDefinition(String name) {
+        try {
+            var result = collection.get("view_def_" + name);
+            if (result == null) return null;
+            JsonObject def = result.contentAs(JsonObject.class);
+            if (def == null) {
+                // Fallback: try Object.class
+                Object content = result.contentAs(Object.class);
+                if (content instanceof java.util.Map map) {
+                    def = JsonObject.from(map);
+                } else {
+                    return null;
+                }
+            }
+            String formula = def.getString("formula");
+            // Reconstruct key columns
+            List<String> keyCols = null;
+            var keyArr = def.getArray("keyColumns");
+            if (keyArr != null) {
+                keyCols = new ArrayList<>();
+                for (Object k : keyArr.toList()) keyCols.add(k.toString());
+            }
+            // Reconstruct display columns
+            List<ViewColumn> cols = null;
+            var colArr = def.getArray("columns");
+            if (colArr != null) {
+                cols = new ArrayList<>();
+                for (Object o : colArr.toList()) {
+                    if (o instanceof JsonObject c) {
+                        String cn = c.getString("name");
+                        String ce = c.getString("expression");
+                        if (cn != null && ce != null) {
+                            if (c.getBoolean("formula")) {
+                                cols.add(ViewColumn.formula(cn, ce));
+                            } else {
+                                cols.add(ViewColumn.field(cn, ce));
+                            }
+                        }
+                    }
+                }
+            }
+            return new CouchbaseView(this, scope, name, formula, keyCols, cols);
+        } catch (Exception e) {
+            log.debug("No persisted view definition for {}: {}", name, e.getMessage());
+        }
+        return null;
     }
 
     @Override
@@ -157,6 +243,7 @@ public class CouchbaseDatabase implements Database {
         CouchbaseView view = new CouchbaseView(this, scope, name, n1qlFormula, keyColumns, columns);
         view.setIndexService(viewIndexService);
         views.put(name, view);
+        persistViewDefinition(name, selectionFormula, keyColumns, columns);
         createViewIndex(name, keyColumns != null && !keyColumns.isEmpty() ? keyColumns.get(0) : null);
         return view;
     }
