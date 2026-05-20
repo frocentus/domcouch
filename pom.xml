@@ -13,7 +13,7 @@
 
     <groupId>com.domcouch</groupId>
     <artifactId>domcouch-parent</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.3.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>DomCouch Parent</name>
     <description>HCL Domino 14.5 Java API emulation over Couchbase</description>

@@ -55,9 +55,9 @@ This runs all 664 tests and installs all three artifacts:
 
 | Module                 | Artifact                                           | Notes                           |
 | ---------------------- | -------------------------------------------------- | ------------------------------- |
-| `formula-engine`       | `com.domcouch:formula-engine:0.2.0-SNAPSHOT`       | Zero external deps              |
-| `domino-couchbase-lib` | `com.domcouch:domino-couchbase-lib:0.2.0-SNAPSHOT` | Depends on formula-engine       |
-| `springboot-demo`      | `com.domcouch:springboot-demo:0.2.0-SNAPSHOT`      | Depends on domino-couchbase-lib |
+| `formula-engine`       | `com.domcouch:formula-engine:0.3.0-SNAPSHOT`       | Zero external deps              |
+| `domino-couchbase-lib` | `com.domcouch:domino-couchbase-lib:0.3.0-SNAPSHOT` | Depends on formula-engine       |
+| `springboot-demo`      | `com.domcouch:springboot-demo:0.3.0-SNAPSHOT`      | Depends on domino-couchbase-lib |
 
 ### Build Without Tests
 
@@ -101,7 +101,7 @@ tests), you can use it in any Java project:
 <dependency>
     <groupId>com.domcouch</groupId>
     <artifactId>formula-engine</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.3.0-SNAPSHOT</version>
 </dependency>
 ```
 

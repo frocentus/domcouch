@@ -1,4 +1,4 @@
-# Domino API Coverage — domcouch v0.2.0
+# Domino API Coverage — domcouch v0.3.0
 
 > Updated: 2026-05-19 — ClassCastException fixes, batch fetching, lazy loading, ThreadLocal safety
 

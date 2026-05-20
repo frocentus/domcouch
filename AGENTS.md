@@ -1,7 +1,7 @@
 # AGENTS.md — DomCouch Project Decisions & Best Practices
 
 > **Project**: HCL Domino 14.5 Java API emulation on Couchbase  
-> **Version**: 0.2.0-SNAPSHOT  
+> **Version**: 0.3.0-SNAPSHOT  
 > **Last updated**: 2026-05-19
 
 ---
