@@ -8,13 +8,13 @@
 
 ## 1. Interface Compatibility — ⚠️ Partial
 
-| Requirement | Status | Gap |
-|---|---|---|
-| Identical `lotus.domino.*` package names | ❌ | Uses `com.domcouch.api.*` — existing Domino code needs import changes |
-| Identical method signatures | ✅ | `getFirstItem()`, `replaceItemValue()`, `save()`, etc. match Domino |
-| Identical exception handling | ✅ | `NotesException` with numeric error codes |
-| Unmappable features stubbed gracefully | 🟡 | `@Command`/`@PostedCommand` no-ops, but `RichTextItem` missing entirely |
-| Formula language compatibility | ✅ | Full lexer→parser→evaluator pipeline, 150+ @Functions, N1QL translation |
+| Requirement                              | Status | Gap                                                                     |
+| ---------------------------------------- | ------ | ----------------------------------------------------------------------- |
+| Identical `lotus.domino.*` package names | ❌     | Uses `com.domcouch.api.*` — existing Domino code needs import changes   |
+| Identical method signatures              | ✅     | `getFirstItem()`, `replaceItemValue()`, `save()`, etc. match Domino     |
+| Identical exception handling             | ✅     | `NotesException` with numeric error codes                               |
+| Unmappable features stubbed gracefully   | 🟡     | `@Command`/`@PostedCommand` no-ops, but `RichTextItem` missing entirely |
+| Formula language compatibility           | ✅     | Full lexer→parser→evaluator pipeline, 150+ @Functions, N1QL translation |
 
 **Verdict**: The API surface is correct but the package name prevents drop-in replacement. A thin wrapper layer re-exporting under `lotus.domino.*` would close this gap.
 
@@ -23,6 +23,7 @@
 ## 2. NoSQL Schema Design — ⚠️ Nested, Not Flat
 
 ### Current Schema (Couchbase JSON)
+
 ```json
 {
   "_type": "domcouch.document",
@@ -41,11 +42,11 @@
 
 ### Issues — and why the current schema is actually correct
 
-| Concern | Analysis |
-|---|---|
+| Concern                                                                                 | Analysis                                                                                                                     |
+| --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | **Deep nesting**: `items.NAME[0].values[0]` triggers Couchbase SDK `ClassCastException` | **Root cause is the SDK, not the schema.** Fixed via `get(name)+instanceof` and `RawJsonTranscoder`. Schema nesting is fine. |
-| **Type-per-item overhead**: Each field stores `{type, values}` | ~30% storage overhead, but enables seamless multi-value→multi-instance upgrade. Worth it. |
-| **Multi-instance items as arrays**: N1QL queries are verbose | N1QL `items.BODY[0].values[0]` is consistent — all fields use the same path. |
+| **Type-per-item overhead**: Each field stores `{type, values}`                          | ~30% storage overhead, but enables seamless multi-value→multi-instance upgrade. Worth it.                                    |
+| **Multi-instance items as arrays**: N1QL queries are verbose                            | N1QL `items.BODY[0].values[0]` is consistent — all fields use the same path.                                                 |
 
 ### Why NOT flatten
 
@@ -70,14 +71,14 @@ once (see ClassCastException section below), not repeatedly per field type.
 
 ### Current State
 
-| Operation | Pattern | N+1? |
-|---|---|---|
-| `getDocumentByUNID()` | RawJsonTranscoder → single KV read | No |
-| `getAllDocuments()` | N1QL `SELECT meta().id` → KV fetch per doc | **YES — N+1** |
-| `search()` | Same as getAllDocuments | **YES — N+1** |
-| `getResponses()`/`findByParentUNID()` | Same pattern | **YES — N+1** |
-| Lazy navigator `getNext()` | Key-based pagination, page size 200 | No |
-| In-memory navigator `getNext()` | Full scan once, then O(1) | No (after build) |
+| Operation                             | Pattern                                    | N+1?             |
+| ------------------------------------- | ------------------------------------------ | ---------------- |
+| `getDocumentByUNID()`                 | RawJsonTranscoder → single KV read         | No               |
+| `getAllDocuments()`                   | N1QL `SELECT meta().id` → KV fetch per doc | **YES — N+1**    |
+| `search()`                            | Same as getAllDocuments                    | **YES — N+1**    |
+| `getResponses()`/`findByParentUNID()` | Same pattern                               | **YES — N+1**    |
+| Lazy navigator `getNext()`            | Key-based pagination, page size 200        | No               |
+| In-memory navigator `getNext()`       | Full scan once, then O(1)                  | No (after build) |
 
 ### The N+1 paths
 
@@ -93,7 +94,9 @@ for (JsonObject row : scope.query("SELECT meta().id FROM ...").rowsAsObject()) {
 **Impact**: `getAllDocuments()` on 50K docs takes ~30-60 seconds due to 50K sequential KV reads.
 
 ### Recommendation
+
 Use N1QL `SELECT doc.*` directly (if SDK supports it) or batch KV reads:
+
 ```java
 // Batch KV reads — 50K docs → 500 batches of 100
 List<String> ids = n1qlQuery("SELECT meta().id FROM ...");
@@ -104,6 +107,7 @@ for (int i = 0; i < ids.size(); i += 100) {
     }
 }
 ```
+
 Or use the Couchbase reactive SDK with `flatMap` for concurrent KV fetches.
 
 ---
@@ -122,7 +126,9 @@ public CouchbaseDocument(CouchbaseDatabase database, JsonObject doc) {
 Even when the caller only needs `doc.getUniversalID()` or `doc.getFirstItem("Title")`, every item is deserialized. For 50K documents, this means 50K × ~20 items = 1M `CouchbaseItem` objects in memory.
 
 ### Recommendation
+
 Lazy item loading:
+
 ```java
 public Item getFirstItem(String name) {
     if (items == null) loadItems();  // lazy: only load when items are accessed
@@ -137,6 +143,7 @@ public Item getFirstItem(String name) {
 ### Domino's Built-in Caching
 
 Domino ViewNavigator supports:
+
 - `setCacheSize(int n)` — pre-fetches `n` entries into a local buffer
 - `setAutoUpdate(false)` — disables automatic refresh, enables caching
 - When cache is exhausted, next batch is pre-fetched automatically
@@ -157,16 +164,17 @@ var nav = ((CouchbaseView) view).createLazyViewNav(/*maxLevel*/ 0, /*pageSize*/ 
 
 ### Gap: API surface
 
-| Method | Domino has | We have | Maps to |
-|---|---|---|---|
-| `setCacheSize(int)` | ✅ | ❌ | Lazy nav `pageSize` — number of entries pre-fetched into buffer |
-| `getCacheSize()` | ✅ | ❌ | |
-| `setBufferMaxEntries(int)` | ✅ | ❌ | LIMIT clause in N1QL — max rows per server request |
-| `getBufferMaxEntries()` | ✅ | ❌ | |
-| `setAutoUpdate(boolean)` | ✅ | ❌ | Controls whether navigator refreshes on each access |
-| `isAutoUpdate()` | ✅ | ❌ | |
+| Method                     | Domino has | We have | Maps to                                                         |
+| -------------------------- | ---------- | ------- | --------------------------------------------------------------- |
+| `setCacheSize(int)`        | ✅         | ❌      | Lazy nav `pageSize` — number of entries pre-fetched into buffer |
+| `getCacheSize()`           | ✅         | ❌      |                                                                 |
+| `setBufferMaxEntries(int)` | ✅         | ❌      | LIMIT clause in N1QL — max rows per server request              |
+| `getBufferMaxEntries()`    | ✅         | ❌      |                                                                 |
+| `setAutoUpdate(boolean)`   | ✅         | ❌      | Controls whether navigator refreshes on each access             |
+| `isAutoUpdate()`           | ✅         | ❌      |                                                                 |
 
 In Domino, `setCacheSize` and `setBufferMaxEntries` work together:
+
 - `setBufferMaxEntries(50)` — "don't fetch more than 50 entries per network round-trip"
 - `setCacheSize(200)` — "keep up to 200 entries in local memory"
 
@@ -178,34 +186,34 @@ Implementation is trivial: `setCacheSize()` changes pageSize and re-fetches the 
 
 ## 6. Memory & Recyclability — 🟡
 
-| Requirement | Status |
-|---|---|
-| `recycle()` clears caches | ✅ Views cleared, navigator index cleared, KV connections released |
-| No lingering caches | ✅ `formulaCache` cleared on `recycle()`, `views` map intentionally long-lived (navigators are transient, views persist) |
-| JVM GC handles objects | ✅ No manual memory management |
+| Requirement               | Status                                                                                                                   |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `recycle()` clears caches | ✅ Views cleared, navigator index cleared, KV connections released                                                       |
+| No lingering caches       | ✅ `formulaCache` cleared on `recycle()`, `views` map intentionally long-lived (navigators are transient, views persist) |
+| JVM GC handles objects    | ✅ No manual memory management                                                                                           |
 
 ---
 
 ## 7. What We Got Right
 
-| Feature | Implementation |
-|---|---|
-| **Formula engine** | Zero-dependency lexer→parser→evaluator, 150+ @Functions, N1QL translation for 71 functions |
-| **ViewNavigator** | Full Domino API surface (27 get + 23 goto methods), categorized views with hierarchy links |
-| **Lazy navigator** | Key-based pagination, 1ms build, μs-fast sequential walk |
-| **TTL index lifecycle** | Hash-based index names, metadata persistence, automatic stale cleanup |
-| **Folder support** | Virtual views via `'name' IN doc.folders` |
-| **Reader/Author security** | Per-document access control with Domino semantics |
+| Feature                    | Implementation                                                                             |
+| -------------------------- | ------------------------------------------------------------------------------------------ |
+| **Formula engine**         | Zero-dependency lexer→parser→evaluator, 150+ @Functions, N1QL translation for 71 functions |
+| **ViewNavigator**          | Full Domino API surface (27 get + 23 goto methods), categorized views with hierarchy links |
+| **Lazy navigator**         | Key-based pagination, 1ms build, μs-fast sequential walk                                   |
+| **TTL index lifecycle**    | Hash-based index names, metadata persistence, automatic stale cleanup                      |
+| **Folder support**         | Virtual views via `'name' IN doc.folders`                                                  |
+| **Reader/Author security** | Per-document access control with Domino semantics                                          |
 
 ---
 
 ## 8. Priority Fixes (by impact)
 
-| # | Issue | Impact | Effort |
-|---|---|---|---|
-| 1 | N+1 in `getAllDocuments()`/`search()` | 30-60s for 50K docs | Medium — batch KV reads |
-| 2 | Lazy document loading | 1M unnecessary CouchbaseItem objects for 50K docs | Low — defer `loadFromJson` |
-| 3 | `lotus.domino.*` package | True drop-in compatibility | Low — wrapper classes |
-| 4 | Add `setCacheSize`/`setAutoUpdate` to ViewNavigator | Matches Domino API surface | Low — expose pageSize as settable |
-| 5 | ClassCastException in SDK accessors | **✅ Fixed** — `get(name)+instanceof`, `RawJsonTranscoder` | Done |
-| 6 | Schema migration to flat fields | **❌ Rejected** — `{type, values}` schema is correct | N/A |
+| #   | Issue                                               | Impact                                                     | Effort                            |
+| --- | --------------------------------------------------- | ---------------------------------------------------------- | --------------------------------- |
+| 1   | N+1 in `getAllDocuments()`/`search()`               | 30-60s for 50K docs                                        | Medium — batch KV reads           |
+| 2   | Lazy document loading                               | 1M unnecessary CouchbaseItem objects for 50K docs          | Low — defer `loadFromJson`        |
+| 3   | `lotus.domino.*` package                            | True drop-in compatibility                                 | Low — wrapper classes             |
+| 4   | Add `setCacheSize`/`setAutoUpdate` to ViewNavigator | Matches Domino API surface                                 | Low — expose pageSize as settable |
+| 5   | ClassCastException in SDK accessors                 | **✅ Fixed** — `get(name)+instanceof`, `RawJsonTranscoder` | Done                              |
+| 6   | Schema migration to flat fields                     | **❌ Rejected** — `{type, values}` schema is correct       | N/A                               |

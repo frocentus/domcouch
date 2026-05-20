@@ -80,7 +80,7 @@
 |                         | `encrypt() / decrypt() / sign()`                  | ❌     |                                                                         |
 |                         | `getAttachment()`                                 | ✅     |                                                                         |
 |                         | `getEmbeddedObjects()`                            | ✅     |                                                                         |
-|                         | `copyAllItems() / removeItem()`                   | 🟡     | removeItem ✅, copyAllItems ❌                                           |
+|                         | `copyAllItems() / removeItem()`                   | 🟡     | removeItem ✅, copyAllItems ❌                                          |
 |                         | `lock() / unlock() / isLocked()`                  | ❌     |                                                                         |
 |                         | `isValid() / isDeleted() / isProfile()`           | ❌     |                                                                         |
 | **DocumentCollection**  | `getFirstDocument()`                              | ✅     |                                                                         |
@@ -193,18 +193,18 @@
 
 Full Domino ViewNavigator API for categorized views.
 
-| Method                     | Status | Notes                                               |
-| -------------------------- | ------ | --------------------------------------------------- |
-| `createViewNav()`          | ✅     | Returns CouchbaseViewNavigator (in-memory index)    |
+| Method                     | Status | Notes                                                |
+| -------------------------- | ------ | ---------------------------------------------------- |
+| `createViewNav()`          | ✅     | Returns CouchbaseViewNavigator (in-memory index)     |
 | `createLazyViewNav()` 🆕   | ✅     | Returns CouchbaseLazyViewNavigator (key-based pages) |
-| `getFirst/Last/Next/Prev`  | ✅     |                                                     |
-| `getNth(n)`                | ✅     | O(1) in-memory; O(n) lazy                           |
-| `getNextCategory/Category` | ✅     | In-memory only; lazy: limited support               |
-| `getChild/Parent/Sibling`  | 🟡     | In-memory only; lazy: not supported                 |
-| `getPos/gotoPos`           | 🟡     | In-memory only                                      |
-| `createViewNavFrom*`       | ✅     | From entry, category, children, descendants         |
-| `createViewNavMaxLevel`    | ✅     |                                                     |
-| `markAllRead/Unread`       | ✅     | No-op (Couchbase)                                   |
+| `getFirst/Last/Next/Prev`  | ✅     |                                                      |
+| `getNth(n)`                | ✅     | O(1) in-memory; O(n) lazy                            |
+| `getNextCategory/Category` | ✅     | In-memory only; lazy: limited support                |
+| `getChild/Parent/Sibling`  | 🟡     | In-memory only; lazy: not supported                  |
+| `getPos/gotoPos`           | 🟡     | In-memory only                                       |
+| `createViewNavFrom*`       | ✅     | From entry, category, children, descendants          |
+| `createViewNavMaxLevel`    | ✅     |                                                      |
+| `markAllRead/Unread`       | ✅     | No-op (Couchbase)                                    |
 | `setCacheSize(n)`          | ❌     | Implementation exists (pageSize), not exposed on API |
 | `setBufferMaxEntries(n)`   | ❌     | Implementation exists (N1QL LIMIT), not exposed      |
 | `setAutoUpdate(bool)`      | ❌     | Not implemented                                      |
@@ -213,26 +213,26 @@ Full Domino ViewNavigator API for categorized views.
 
 Database-level folder CRUD. Folders are virtual views with N1QL `'name' IN doc.folders`.
 
-| Method                  | Status | Notes                                   |
-| ----------------------- | ------ | --------------------------------------- |
-| `createFolder(name)`    | ✅     | Creates View with auto-generated N1QL   |
-| `getFolder(name)`       | ✅     | Returns cached View                     |
-| `getFolderNames()`      | ✅     | Lists all folder names                  |
-| `removeFolder(name)`    | ✅     | Removes from folderNames + views cache  |
-| `isFolder(name)`        | ✅     | Checks folderNames set                  |
-| `putInFolder(name)`     | ✅     | Adds to `folders[]` on document         |
-| `removeFromFolder(name)`| ✅     | Removes from `folders[]`                |
-| `getFolderNames()` (doc)| ✅     | Returns document's `folders[]` list     |
+| Method                   | Status | Notes                                  |
+| ------------------------ | ------ | -------------------------------------- |
+| `createFolder(name)`     | ✅     | Creates View with auto-generated N1QL  |
+| `getFolder(name)`        | ✅     | Returns cached View                    |
+| `getFolderNames()`       | ✅     | Lists all folder names                 |
+| `removeFolder(name)`     | ✅     | Removes from folderNames + views cache |
+| `isFolder(name)`         | ✅     | Checks folderNames set                 |
+| `putInFolder(name)`      | ✅     | Adds to `folders[]` on document        |
+| `removeFromFolder(name)` | ✅     | Removes from `folders[]`               |
+| `getFolderNames()` (doc) | ✅     | Returns document's `folders[]` list    |
 
 ## ViewIndexService
 
 Pluggable N1QL index lifecycle for categorized views.
 
-| Implementation            | Strategy                                          |
-| ------------------------- | ------------------------------------------------- |
+| Implementation                  | Strategy                                              |
+| ------------------------------- | ----------------------------------------------------- |
 | `TTLViewIndexService` (default) | Hash-based names, 1h TTL, metadata in view_index_meta |
-| `SimpleViewIndexService`  | View-name-based, explicit drop on recycle         |
-| `ViewIndexService`        | Interface — swap for custom strategies            |
+| `SimpleViewIndexService`        | View-name-based, explicit drop on recycle             |
+| `ViewIndexService`              | Interface — swap for custom strategies                |
 
 ---
 

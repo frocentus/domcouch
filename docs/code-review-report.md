@@ -20,9 +20,9 @@ DomCouch has a solid overall structure for a Domino-style API on top of Couchbas
 - `getUniversalID()` returns an uppercase 32-character hex value.
 - `getParentDocumentUNID()` returns `""` for non-response documents.
 
-### Violations
+### Violations (Status: ✅ = fixed, see `docs/architecture-review.md`)
 
-#### 1) `Session.getDatabase()` swallows checked failures
+#### 1) `Session.getDatabase()` swallows checked failures — ✅ Fixed 2026-05-19
 
 **File:** `domino-couchbase-lib/src/main/java/com/domcouch/impl/CouchbaseSession.java`
 
@@ -32,7 +32,7 @@ DomCouch has a solid overall structure for a Domino-style API on top of Couchbas
 
 **Regression test:** Force a bucket/scope failure and assert callers receive `NotesException`, not `RuntimeException`.
 
-#### 2) `getDocumentByUNID()` returns `null` for all errors
+#### 2) `getDocumentByUNID()` returns `null` for all errors — ✅ Fixed 2026-05-18 (RawJsonTranscoder)
 
 **File:** `domino-couchbase-lib/src/main/java/com/domcouch/impl/CouchbaseDatabase.java`
 

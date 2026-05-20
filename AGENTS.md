@@ -27,7 +27,7 @@ switch the backend with minimal changes.
 | Database (.nsf) | Couchbase **bucket** (single-arg) or **scope within bucket** (two-arg) |
 | Document        | JSON document in the `documents` collection                            |
 | Universal ID    | 32-char hex UUID (field: `unid`)                                       |
-| Items           | Stored in a nested `items` object as JSON arrays per name    |
+| Items           | Stored in a nested `items` object as JSON arrays per name              |
 | View            | N1QL-backed query with optional index                                  |
 | Attachments     | Not yet implemented                                                    |
 
@@ -96,20 +96,20 @@ item's first value.
 The formula engine is a complete Lexer → Parser → Evaluator pipeline
 in `com.domcouch.formula`. It supports two modes:
 
-| Mode | Entry point | Use case |
-|------|------------|----------|
-| **Query translation** | `FormulaTranslator.toN1ql()` | Selection formulas → N1QL WHERE |
+| Mode                    | Entry point                    | Use case                          |
+| ----------------------- | ------------------------------ | --------------------------------- |
+| **Query translation**   | `FormulaTranslator.toN1ql()`   | Selection formulas → N1QL WHERE   |
 | **Computed evaluation** | `FormulaTranslator.evaluate()` | Computed fields against documents |
 
 **Key classes**:
 
-| Class | Role |
-|-------|------|
-| `Lexer` | Tokenizes formula strings (54 test cases) |
-| `Parser` | Pratt-style recursive descent → AST (39 test cases) |
-| `Evaluator` | Tree-walks AST against `FormulaContext` (57 test cases) |
-| `CompiledFormula` | Pre-parsed AST — evaluate without re-parsing |
-| `DocumentFormulaContext` | Bridges formula engine with `Document` API |
+| Class                    | Role                                                    |
+| ------------------------ | ------------------------------------------------------- |
+| `Lexer`                  | Tokenizes formula strings (54 test cases)               |
+| `Parser`                 | Pratt-style recursive descent → AST (39 test cases)     |
+| `Evaluator`              | Tree-walks AST against `FormulaContext` (57 test cases) |
+| `CompiledFormula`        | Pre-parsed AST — evaluate without re-parsing            |
+| `DocumentFormulaContext` | Bridges formula engine with `Document` API              |
 
 **Compiled caching**: Formulas can be compiled once and evaluated against
 many documents, achieving ~16× speedup by skipping Lexer+Parser stages.
@@ -360,26 +360,26 @@ mvn -pl springboot-demo spring-boot:run
 mvn test -pl domino-couchbase-lib
 ```
 
-| Test class | Tests | Coverage |
-|-----------|-------|----------|
-| `LexerTest` | 63 | All token types, escapes, numbers, brackets, comments |
-| `ParserTest` | 43 | Precedence, operators, FIELD/DEFAULT/ENVIRONMENT, @Functions |
-| `EvaluatorTest` | 63 | Arithmetic, comparison, coercion, @Functions, assignment |
-| `FormulaExamplesTest` | 97 | Real Domino spec examples — all formula categories |
-| `CachedEvaluationTest` | 8 | Compile-once, evaluate-many; verified against Java values |
-| `PerformanceComparisonTest` | 9 | Throughput, cached vs uncached, pipeline breakdown |
-| `FormulaTranslatorTest` | 27 | N1QL translation correctness via AST-based walker |
-| `StringFunctionsTest` | 114 | @Contains @Matches @Repeat @ReplaceSubstring @Word @Trim @Case @Length @Left @Right @ProperCase @Explode @Ascii @Char |
-| `MathFunctionsTest` | 33 | @Pi @Power @Sqrt @Exp @Log @Cos @Sin @Tan @Abs @Ln @FloatEq @Max @Min @Sum @Modulo @Sign @ATan @ATan2 @ASin @ACos |
-| `DateTimeFunctionsTest` | 33 | @Month @Day @Year @Date @Adjust @TimeMerge @Tomorrow @Yesterday @BusinessDays @Today @Now + doc timestamps |
-| `ListFunctionsTest` | 24 | @IsMember @Replace @Count @Compare @Subset @Unique @Member @Implode @Sort @Transform |
-| `ControlFlowTest` | 18 | @While @For @DoWhile @Set @SetField @Eval @Error @IsError @CheckFormulaSyntax |
-| `DocumentFunctionsTest` | 15 | @DocFields @DocLength @DocLock @DocumentUniqueID lifecycle folders @DeleteField |
-| `OperatorsTest` | 14 | Pair-wise and permuted list operations |
-| `PatternMatchingTest` | 27 | @Matches (24) + @Like (6) — all pattern operators |
-| `DataConversionTest` | 24 | @Text @TextToNumber @IsNumber @IsTime @TextToTime @ToNumber @ToTime |
-| `ValidationTest` | 25 | @Success @Failure @IsNull @IsValid @IfError + placeholders + constants |
-| **Total** | **654** | |
+| Test class                  | Tests   | Coverage                                                                                                              |
+| --------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------- |
+| `LexerTest`                 | 63      | All token types, escapes, numbers, brackets, comments                                                                 |
+| `ParserTest`                | 43      | Precedence, operators, FIELD/DEFAULT/ENVIRONMENT, @Functions                                                          |
+| `EvaluatorTest`             | 63      | Arithmetic, comparison, coercion, @Functions, assignment                                                              |
+| `FormulaExamplesTest`       | 97      | Real Domino spec examples — all formula categories                                                                    |
+| `CachedEvaluationTest`      | 8       | Compile-once, evaluate-many; verified against Java values                                                             |
+| `PerformanceComparisonTest` | 9       | Throughput, cached vs uncached, pipeline breakdown                                                                    |
+| `FormulaTranslatorTest`     | 27      | N1QL translation correctness via AST-based walker                                                                     |
+| `StringFunctionsTest`       | 114     | @Contains @Matches @Repeat @ReplaceSubstring @Word @Trim @Case @Length @Left @Right @ProperCase @Explode @Ascii @Char |
+| `MathFunctionsTest`         | 33      | @Pi @Power @Sqrt @Exp @Log @Cos @Sin @Tan @Abs @Ln @FloatEq @Max @Min @Sum @Modulo @Sign @ATan @ATan2 @ASin @ACos     |
+| `DateTimeFunctionsTest`     | 33      | @Month @Day @Year @Date @Adjust @TimeMerge @Tomorrow @Yesterday @BusinessDays @Today @Now + doc timestamps            |
+| `ListFunctionsTest`         | 24      | @IsMember @Replace @Count @Compare @Subset @Unique @Member @Implode @Sort @Transform                                  |
+| `ControlFlowTest`           | 18      | @While @For @DoWhile @Set @SetField @Eval @Error @IsError @CheckFormulaSyntax                                         |
+| `DocumentFunctionsTest`     | 15      | @DocFields @DocLength @DocLock @DocumentUniqueID lifecycle folders @DeleteField                                       |
+| `OperatorsTest`             | 14      | Pair-wise and permuted list operations                                                                                |
+| `PatternMatchingTest`       | 27      | @Matches (24) + @Like (6) — all pattern operators                                                                     |
+| `DataConversionTest`        | 24      | @Text @TextToNumber @IsNumber @IsTime @TextToTime @ToNumber @ToTime                                                   |
+| `ValidationTest`            | 25      | @Success @Failure @IsNull @IsValid @IfError + placeholders + constants                                                |
+| **Total**                   | **654** |                                                                                                                       |
 
 ### 6.4 Data Generation
 
@@ -391,35 +391,35 @@ documents and regenerates.
 
 ## 7. Decision Log
 
-| Date       | Decision                                                            | Rationale                                                     |
-| ---------- | ------------------------------------------------------------------- | ------------------------------------------------------------- |
-| 2026-05-11 | Reader/Author filtering: application-side (post-query)              | Simpler, more correct; field identified by type not name      |
-| 2026-05-11 | `getDocumentCount()` not reader-filtered (known limitation)         | Requires N1QL-level filtering; deferred                       |
-| 2026-05-11 | Author enforcement: strict check on `save()` and `remove()`         | Matches Domino behavior; throws `NotesException(4010)`        |
-| 2026-05-11 | New doc creation always allowed (author check on save)              | Self-lockout prevention; user must include self               |
-| 2026-05-11 | `Item.setReaders()` / `Item.setAuthors()` added to API              | Matches `lotus.domino.Item` methods                           |
-| 2026-05-11 | `canRead()` centralized as static method on CouchbaseDatabase       | Prevented reader-check logic drift between doc & view         |
-| 2026-05-11 | `FTSearch` uses parameterized N1QL queries (`$q`)                   | Eliminates N1QL injection; user input never concatenated      |
-| 2026-05-11 | `getCollectionPath()` extracted; shared by DB + View                | Single source of truth for backtick-escaped path              |
-| 2026-05-11 | Reader check in `getDocumentByUNID` BEFORE deserialization          | Avoids full doc construction cost if user can't read          |
-| 2026-05-12 | Formula engine: Lexer → Parser → Evaluator pipeline        | Full Domino formula language support; 654 tests            |
-| 2026-05-12 | Compiled formula caching with `compileFormula()`            | 16× speedup for batch document processing                   |
-| 2026-05-12 | `DocumentFormulaContext` bridges formula engine with Document | Computed fields evaluated directly against domcouch Documents |
-| 2026-05-12 | `@Command` / `@PostedCommand` treated as no-ops             | Matches Domino `NoExternalApps=1`; formulas with UI commands still evaluate |
-| 2026-05-13 | 150+ @Functions implemented (132 ✅ + 19 🟡) | 654 tests; function-catalog.md with per-function spec verification |
-| 2026-05-14 | Extracted `formula-engine` as standalone Maven module | Zero external deps; 3-module project (formula-engine → domino-couchbase-lib → springboot-demo) |
-| 2026-05-15 | Items stored as JSON arrays `[{type, values}]` per name | Supports Domino multi-instance items (multiple items with same name); N1QL uses `items.NAME[0].values[0]`; backward-compatible loader handles old object format |
-| 2026-05-14 | Pair-wise + permuted list operators | All 12 permuted operators, list broadcasting, any-match semantics |
-| 2026-05-15 | AST-based N1QL translator replaces regex | 71 @Function translations to Couchbase N1QL; formula-column views with computed fields |
-| 2026-05-15 | ViewNavigator with in-memory categorized index | Full Domino ViewNavigator API (27 get + 23 goto methods); N1QL ORDER BY + client-side category row insertion; O(1) getNth/gotoPos via flat List<ViewEntry>; hierarchy links (parent/child/sibling) |
-| 2026-05-15 | CouchbaseLazyViewNavigator — key-based pagination | No full scan on build; WHERE keyCol > $cursorKey ORDER BY keyCol LIMIT pageSize; build 1ms vs 33s; first page visible in ~1s; sequential walk 16μs/entry |
-| 2026-05-15 | Folder support via `doc.folders` array | createFolder/getFolder/removeFolder/isFolder on Database; folders are virtual views with N1QL `'name' IN doc.folders` |
-| 2026-05-16 | ViewIndexService — pluggable index lifecycle | TTLViewIndexService (default): SHA-256 hash-based index names, metadata in view_index_meta collection, 1h TTL with cleanupStale(). SimpleViewIndexService: view-name-based, drop on recycle only. Index lifecycle = view lifecycle, not navigator lifecycle |
-| 2026-05-16 | Indexes fixed for multi-instance array schema | createViewIndex bugs: (1) exists-check always true, (2) CREATE INDEX used old object format `items.X.values[0]` instead of `items.X[0].values[0]`. Demo views now have 9 idx_view_* indexes online |
-| 2026-05-17 | Performance: batch document fetching | Replaced N+1 KV reads in getAllDocuments/search/findByParentUNID with N1QL USE KEYS batching (100 docs/query). 500× fewer round trips. 50K docs: 30s → ~400ms |
-| 2026-05-17 | Couchbase SDK ClassCastException — universal fix | All `getObject()/getArray()/contentAsObject()` calls throw ClassCastException with nested JSON arrays. Fixed across 6 methods using `get(name)+instanceof` and `RawJsonTranscoder`. Documented in .skills/couchbase8/SKILL.md |
-| 2026-05-18 | Lazy document item loading | Split loadFromJson into loadMetadata (cheap) + loadItems (expensive, deferred). 70% memory reduction for bulk document operations. Thread-safe via volatile + synchronized |
-| 2026-05-19 | Code review remediation | All 9 findings resolved: N1QL injection, thread safety (volatile+synchronized, ThreadLocal), checked exceptions, view persistence, lightweight isValid(), folder name validation. 12 regression tests added |
+| Date       | Decision                                                      | Rationale                                                                                                                                                                                                                                                   |
+| ---------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-11 | Reader/Author filtering: application-side (post-query)        | Simpler, more correct; field identified by type not name                                                                                                                                                                                                    |
+| 2026-05-11 | `getDocumentCount()` not reader-filtered (known limitation)   | Requires N1QL-level filtering; deferred                                                                                                                                                                                                                     |
+| 2026-05-11 | Author enforcement: strict check on `save()` and `remove()`   | Matches Domino behavior; throws `NotesException(4010)`                                                                                                                                                                                                      |
+| 2026-05-11 | New doc creation always allowed (author check on save)        | Self-lockout prevention; user must include self                                                                                                                                                                                                             |
+| 2026-05-11 | `Item.setReaders()` / `Item.setAuthors()` added to API        | Matches `lotus.domino.Item` methods                                                                                                                                                                                                                         |
+| 2026-05-11 | `canRead()` centralized as static method on CouchbaseDatabase | Prevented reader-check logic drift between doc & view                                                                                                                                                                                                       |
+| 2026-05-11 | `FTSearch` uses parameterized N1QL queries (`$q`)             | Eliminates N1QL injection; user input never concatenated                                                                                                                                                                                                    |
+| 2026-05-11 | `getCollectionPath()` extracted; shared by DB + View          | Single source of truth for backtick-escaped path                                                                                                                                                                                                            |
+| 2026-05-11 | Reader check in `getDocumentByUNID` BEFORE deserialization    | Avoids full doc construction cost if user can't read                                                                                                                                                                                                        |
+| 2026-05-12 | Formula engine: Lexer → Parser → Evaluator pipeline           | Full Domino formula language support; 654 tests                                                                                                                                                                                                             |
+| 2026-05-12 | Compiled formula caching with `compileFormula()`              | 16× speedup for batch document processing                                                                                                                                                                                                                   |
+| 2026-05-12 | `DocumentFormulaContext` bridges formula engine with Document | Computed fields evaluated directly against domcouch Documents                                                                                                                                                                                               |
+| 2026-05-12 | `@Command` / `@PostedCommand` treated as no-ops               | Matches Domino `NoExternalApps=1`; formulas with UI commands still evaluate                                                                                                                                                                                 |
+| 2026-05-13 | 150+ @Functions implemented (132 ✅ + 19 🟡)                  | 654 tests; function-catalog.md with per-function spec verification                                                                                                                                                                                          |
+| 2026-05-14 | Extracted `formula-engine` as standalone Maven module         | Zero external deps; 3-module project (formula-engine → domino-couchbase-lib → springboot-demo)                                                                                                                                                              |
+| 2026-05-15 | Items stored as JSON arrays `[{type, values}]` per name       | Supports Domino multi-instance items (multiple items with same name); N1QL uses `items.NAME[0].values[0]`; backward-compatible loader handles old object format                                                                                             |
+| 2026-05-14 | Pair-wise + permuted list operators                           | All 12 permuted operators, list broadcasting, any-match semantics                                                                                                                                                                                           |
+| 2026-05-15 | AST-based N1QL translator replaces regex                      | 71 @Function translations to Couchbase N1QL; formula-column views with computed fields                                                                                                                                                                      |
+| 2026-05-15 | ViewNavigator with in-memory categorized index                | Full Domino ViewNavigator API (27 get + 23 goto methods); N1QL ORDER BY + client-side category row insertion; O(1) getNth/gotoPos via flat List<ViewEntry>; hierarchy links (parent/child/sibling)                                                          |
+| 2026-05-15 | CouchbaseLazyViewNavigator — key-based pagination             | No full scan on build; WHERE keyCol > $cursorKey ORDER BY keyCol LIMIT pageSize; build 1ms vs 33s; first page visible in ~1s; sequential walk 16μs/entry                                                                                                    |
+| 2026-05-15 | Folder support via `doc.folders` array                        | createFolder/getFolder/removeFolder/isFolder on Database; folders are virtual views with N1QL `'name' IN doc.folders`                                                                                                                                       |
+| 2026-05-16 | ViewIndexService — pluggable index lifecycle                  | TTLViewIndexService (default): SHA-256 hash-based index names, metadata in view_index_meta collection, 1h TTL with cleanupStale(). SimpleViewIndexService: view-name-based, drop on recycle only. Index lifecycle = view lifecycle, not navigator lifecycle |
+| 2026-05-16 | Indexes fixed for multi-instance array schema                 | createViewIndex bugs: (1) exists-check always true, (2) CREATE INDEX used old object format `items.X.values[0]` instead of `items.X[0].values[0]`. Demo views now have 9 idx*view*\* indexes online                                                         |
+| 2026-05-17 | Performance: batch document fetching                          | Replaced N+1 KV reads in getAllDocuments/search/findByParentUNID with N1QL USE KEYS batching (100 docs/query). 500× fewer round trips. 50K docs: 30s → ~400ms                                                                                               |
+| 2026-05-17 | Couchbase SDK ClassCastException — universal fix              | All `getObject()/getArray()/contentAsObject()` calls throw ClassCastException with nested JSON arrays. Fixed across 6 methods using `get(name)+instanceof` and `RawJsonTranscoder`. Documented in .skills/couchbase8/SKILL.md                               |
+| 2026-05-18 | Lazy document item loading                                    | Split loadFromJson into loadMetadata (cheap) + loadItems (expensive, deferred). 70% memory reduction for bulk document operations. Thread-safe via volatile + synchronized                                                                                  |
+| 2026-05-19 | Code review remediation                                       | All 9 findings resolved: N1QL injection, thread safety (volatile+synchronized, ThreadLocal), checked exceptions, view persistence, lightweight isValid(), folder name validation. 12 regression tests added                                                 |
 
 ---
 
