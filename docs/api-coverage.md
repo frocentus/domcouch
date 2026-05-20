@@ -1,6 +1,6 @@
 # Domino API Coverage — domcouch v0.2.0
 
-> Updated: 2026-05-16 — ViewNavigator, folders, lazy navigator, TTL indexes
+> Updated: 2026-05-19 — ClassCastException fixes, batch fetching, lazy loading, ThreadLocal safety
 
 ## Legend
 
@@ -205,6 +205,9 @@ Full Domino ViewNavigator API for categorized views.
 | `createViewNavFrom*`       | ✅     | From entry, category, children, descendants         |
 | `createViewNavMaxLevel`    | ✅     |                                                     |
 | `markAllRead/Unread`       | ✅     | No-op (Couchbase)                                   |
+| `setCacheSize(n)`          | ❌     | Implementation exists (pageSize), not exposed on API |
+| `setBufferMaxEntries(n)`   | ❌     | Implementation exists (N1QL LIMIT), not exposed      |
+| `setAutoUpdate(bool)`      | ❌     | Not implemented                                      |
 
 ## Folders
 

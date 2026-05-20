@@ -1,6 +1,8 @@
 # Couchbase 8 — Knowledge Base for domcouch
 
-> Collected from the domcouch project (2026-05-15/16). Couchbase 8.0.1 Community Edition.
+> Collected from the domcouch project (2026-05-15/19). Couchbase 8.0.1 Community Edition.
+>
+> **Also see**: `.skills/couchbase8/SKILL.md` — pi agent skill with ClassCastException patterns.
 
 ---
 
