@@ -159,6 +159,13 @@ public class CouchbaseDocument implements Document {
      */
     @Override
     public Item replaceItemValue(String name, Object value) {
+        // If the caller passes an existing CouchbaseItem, use it directly
+        if (value instanceof CouchbaseItem existing && name.toUpperCase().equals(existing.getName())) {
+            existing.setParent(this);
+            items.put(existing.getName(), List.of(existing));
+            dirty = true;
+            return existing;
+        }
         String normalizedName = name.toUpperCase();
         CouchbaseItem item;
         if (value instanceof Vector<?> v) {
@@ -511,6 +518,15 @@ public class CouchbaseDocument implements Document {
 
     private CouchbaseItem parseItem(String name, JsonObject io) {
         int type = io.getInt("type");
+        // Rich text: reconstruct from stored segments
+        if (type == Item.RICHTEXT) {
+            var rtSegments = io.getArray("rtSegments");
+            if (rtSegments != null) {
+                var item = new CouchbaseRichTextItem(name, rtSegments);
+                item.setParent(this);
+                return item;
+            }
+        }
         List<Object> rawValues = io.getArray("values") != null
                 ? io.getArray("values").toList() : List.of();
         var item = new CouchbaseItem(name, type, rawValues);
@@ -541,6 +557,10 @@ public class CouchbaseDocument implements Document {
                 JsonObject itemObj = JsonObject.create();
                 itemObj.put("type", item.getType());
                 itemObj.put("values", item.getValues());
+                // Store rich text segments if present
+                if (item instanceof CouchbaseRichTextItem rt) {
+                    itemObj.put("rtSegments", rt.buildSegmentArray());
+                }
                 itemArray.add(itemObj);
             }
             itemsJson.put(entry.getKey(), itemArray);

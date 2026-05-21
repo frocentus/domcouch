@@ -12,8 +12,8 @@ import java.util.Vector;
  */
 public class CouchbaseItem implements Item {
 
-    private final String name;
-    private int type;
+    protected final String name;
+    protected int type;
     private final Vector<Object> values;
     private Object customData;
     private CouchbaseDocument parent; // set after construction for getEmbeddedObjects()
