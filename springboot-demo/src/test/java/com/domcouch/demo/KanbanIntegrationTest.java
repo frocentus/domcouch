@@ -36,8 +36,8 @@ class KanbanIntegrationTest {
         // Clean up old test documents from previous runs (KV-based, no N1QL lag)
         try {
             for (Document doc : db.getAllDocuments()) {
-                String form = doc.getFirstItem("Form");
-                String formVal = form != null ? form.getValueString() : "";
+                Item formItem = doc.getFirstItem("Form");
+                String formVal = formItem != null ? formItem.getValueString() : "";
                 if (formVal.equals("Project") || formVal.equals("KanbanLane")
                         || formVal.equals("KanbanTask") || formVal.equals("KanbanBoard")) {
                     doc.remove();
@@ -54,8 +54,8 @@ class KanbanIntegrationTest {
         // Clean up test data (KV-based, no N1QL lag)
         try {
             for (Document doc : db.getAllDocuments()) {
-                String form = doc.getFirstItem("Form");
-                String formVal = form != null ? form.getValueString() : "";
+                Item formItem = doc.getFirstItem("Form");
+                String formVal = formItem != null ? formItem.getValueString() : "";
                 if (formVal.equals("Project") || formVal.equals("KanbanLane")
                         || formVal.equals("KanbanTask") || formVal.equals("KanbanBoard")) {
                     doc.remove();
