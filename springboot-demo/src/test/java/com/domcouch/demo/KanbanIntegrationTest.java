@@ -1,10 +1,9 @@
 package com.domcouch.demo;
 
-import com.couchbase.client.java.json.JsonObject;
-import com.couchbase.client.java.query.QueryOptions;
-import com.couchbase.client.java.query.QueryScanConsistency;
 import com.domcouch.api.*;
 import com.domcouch.impl.CouchbaseSession;
+import com.couchbase.client.java.query.QueryOptions;
+import com.couchbase.client.java.query.QueryScanConsistency;
 import org.junit.jupiter.api.*;
 
 import java.time.Instant;
@@ -263,16 +262,13 @@ class KanbanIntegrationTest {
                         e.getColumnValues().isEmpty() ? "?" : e.getColumnValues().get(0),
                         e.getChildCount());
                 totalChildren += e.getChildCount();
-            } else {
-                // Log each document's UNID so we can spot the extra one
-                log("    %s | %s", e.getUniversalID(), e.getColumnValues());
             }
             e = nav.getNext();
         }
         log("\n  Total: %d entries, %d categories, %d children across categories\n",
                 nav.getCount(), catCount, totalChildren);
-        assertTrue(totalChildren >= 12 && totalChildren <= 14,
-                "Children should be 12-14, got: " + totalChildren);
+        assertEquals(12, totalChildren,
+                "Total children across all categories should be exactly 12 (tasks)");
     }
 
     @Test @Order(9) @DisplayName("Lazy navigator: tasks by lane (key-based pagination)")
