@@ -36,43 +36,29 @@ class KanbanIntegrationTest {
     static void setUp() throws NotesException {
         session = CouchbaseSession.connect("couchbase://localhost", "Administrator", "password");
         db = session.getDatabase("domcouch", "kanban_test");
-        // Clean up old test documents (N1QL DELETE)
+
+        // Bulk N1QL DELETE — no per-field filter, just delete everything
         String cp = "`domcouch`.`kanban_test`.`documents`";
-        // First check what exists
-        var check = session.getNativeCluster().query("SELECT meta().id, d.items.Form FROM " + cp + " AS d",
-                QueryOptions.queryOptions().scanConsistency(QueryScanConsistency.REQUEST_PLUS));
-        List<String> docIds = new ArrayList<>();
-        for (JsonObject row : check.rowsAsObject()) {
-            String id = row.getString("id");
-            if (docIds.size() < 10) log("  Doc: %s Form=%s", id, row.get("Form"));
-            docIds.add(id);
-        }
-        log("  Total documents in scope: %d", docIds.size());
-        for (String form : new String[]{"Project", "KanbanLane", "KanbanTask", "KanbanBoard"}) {
-            var deleteResult = session.getNativeCluster().query(
-                "DELETE FROM " + cp + " AS d WHERE d.items.Form[0].`values`[0] = '" + form + "'",
-                QueryOptions.queryOptions().scanConsistency(QueryScanConsistency.REQUEST_PLUS)
-            );
-            var rows = new java.util.ArrayList<>();
-            deleteResult.rowsAsObject().forEach(rows::add);
-            log("  Cleanup %s: %d row(s) deleted", form, rows.size());
-        }
+        var deleteResult = session.getNativeCluster().query(
+            "DELETE FROM " + cp + " AS d WHERE d._type = 'domcouch.document'",
+            QueryOptions.queryOptions().scanConsistency(QueryScanConsistency.REQUEST_PLUS)
+        );
+        var rows = new java.util.ArrayList<JsonObject>();
+        deleteResult.rowsAsObject().forEach(rows::add);
+        log("  Cleanup: %d documents deleted", rows.size());
+
         log("\n# Kanban Integration Test Report\n");
         log("**Database**: `domcouch`.`kanban_test` | **Time**: " + java.time.Instant.now());
     }
 
     @AfterAll
     static void tearDown() {
-        // Clean up test data (KV-based, no N1QL lag)
-        try {
-            for (Document doc : db.getAllDocuments()) {
-                try {
-                    doc.remove();
-                } catch (Exception e) {
-                    System.err.println("  @AfterAll remove failed: " + e.getMessage());
-                }
-            }
-        } catch (Exception ignored) {}
+        // Bulk N1QL DELETE — delete all documents
+        String cp = "`domcouch`.`kanban_test`.`documents`";
+        session.getNativeCluster().query(
+            "DELETE FROM " + cp + " AS d WHERE d._type = 'domcouch.document'",
+            QueryOptions.queryOptions().scanConsistency(QueryScanConsistency.REQUEST_PLUS)
+        ).rowsAsObject().forEach(row -> {});
         log("\n---\n**Test complete.** `kanban_test` scope contains all test data.");
         if (session != null) session.recycle();
     }
