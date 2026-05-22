@@ -3,6 +3,7 @@ package com.domcouch.impl;
 import com.couchbase.client.java.Scope;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.query.QueryOptions;
+import com.couchbase.client.java.query.QueryScanConsistency;
 import com.couchbase.client.java.query.QueryResult;
 import com.domcouch.api.*;
 
@@ -96,7 +97,9 @@ public class CouchbaseView implements View {
         String stmt = buildSelectStatement(false) + " AND " + keyCol
                 + (key instanceof Number ? " = " + key : " = '" + key.toString().replace("'", "''") + "'");
         try {
-            QueryResult result = scope.query(stmt);
+            QueryResult result = scope.query(stmt,
+                    QueryOptions.queryOptions()
+                            .scanConsistency(QueryScanConsistency.REQUEST_PLUS));
             return buildCollection(result);
         } catch (Exception e) {
             return CouchbaseViewEntryCollection.empty();
@@ -121,6 +124,7 @@ public class CouchbaseView implements View {
         try {
             QueryResult result = scope.query(stmt,
                     QueryOptions.queryOptions()
+                            .scanConsistency(QueryScanConsistency.REQUEST_PLUS)
                             .parameters(JsonObject.create()
                                     .put("q", query)
                                     .put("max", maxDocs)));
@@ -139,7 +143,9 @@ public class CouchbaseView implements View {
             stmt += " AND (" + selectionFormula + ")";
         }
         try {
-            QueryResult result = scope.query(stmt);
+            QueryResult result = scope.query(stmt,
+                    QueryOptions.queryOptions()
+                            .scanConsistency(QueryScanConsistency.REQUEST_PLUS));
             var rows = result.rowsAsObject();
             if (!rows.isEmpty()) {
                 return rows.get(0).getInt("cnt");
@@ -368,7 +374,9 @@ public class CouchbaseView implements View {
 
     private ViewEntryCollection executeQuery(String stmt) {
         try {
-            QueryResult result = scope.query(stmt);
+            QueryResult result = scope.query(stmt,
+                    QueryOptions.queryOptions()
+                            .scanConsistency(QueryScanConsistency.REQUEST_PLUS));
             return buildCollection(result);
         } catch (Exception e) {
             return CouchbaseViewEntryCollection.empty();
@@ -463,6 +471,7 @@ public class CouchbaseView implements View {
         try {
             QueryResult result = scope.query(stmt,
                     QueryOptions.queryOptions()
+                            .scanConsistency(QueryScanConsistency.REQUEST_PLUS)
                             .parameters(JsonObject.create()
                                     .put("q", "%" + lowerQuery + "%")
                                     .put("max", maxDocs)));
