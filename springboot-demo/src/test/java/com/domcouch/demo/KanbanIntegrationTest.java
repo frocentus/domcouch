@@ -1,5 +1,6 @@
 package com.domcouch.demo;
 
+import com.couchbase.client.java.json.JsonObject;
 import com.domcouch.api.*;
 import com.domcouch.impl.CouchbaseSession;
 import org.junit.jupiter.api.*;
