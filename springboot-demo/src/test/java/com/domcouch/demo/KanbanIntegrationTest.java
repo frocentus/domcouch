@@ -42,7 +42,7 @@ class KanbanIntegrationTest {
             "DELETE FROM " + cp + " AS d WHERE d._type = 'domcouch.document'",
             QueryOptions.queryOptions().scanConsistency(QueryScanConsistency.REQUEST_PLUS)
         );
-        var rows = new java.util.ArrayList<JsonObject>();
+        var rows = new java.util.ArrayList<>();
         deleteResult.rowsAsObject().forEach(rows::add);
         log("  Cleanup: %d documents deleted", rows.size());
 
