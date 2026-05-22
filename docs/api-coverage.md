@@ -224,6 +224,24 @@ Database-level folder CRUD. Folders are virtual views with N1QL `'name' IN doc.f
 | `removeFromFolder(name)` | ✅     | Removes from `folders[]`               |
 | `getFolderNames()` (doc) | ✅     | Returns document's `folders[]` list    |
 
+## Forms
+
+Form definitions (design documents). Stored as `_type = "domcouch.form"` in Couchbase.
+
+| Method | Status | Notes |
+|--------|--------|-------|
+| `Database.createForm(name, fields)` | ✅ | Persists to Couchbase |
+| `Database.getForm(name)` | ✅ | Loads from Couchbase |
+| `Database.getFormNames()` | ✅ | N1QL query for form docs |
+| `Document.computeWithForm(form, all, validate)` | ✅ | Evaluates computed/default/validation formulas |
+| `Form.getFields()` | ✅ | Returns List<FieldDefinition> |
+| `Form.getField(name)` | ✅ | Lookup by name (case-insensitive) |
+| `FieldDefinition: computed/composed/display` | ✅ | Computation modes |
+| `FieldDefinition: getFormula/getDefaultFormula` | ✅ | Formula strings |
+| `FieldDefinition: getValidationFormula` | ✅ | Validation with error message |
+| `FieldDefinition: isMultiValue/isRichText` | ✅ | Type flags |
+| `FieldDefinition: getNumberFormat/getDateFormat` | ✅ | Format patterns |
+
 ## ViewIndexService
 
 Pluggable N1QL index lifecycle for categorized views.

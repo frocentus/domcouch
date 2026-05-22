@@ -157,6 +157,43 @@ Reader and Author fields with Domino-compatible semantics:
 
 - **Reader fields**: documents invisible to unauthorized users (all read paths filtered)
 - **Author fields**: `save()` and `remove()` enforce edit permissions (`NotesException 4010`)
+
+### Form Definitions + computeWithForm
+
+Forms define document schemas with field types, computed values, and validation:
+
+```java
+// Create a form with computed fields
+Form personForm = db.createForm("Person", List.of(
+    new FieldDef("givenName", Item.TEXT),
+    new FieldDef("lastName", Item.TEXT),
+    new FieldDef("FullName", Item.TEXT)
+        .computed(true)
+        .formula("givenName + \" \" + lastName"),
+    new FieldDef("Age", Item.NUMBERS)
+        .computed(true)
+        .formula("@Year(@Now) - @Year(birthdate)")
+));
+
+// Apply form to a document
+Document person = db.createDocument();
+person.replaceItemValue("givenName", "Alice");
+person.replaceItemValue("lastName", "Smith");
+person.replaceItemValue("birthdate", "1990-03-15");
+person.computeWithForm(personForm, true, false);
+// person now has FullName="Alice Smith", Age=36
+
+// Retrieve a form
+Form loaded = db.getForm("Person");
+
+// List all forms
+List<String> formNames = db.getFormNames();
+
+// Forms persist in Couchbase as _type="domcouch.form" documents
+```
+
+FieldDefinition attributes: computed, computedWhenComposed, computedForDisplay,
+default/value/validation formulas, multi-value flag, RichText flag, number/date formats.
 - Centralized `canRead()` check shared by Document and View implementations
 
 ### Formula Engine
