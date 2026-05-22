@@ -37,7 +37,7 @@ class KanbanIntegrationTest {
         String cp = "`domcouch`.`kanban_test`.`documents`";
         for (String form : new String[]{"Project", "KanbanLane", "KanbanTask", "KanbanBoard"}) {
             var result = session.getNativeCluster().query(
-                "DELETE FROM " + cp + " AS d WHERE d.items.Form[0].values[0] = '" + form + "'"
+                "DELETE FROM " + cp + " AS d WHERE d.items.Form[0].`values`[0] = '" + form + "'"
             );
             log("  Cleanup %s: %d row(s) deleted", form,
                 result.metaData().metrics().map(m -> m.mutationCount()).orElse(-1L));
