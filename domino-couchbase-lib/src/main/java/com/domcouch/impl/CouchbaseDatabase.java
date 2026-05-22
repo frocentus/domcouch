@@ -377,12 +377,13 @@ public class CouchbaseDatabase implements Database {
             for (int i = 0; i < allIds.size(); i += 100) {
                 int end = Math.min(i + 100, allIds.size());
                 String keysList = "'" + String.join("','", allIds.subList(i, end)) + "'";
-                String batchStmt = "SELECT doc FROM " + cp
-                        + " AS doc USE KEYS [" + keysList + "]";
+                String batchStmt = "SELECT meta().id AS _id FROM " + cp
+                        + " USE KEYS [" + keysList + "]";
                 for (JsonObject row : scope.query(batchStmt).rowsAsObject()) {
-                    JsonObject docJson = row.getObject("doc");
-                    if (docJson != null && canRead(docJson, userName)) {
-                        docs.add(new CouchbaseDocument(this, docJson));
+                    String unid = row.getString("_id");
+                    if (unid != null) {
+                        Document doc = getDocumentByUNID(unid);
+                        if (doc != null) docs.add(doc);
                     }
                 }
             }
