@@ -236,19 +236,6 @@ class KanbanIntegrationTest {
     @Test @Order(8) @DisplayName("Create categorized view: tasks by lane")
     void categorizedViewByLane() throws Exception {
         log("\n## 4. Categorized View — Tasks by Lane\n");
-        // Diagnostic: what does the view query see?
-        try {
-            var diag = session.getNativeCluster().query(
-                "SELECT meta().id, d.items.Lane, d.items.Title FROM `domcouch`.`kanban_test`.`documents` AS d"
-                + " WHERE d.items.Form[0].`values`[0] = 'KanbanTask'"
-            );
-            log("  Diag — tasks in view:");
-            for (JsonObject row : diag.rowsAsObject()) {
-                log("    %s  Lane=%s  Title=%s", row.getString("id"), row.get("Lane"), row.get("Title"));
-            }
-        } catch (Exception e) {
-            log("  Diag failed: %s", e.getMessage());
-        }
         log("```sql");
         log("CREATE VIEW KanbanTasksByLane");
         log("  Key: Lane");
