@@ -94,7 +94,7 @@ public class CouchbaseView implements View {
             return textSearchFallback(key.toString(), 50);
         }
         String stmt = buildSelectStatement(false) + " AND " + keyCol
-                + " = '" + key.toString().replace("'", "''") + "'";
+                + (key instanceof Number ? " = " + key : " = '" + key.toString().replace("'", "''") + "'");
         System.out.println("getAllEntriesByKey: " + stmt);
         try {
             QueryResult result = scope.query(stmt);
