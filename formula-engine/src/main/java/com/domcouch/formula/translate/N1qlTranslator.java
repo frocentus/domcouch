@@ -167,6 +167,10 @@ final class N1qlTranslator {
                 } else walkExpr(args.get(0), sb, currentUserName, valueMode);
                 sb.append(" IS NOT MISSING");
             }
+            case FunctionNames.ISNULL -> {
+                walkExpr(args.get(0), sb, currentUserName, valueMode);
+                sb.append(" IS MISSING");
+            }
             case FunctionNames.ISNUMBER -> { sb.append("IS_NUMBER("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(")"); }
             case FunctionNames.ISTEXT -> { sb.append("IS_STRING("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(")"); }
             case FunctionNames.CONTAINS -> { sb.append("CONTAINS("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); sb.append(")"); }
@@ -235,7 +239,7 @@ final class N1qlTranslator {
                 sb.append(", "); walkExpr(args.get(6), sb, currentUserName, valueMode); sb.append(", 'second')");
             }
             case FunctionNames.WORD -> { sb.append("SPLIT("); walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); sb.append(")["); walkExpr(args.get(2), sb, currentUserName, valueMode); sb.append(" - 1]"); }
-            case FunctionNames.ISNULL -> { walkExpr(args.get(0), sb, currentUserName, valueMode); sb.append(" IS NULL"); }
+
             case FunctionNames.EXPLODE -> { sb.append("SPLIT("); walkExpr(args.get(0), sb, currentUserName, valueMode); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); } else sb.append(", ' ,;'"); sb.append(")"); }
             case FunctionNames.IMPLODE -> { sb.append("ARRAY_JOIN("); walkArrayArg(args.get(0), sb); if (args.size() > 1) { sb.append(", "); walkExpr(args.get(1), sb, currentUserName, valueMode); } else sb.append(", ' '"); sb.append(")"); }
             case FunctionNames.COUNT -> { sb.append("ARRAY_LENGTH("); walkArrayArg(args.get(0), sb); sb.append(")"); }

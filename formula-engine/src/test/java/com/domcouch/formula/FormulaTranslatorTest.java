@@ -229,7 +229,7 @@ class FormulaTranslatorTest {
 
     @Test @DisplayName("@IsNull")
     void atIsNull() {
-        assertEquals("doc.items.NAME[0].`values`[0] IS NULL",
+        assertEquals("doc.items.NAME[0].`values`[0] IS MISSING",
                 translator.toN1ql("@IsNull(Name)"));
     }
 
