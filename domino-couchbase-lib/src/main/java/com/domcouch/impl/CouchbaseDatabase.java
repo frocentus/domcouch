@@ -431,9 +431,7 @@ public class CouchbaseDatabase implements Database {
     }
 
     void removeDocument(String unid) {
-        try {
-            collection.remove(unid);
-        } catch (Exception ignored) {}
+        collection.remove(unid);
     }
 
     // ---- private ----

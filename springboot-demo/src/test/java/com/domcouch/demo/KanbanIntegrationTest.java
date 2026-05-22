@@ -66,7 +66,11 @@ class KanbanIntegrationTest {
         // Clean up test data (KV-based, no N1QL lag)
         try {
             for (Document doc : db.getAllDocuments()) {
-                doc.remove();
+                try {
+                    doc.remove();
+                } catch (Exception e) {
+                    System.err.println("  @AfterAll remove failed: " + e.getMessage());
+                }
             }
         } catch (Exception ignored) {}
         log("\n---\n**Test complete.** `kanban_test` scope contains all test data.");
