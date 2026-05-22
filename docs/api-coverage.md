@@ -1,6 +1,6 @@
 # Domino API Coverage — domcouch v0.3.0
 
-> Updated: 2026-05-19 — ClassCastException fixes, batch fetching, lazy loading, ThreadLocal safety
+> Updated: 2026-05-22 — computeWithForm, REQUEST_PLUS scan consistency, batch document fetching
 
 ## Legend
 
@@ -76,7 +76,7 @@
 |                         | `removeFromFolder(name)`                          | ✅     |                                                                         |
 |                         | `getFolderNames()`                                | ✅     |                                                                         |
 |                         | `getNoteID()`                                     | ❌     |                                                                         |
-|                         | `computeWithForm()`                               | ❌     |                                                                         |
+|                         | `computeWithForm()`                               | ✅     | Domino-standard + explicit Form variant                                 |
 |                         | `encrypt() / decrypt() / sign()`                  | ❌     |                                                                         |
 |                         | `getAttachment()`                                 | ✅     |                                                                         |
 |                         | `getEmbeddedObjects()`                            | ✅     |                                                                         |
@@ -234,6 +234,7 @@ Form definitions (design documents). Stored as `_type = "domcouch.form"` in Couc
 | `Database.getForm(name)` | ✅ | Loads from Couchbase |
 | `Database.getFormNames()` | ✅ | N1QL query for form docs |
 | `Document.computeWithForm(form, all, validate)` | ✅ | Evaluates computed/default/validation formulas |
+| `Document.computeWithForm(computeAll, validate)` | ✅ | Domino-standard — resolves Form from doc's Form item |
 | `Form.getFields()` | ✅ | Returns List<FieldDefinition> |
 | `Form.getField(name)` | ✅ | Lookup by name (case-insensitive) |
 | `FieldDefinition: computed/composed/display` | ✅ | Computation modes |
