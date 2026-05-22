@@ -94,6 +94,7 @@ public class CouchbaseView implements View {
             return textSearchFallback(key.toString(), 50);
         }
         String stmt = buildSelectStatement(false) + " AND " + keyCol + " = $key";
+        System.out.println("getAllEntriesByKey: " + stmt + " | key=" + key);
         try {
             QueryResult result = scope.query(stmt,
                     QueryOptions.queryOptions().parameters(JsonObject.create().put("key", key)));
