@@ -220,6 +220,8 @@ class DbLookupDirectTest {
     private void setupNicknameLookupTable() throws Exception {
         if (nicknamesSetup) return;
         nicknamesSetup = true;
+        // Clean up old test documents from previous runs
+        cleanupByForm("Nickname");
 
         Object[][] data = {
             {"Bob", "Robert"}, {"Bill", "William"}, {"Liz", "Elizabeth"},
@@ -246,6 +248,7 @@ class DbLookupDirectTest {
     private void setupZipLookupTable() throws Exception {
         if (zipSetup) return;
         zipSetup = true;
+        cleanupByForm("ZipCity");
 
         Object[][] data = {
             {"10001", "New York", "NY"},
@@ -278,9 +281,18 @@ class DbLookupDirectTest {
 
     private boolean salarySetup;
 
+    private void cleanupByForm(String form) {
+        try {
+            var docs = db.search("Form = \"" + form + "\"");
+            for (Document d : docs) d.remove();
+            Thread.sleep(300);
+        } catch (Exception ignored) {}
+    }
+
     private void setupSalaryTierTable() throws Exception {
         if (salarySetup) return;
         salarySetup = true;
+        cleanupByForm("SalaryTier");
 
         Object[][] data = {
             {25000.0, 1}, {50000.0, 2}, {75000.0, 3}, {100000.0, 4},
