@@ -170,6 +170,17 @@ public interface Database {
      */
     boolean isFolder(String name) throws NotesException;
 
+    // ---- forms ----
+
+    /** Persist a form definition with the given field definitions. */
+    Form createForm(String name, java.util.List<Form.FieldDefinition> fields) throws NotesException;
+
+    /** Retrieve a form definition by name. Returns null if not found. */
+    Form getForm(String name) throws NotesException;
+
+    /** @return all form names in this database */
+    java.util.List<String> getFormNames() throws NotesException;
+
     // ---- Not applicable in Couchbase ----
 
     /**

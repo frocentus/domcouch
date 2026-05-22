@@ -149,6 +149,14 @@ public interface Document {
     java.util.List<EmbeddedObject> getEmbeddedObjects();
 
     /**
+     * Evaluate computed fields and apply defaults according to a form definition.
+     * @param form the form to compute against
+     * @param computeAll if true, re-evaluate all computed fields; if false, only computed-when-composed
+     * @param validateOnly if true, only validate without computing values
+     */
+    void computeWithForm(Form form, boolean computeAll, boolean validateOnly) throws NotesException;
+
+    /**
      * Find an attachment by name, searching both document-level and item-level.
      * @param name the file name
      * @return the attachment, or null if not found
