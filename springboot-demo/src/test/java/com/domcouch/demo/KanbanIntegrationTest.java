@@ -33,15 +33,15 @@ class KanbanIntegrationTest {
     static void setUp() throws NotesException {
         session = CouchbaseSession.connect("couchbase://localhost", "Administrator", "password");
         db = session.getDatabase("domcouch", "kanban_test");
-        // Clean up old test documents from previous runs (N1QL DELETE, consistent with N1QL SELECT)
-        try {
-            String cp = "`domcouch`.`kanban_test`.`documents`";
-            for (String form : new String[]{"Project", "KanbanLane", "KanbanTask", "KanbanBoard"}) {
-                session.getNativeCluster().query(
-                    "DELETE FROM " + cp + " AS d WHERE d.items.Form[0].values[0] = '" + form + "'"
-                );
-            }
-        } catch (Exception ignored) {}
+        // Clean up old test documents (N1QL DELETE — same index as N1QL SELECT)
+        String cp = "`domcouch`.`kanban_test`.`documents`";
+        for (String form : new String[]{"Project", "KanbanLane", "KanbanTask", "KanbanBoard"}) {
+            var result = session.getNativeCluster().query(
+                "DELETE FROM " + cp + " AS d WHERE d.items.Form[0].values[0] = '" + form + "'"
+            );
+            log("  Cleanup %s: %d row(s) deleted", form,
+                result.metaData().metrics().map(m -> m.mutationCount()).orElse(-1));
+        }
         log("\n# Kanban Integration Test Report\n");
         log("**Database**: `domcouch`.`kanban_test` | **Time**: " + java.time.Instant.now());
     }
