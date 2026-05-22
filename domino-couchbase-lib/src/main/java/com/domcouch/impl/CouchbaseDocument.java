@@ -292,7 +292,6 @@ public class CouchbaseDocument implements Document {
         var ft = new com.domcouch.formula.translate.FormulaTranslator();
         DocumentFormulaContext ctx = new DocumentFormulaContext(this)
                 .withDatabase(database);
-        System.out.println("computeWithForm: database=" + (database != null ? database.getTitle() : "NULL"));
         for (Form.FieldDefinition fd : form.getFields()) {
             // Skip display-only fields
             if (fd.isComputedForDisplay()) continue;

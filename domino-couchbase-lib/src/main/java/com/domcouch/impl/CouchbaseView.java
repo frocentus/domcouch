@@ -95,7 +95,6 @@ public class CouchbaseView implements View {
         }
         String stmt = buildSelectStatement(false) + " AND " + keyCol
                 + (key instanceof Number ? " = " + key : " = '" + key.toString().replace("'", "''") + "'");
-        System.out.println("getAllEntriesByKey: " + stmt);
         try {
             QueryResult result = scope.query(stmt);
             return buildCollection(result);
