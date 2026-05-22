@@ -33,13 +33,17 @@ class KanbanIntegrationTest {
     static void setUp() throws NotesException {
         session = CouchbaseSession.connect("couchbase://localhost", "Administrator", "password");
         db = session.getDatabase("domcouch", "kanban_test");
-        // Clean up old test documents from previous runs
+        // Clean up old test documents from previous runs (KV-based, no N1QL lag)
         try {
-            for (String form : new String[]{"Project", "KanbanLane", "KanbanTask", "KanbanBoard"}) {
-                var docs = db.search("Form = \"" + form + "\"");
-                for (Document d : docs) d.remove();
+            for (Document doc : db.getAllDocuments()) {
+                String form = doc.getFirstItem("Form");
+                String formVal = form != null ? form.getValueString() : "";
+                if (formVal.equals("Project") || formVal.equals("KanbanLane")
+                        || formVal.equals("KanbanTask") || formVal.equals("KanbanBoard")) {
+                    doc.remove();
+                }
             }
-            Thread.sleep(2000); // Wait for N1QL to process deletions
+            Thread.sleep(500);
         } catch (Exception ignored) {}
         log("\n# Kanban Integration Test Report\n");
         log("**Database**: `domcouch`.`kanban_test` | **Time**: " + java.time.Instant.now());
@@ -47,11 +51,15 @@ class KanbanIntegrationTest {
 
     @AfterAll
     static void tearDown() {
-        // Clean up test data
+        // Clean up test data (KV-based, no N1QL lag)
         try {
-            for (String form : new String[]{"Project", "KanbanLane", "KanbanTask", "KanbanBoard"}) {
-                var docs = db.search("Form = \"" + form + "\"");
-                for (Document d : docs) d.remove();
+            for (Document doc : db.getAllDocuments()) {
+                String form = doc.getFirstItem("Form");
+                String formVal = form != null ? form.getValueString() : "";
+                if (formVal.equals("Project") || formVal.equals("KanbanLane")
+                        || formVal.equals("KanbanTask") || formVal.equals("KanbanBoard")) {
+                    doc.remove();
+                }
             }
         } catch (Exception ignored) {}
         log("\n---\n**Test complete.** `kanban_test` scope contains all test data.");
@@ -263,9 +271,8 @@ class KanbanIntegrationTest {
         }
         log("\n  Total: %d entries, %d categories, %d children across categories\n",
                 nav.getCount(), catCount, totalChildren);
-        // Verify: 12 tasks across 5 lanes (13 possible with stray copyDocument tasks)
-        assertTrue(totalChildren >= 12 && totalChildren <= 13,
-                "Children should be 12-13, got: " + totalChildren);
+        assertEquals(12, totalChildren,
+                "Total children across all categories should be exactly 12 (tasks)");
     }
 
     @Test @Order(9) @DisplayName("Lazy navigator: tasks by lane (key-based pagination)")
