@@ -39,7 +39,7 @@ class KanbanIntegrationTest {
                 var docs = db.search("Form = \"" + form + "\"");
                 for (Document d : docs) d.remove();
             }
-            Thread.sleep(500);
+            Thread.sleep(2000); // Wait for N1QL to process deletions
         } catch (Exception ignored) {}
         log("\n# Kanban Integration Test Report\n");
         log("**Database**: `domcouch`.`kanban_test` | **Time**: " + java.time.Instant.now());
@@ -242,6 +242,7 @@ class KanbanIntegrationTest {
         log("\n### Category breakdown (in-memory navigator):");
         ViewEntry e = nav.getFirst();
         int prevLevel = 0;
+        int totalChildren = 0;
         while (e != null) {
             if (e.isCategory()) {
                 catCount++;
@@ -249,10 +250,15 @@ class KanbanIntegrationTest {
                 log("  %s- **%s** (%d children)", indent,
                         e.getColumnValues().isEmpty() ? "?" : e.getColumnValues().get(0),
                         e.getChildCount());
+                totalChildren += e.getChildCount();
             }
             e = nav.getNext();
         }
-        log("\n  Total: %d entries, %d categories\n", nav.getCount(), catCount);
+        log("\n  Total: %d entries, %d categories, %d children across categories\n",
+                nav.getCount(), catCount, totalChildren);
+        // Verify child counts: 12 tasks across 5 lanes
+        assertEquals(12, totalChildren,
+                "Total children across all categories should be exactly 12 (tasks)");
     }
 
     @Test @Order(9) @DisplayName("Lazy navigator: tasks by lane (key-based pagination)")
