@@ -33,13 +33,22 @@ class KanbanIntegrationTest {
     static void setUp() throws NotesException {
         session = CouchbaseSession.connect("couchbase://localhost", "Administrator", "password");
         db = session.getDatabase("domcouch", "kanban_test");
-        // Clean up old test documents (N1QL DELETE — same index as N1QL SELECT)
+        // Clean up old test documents (N1QL DELETE)
         String cp = "`domcouch`.`kanban_test`.`documents`";
+        // First check what exists
+        var check = session.getNativeCluster().query("SELECT meta().id, d.items.Form FROM " + cp + " AS d");
+        List<String> docIds = new ArrayList<>();
+        for (JsonObject row : check.rowsAsObject()) {
+            String id = row.getString("id");
+            if (docIds.size() < 10) log("  Doc: %s Form=%s", id, row.get("Form"));
+            docIds.add(id);
+        }
+        log("  Total documents in scope: %d", docIds.size());
         for (String form : new String[]{"Project", "KanbanLane", "KanbanTask", "KanbanBoard"}) {
             var result = session.getNativeCluster().query(
                 "DELETE FROM " + cp + " AS d WHERE d.items.Form[0].`values`[0] = '" + form + "'"
             );
-            result.rowsAsObject().forEach(row -> {}); // force execution
+            result.rowsAsObject().forEach(row -> {});
             long deleted = result.rowsAsObject().size();
             log("  Cleanup %s: %d row(s) deleted", form, deleted);
         }
