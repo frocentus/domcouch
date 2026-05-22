@@ -260,10 +260,15 @@ class KanbanIntegrationTest {
             if (e.isCategory()) {
                 catCount++;
                 String indent = "  ".repeat(e.getCategoryLevel());
-                log("  %s- **%s** (%d children)", indent,
+                log("  %s- **%s** (%d children) [child1 UNID=%s]", indent,
                         e.getColumnValues().isEmpty() ? "?" : e.getColumnValues().get(0),
-                        e.getChildCount());
+                        e.getChildCount(),
+                        e.getChildCount() > 0 ? e.getUniversalID() : "?");
                 totalChildren += e.getChildCount();
+            } else {
+                log("    -- doc UNID=%s, col0=%s",
+                        e.getUniversalID(),
+                        e.getColumnValues().isEmpty() ? "?" : e.getColumnValues().get(0));
             }
             e = nav.getNext();
         }
