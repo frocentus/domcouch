@@ -287,6 +287,52 @@ public class CouchbaseDocument implements Document {
     }
 
     @Override
+    public void computeWithForm(Form form, boolean computeAll, boolean validateOnly) throws NotesException {
+        ensureItemsLoaded();
+        var ft = new com.domcouch.formula.translate.FormulaTranslator();
+        DocumentFormulaContext ctx = new DocumentFormulaContext(this);
+        for (Form.FieldDefinition fd : form.getFields()) {
+            // Skip display-only fields
+            if (fd.isComputedForDisplay()) continue;
+            // Skip computed-when-composed for existing docs (not new)
+            if (fd.isComputedWhenComposed() && !isNew) continue;
+
+            String formula = fd.isComputed() ? fd.getFormula() : null;
+            // Also check default formula if field is empty and no computed formula
+            if (formula == null && fd.getDefaultFormula() != null) {
+                Item existing = getFirstItem(fd.getName());
+                if (existing == null || existing.getValueString().isEmpty()) {
+                    formula = fd.getDefaultFormula();
+                }
+            }
+            if (formula == null) continue;
+
+            // Validation formula
+            if (fd.getValidationFormula() != null) {
+                try {
+                    Object result = ft.evaluate(fd.getValidationFormula(), ctx);
+                    if (result instanceof Number n && n.doubleValue() == 0.0) {
+                        throw new NotesException(4000,
+                                fd.getValidationMessage() != null ? fd.getValidationMessage()
+                                        : "Validation failed for field " + fd.getName());
+                    }
+                } catch (NotesException e) { throw e; } catch (Exception ignored) {}
+            }
+            if (validateOnly) continue;
+
+            // Compute and set the value
+            try {
+                Object result = ft.evaluate(formula, ctx);
+                if (result != null && !result.equals(com.domcouch.formula.Evaluator.ERROR_VALUE)) {
+                    replaceItemValue(fd.getName(), result);
+                }
+            } catch (Exception e) {
+                // Formula evaluation failed — leave field as-is
+            }
+        }
+    }
+
+    @Override
     public String getParentDocumentUNID() {
         return parentUNID != null ? parentUNID : "";
     }

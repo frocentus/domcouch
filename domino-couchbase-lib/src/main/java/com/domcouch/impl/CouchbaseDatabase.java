@@ -614,4 +614,117 @@ public class CouchbaseDatabase implements Database {
         if (name == null) return false;
         return folderNames.contains(name);
     }
+
+    // ---- forms ----
+
+    @Override
+    public Form createForm(String formName, java.util.List<Form.FieldDefinition> fields) throws NotesException {
+        try {
+            // Store form definition as a Couchbase document
+            var formDef = JsonObject.create()
+                    .put("_type", "domcouch.form")
+                    .put("name", formName);
+            var fieldsArr = com.couchbase.client.java.json.JsonArray.create();
+            for (var fd : fields) {
+                fieldsArr.add(JsonObject.create()
+                        .put("name", fd.getName())
+                        .put("type", fd.getType())
+                        .put("computed", fd.isComputed())
+                        .put("computedWhenComposed", fd.isComputedWhenComposed())
+                        .put("computedForDisplay", fd.isComputedForDisplay())
+                        .put("formula", fd.getFormula() != null ? fd.getFormula() : "")
+                        .put("defaultFormula", fd.getDefaultFormula() != null ? fd.getDefaultFormula() : "")
+                        .put("validationFormula", fd.getValidationFormula() != null ? fd.getValidationFormula() : "")
+                        .put("validationMessage", fd.getValidationMessage() != null ? fd.getValidationMessage() : "")
+                        .put("multiValue", fd.isMultiValue())
+                        .put("richText", fd.isRichText())
+                        .put("numberFormat", fd.getNumberFormat() != null ? fd.getNumberFormat() : "")
+                        .put("dateFormat", fd.getDateFormat() != null ? fd.getDateFormat() : ""));
+            }
+            formDef.put("fields", fieldsArr);
+            collection.upsert("form_" + formName, formDef);
+            return new StoredForm(formName, fields);
+        } catch (Exception e) {
+            throw new NotesException(4000, "Failed to create form: " + formName, e);
+        }
+    }
+
+    @Override
+    public Form getForm(String formName) throws NotesException {
+        try {
+            var result = collection.get("form_" + formName);
+            if (result == null) return null;
+            JsonObject def = result.contentAs(JsonObject.class);
+            if (def == null) {
+                Object content = result.contentAs(Object.class);
+                if (content instanceof java.util.Map map) def = JsonObject.from(map);
+                else return null;
+            }
+            var fieldsArr = def.getArray("fields");
+            if (fieldsArr == null) return null;
+            var fields = new java.util.ArrayList<Form.FieldDefinition>();
+            for (int i = 0; i < fieldsArr.size(); i++) {
+                JsonObject fd = fieldsArr.getObject(i);
+                fields.add(new StoredFieldDef(fd));
+            }
+            return new StoredForm(formName, fields);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Override
+    public java.util.List<String> getFormNames() throws NotesException {
+        var names = new java.util.ArrayList<String>();
+        try {
+            String stmt = "SELECT meta().id FROM " + getCollectionPath()
+                    + " WHERE _type = 'domcouch.form'";
+            for (JsonObject row : scope.query(stmt).rowsAsObject()) {
+                String id = row.getString("id");
+                if (id != null && id.startsWith("form_")) names.add(id.substring(5));
+            }
+        } catch (Exception ignored) {}
+        return names;
+    }
+
+    private record StoredForm(String name, java.util.List<Form.FieldDefinition> fields) implements Form {
+        @Override public String getName() { return name; }
+        @Override public java.util.List<FieldDefinition> getFields() { return fields; }
+        @Override public FieldDefinition getField(String name) {
+            return fields.stream().filter(f -> f.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
+        }
+    }
+
+    private record StoredFieldDef(String name, int type, boolean computed,
+            boolean computedWhenComposed, boolean computedForDisplay,
+            String formula, String defaultFormula, String validationFormula,
+            String validationMessage, boolean multiValue, boolean richText,
+            String numberFormat, String dateFormat) implements Form.FieldDefinition {
+        StoredFieldDef(JsonObject fd) {
+            this(fd.getString("name"), fd.getInt("type"),
+                    fd.getBoolean("computed"), fd.getBoolean("computedWhenComposed"),
+                    fd.getBoolean("computedForDisplay"),
+                    str(fd, "formula"), str(fd, "defaultFormula"),
+                    str(fd, "validationFormula"), str(fd, "validationMessage"),
+                    fd.getBoolean("multiValue"), fd.getBoolean("richText"),
+                    str(fd, "numberFormat"), str(fd, "dateFormat"));
+        }
+        // Explicitly implement interface methods since records generate accessor() not getXxx()
+        @Override public String getName() { return name(); }
+        @Override public int getType() { return type(); }
+        @Override public boolean isComputed() { return computed(); }
+        @Override public boolean isComputedWhenComposed() { return computedWhenComposed(); }
+        @Override public boolean isComputedForDisplay() { return computedForDisplay(); }
+        @Override public String getFormula() { return formula(); }
+        @Override public String getDefaultFormula() { return defaultFormula(); }
+        @Override public String getValidationFormula() { return validationFormula(); }
+        @Override public String getValidationMessage() { return validationMessage(); }
+        @Override public boolean isMultiValue() { return multiValue(); }
+        @Override public boolean isRichText() { return richText(); }
+        @Override public String getNumberFormat() { return numberFormat(); }
+        @Override public String getDateFormat() { return dateFormat(); }
+        private static String str(JsonObject o, String key) {
+            String v = o.getString(key); return v != null && !v.isEmpty() ? v : null;
+        }
+    }
 }
