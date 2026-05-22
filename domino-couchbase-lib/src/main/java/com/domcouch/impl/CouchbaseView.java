@@ -1,7 +1,6 @@
 package com.domcouch.impl;
 
 import com.couchbase.client.java.Scope;
-import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.query.QueryOptions;
 import com.couchbase.client.java.query.QueryResult;
@@ -94,11 +93,11 @@ public class CouchbaseView implements View {
             // No key column defined — fall back to full-text-style search
             return textSearchFallback(key.toString(), 50);
         }
-        String stmt = buildSelectStatement(false) + " AND " + keyCol + " = $1";
-        System.out.println("getAllEntriesByKey: " + stmt + " | key=" + key);
+        String stmt = buildSelectStatement(false) + " AND " + keyCol
+                + " = '" + key.toString().replace("'", "''") + "'";
+        System.out.println("getAllEntriesByKey: " + stmt);
         try {
-            QueryResult result = scope.query(stmt,
-                    QueryOptions.queryOptions().parameters(JsonArray.from(key)));
+            QueryResult result = scope.query(stmt);
             return buildCollection(result);
         } catch (Exception e) {
             return CouchbaseViewEntryCollection.empty();
