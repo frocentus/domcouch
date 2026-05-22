@@ -33,6 +33,14 @@ class KanbanIntegrationTest {
     static void setUp() throws NotesException {
         session = CouchbaseSession.connect("couchbase://localhost", "Administrator", "password");
         db = session.getDatabase("domcouch", "kanban_test");
+        // Clean up old test documents from previous runs
+        try {
+            for (String form : new String[]{"Project", "KanbanLane", "KanbanTask", "KanbanBoard"}) {
+                var docs = db.search("Form = \"" + form + "\"");
+                for (Document d : docs) d.remove();
+            }
+            Thread.sleep(500);
+        } catch (Exception ignored) {}
         log("\n# Kanban Integration Test Report\n");
         log("**Database**: `domcouch`.`kanban_test` | **Time**: " + java.time.Instant.now());
     }
