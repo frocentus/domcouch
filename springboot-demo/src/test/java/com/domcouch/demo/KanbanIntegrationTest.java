@@ -45,12 +45,12 @@ class KanbanIntegrationTest {
         }
         log("  Total documents in scope: %d", docIds.size());
         for (String form : new String[]{"Project", "KanbanLane", "KanbanTask", "KanbanBoard"}) {
-            var result = session.getNativeCluster().query(
+            var deleteResult = session.getNativeCluster().query(
                 "DELETE FROM " + cp + " AS d WHERE d.items.Form[0].`values`[0] = '" + form + "'"
             );
-            result.rowsAsObject().forEach(row -> {});
-            long deleted = result.rowsAsObject().size();
-            log("  Cleanup %s: %d row(s) deleted", form, deleted);
+            var rows = new java.util.ArrayList<>();
+            deleteResult.rowsAsObject().forEach(rows::add);
+            log("  Cleanup %s: %d row(s) deleted", form, rows.size());
         }
         log("\n# Kanban Integration Test Report\n");
         log("**Database**: `domcouch`.`kanban_test` | **Time**: " + java.time.Instant.now());
@@ -61,12 +61,7 @@ class KanbanIntegrationTest {
         // Clean up test data (KV-based, no N1QL lag)
         try {
             for (Document doc : db.getAllDocuments()) {
-                Item formItem = doc.getFirstItem("Form");
-                String formVal = formItem != null ? formItem.getValueString() : "";
-                if (formVal.equals("Project") || formVal.equals("KanbanLane")
-                        || formVal.equals("KanbanTask") || formVal.equals("KanbanBoard")) {
-                    doc.remove();
-                }
+                doc.remove();
             }
         } catch (Exception ignored) {}
         log("\n---\n**Test complete.** `kanban_test` scope contains all test data.");
