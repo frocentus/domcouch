@@ -1,6 +1,8 @@
 package com.domcouch.demo;
 
 import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.client.java.query.QueryOptions;
+import com.couchbase.client.java.query.QueryScanConsistency;
 import com.domcouch.api.*;
 import com.domcouch.impl.CouchbaseSession;
 import org.junit.jupiter.api.*;
@@ -37,7 +39,8 @@ class KanbanIntegrationTest {
         // Clean up old test documents (N1QL DELETE)
         String cp = "`domcouch`.`kanban_test`.`documents`";
         // First check what exists
-        var check = session.getNativeCluster().query("SELECT meta().id, d.items.Form FROM " + cp + " AS d");
+        var check = session.getNativeCluster().query("SELECT meta().id, d.items.Form FROM " + cp + " AS d",
+                QueryOptions.queryOptions().scanConsistency(QueryScanConsistency.REQUEST_PLUS));
         List<String> docIds = new ArrayList<>();
         for (JsonObject row : check.rowsAsObject()) {
             String id = row.getString("id");
@@ -47,7 +50,8 @@ class KanbanIntegrationTest {
         log("  Total documents in scope: %d", docIds.size());
         for (String form : new String[]{"Project", "KanbanLane", "KanbanTask", "KanbanBoard"}) {
             var deleteResult = session.getNativeCluster().query(
-                "DELETE FROM " + cp + " AS d WHERE d.items.Form[0].`values`[0] = '" + form + "'"
+                "DELETE FROM " + cp + " AS d WHERE d.items.Form[0].`values`[0] = '" + form + "'",
+                QueryOptions.queryOptions().scanConsistency(QueryScanConsistency.REQUEST_PLUS)
             );
             var rows = new java.util.ArrayList<>();
             deleteResult.rowsAsObject().forEach(rows::add);
