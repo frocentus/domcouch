@@ -33,17 +33,14 @@ class KanbanIntegrationTest {
     static void setUp() throws NotesException {
         session = CouchbaseSession.connect("couchbase://localhost", "Administrator", "password");
         db = session.getDatabase("domcouch", "kanban_test");
-        // Clean up old test documents from previous runs (KV-based, no N1QL lag)
+        // Clean up old test documents from previous runs (N1QL DELETE, consistent with N1QL SELECT)
         try {
-            for (Document doc : db.getAllDocuments()) {
-                Item formItem = doc.getFirstItem("Form");
-                String formVal = formItem != null ? formItem.getValueString() : "";
-                if (formVal.equals("Project") || formVal.equals("KanbanLane")
-                        || formVal.equals("KanbanTask") || formVal.equals("KanbanBoard")) {
-                    doc.remove();
-                }
+            String cp = "`domcouch`.`kanban_test`.`documents`";
+            for (String form : new String[]{"Project", "KanbanLane", "KanbanTask", "KanbanBoard"}) {
+                session.getNativeCluster().query(
+                    "DELETE FROM " + cp + " AS d WHERE d.items.Form[0].values[0] = '" + form + "'"
+                );
             }
-            Thread.sleep(500);
         } catch (Exception ignored) {}
         log("\n# Kanban Integration Test Report\n");
         log("**Database**: `domcouch`.`kanban_test` | **Time**: " + java.time.Instant.now());
@@ -271,9 +268,8 @@ class KanbanIntegrationTest {
         }
         log("\n  Total: %d entries, %d categories, %d children across categories\n",
                 nav.getCount(), catCount, totalChildren);
-        if (totalChildren != 12) {
-            log("  ⚠️ Expected 12 children (copyDocument ghost or scope data from prior run)");
-        }
+        assertEquals(12, totalChildren,
+                "Total children across all categories should be exactly 12 (tasks)");
     }
 
     @Test @Order(9) @DisplayName("Lazy navigator: tasks by lane (key-based pagination)")
