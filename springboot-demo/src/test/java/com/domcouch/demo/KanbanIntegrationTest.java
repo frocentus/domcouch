@@ -40,7 +40,7 @@ class KanbanIntegrationTest {
                 "DELETE FROM " + cp + " AS d WHERE d.items.Form[0].values[0] = '" + form + "'"
             );
             log("  Cleanup %s: %d row(s) deleted", form,
-                result.metaData().metrics().map(m -> m.mutationCount()).orElse(-1));
+                result.metaData().metrics().map(m -> m.mutationCount()).orElse(-1L));
         }
         log("\n# Kanban Integration Test Report\n");
         log("**Database**: `domcouch`.`kanban_test` | **Time**: " + java.time.Instant.now());
