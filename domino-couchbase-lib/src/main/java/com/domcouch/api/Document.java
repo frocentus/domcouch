@@ -157,6 +157,17 @@ public interface Document {
     void computeWithForm(Form form, boolean computeAll, boolean validateOnly) throws NotesException;
 
     /**
+     * Evaluate computed fields using the document's own Form definition.
+     * The form is determined from the document's Form item value.
+     * Mirrors: {@code lotus.domino.Document.computeWithForm(boolean, boolean)}
+     *
+     * @param computeAll if true, recompute all fields; if false, only compute fields
+     *                   marked as computed. In Domino this is {@code additionalProcessing}.
+     * @param validateOnly if true, only validate without storing computed values.
+     */
+    void computeWithForm(boolean computeAll, boolean validateOnly) throws NotesException;
+
+    /**
      * Find an attachment by name, searching both document-level and item-level.
      * @param name the file name
      * @return the attachment, or null if not found

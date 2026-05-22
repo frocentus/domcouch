@@ -287,6 +287,21 @@ public class CouchbaseDocument implements Document {
     }
 
     @Override
+    public void computeWithForm(boolean computeAll, boolean validateOnly) throws NotesException {
+        ensureItemsLoaded();
+        Item formItem = getFirstItem("Form");
+        if (formItem == null) {
+            throw new NotesException(4000, "Document has no Form item — cannot resolve form definition");
+        }
+        String formName = formItem.getValueString();
+        Form form = database.getForm(formName);
+        if (form == null) {
+            throw new NotesException(4000, "Form not found: " + formName);
+        }
+        computeWithForm(form, computeAll, validateOnly);
+    }
+
+    @Override
     public void computeWithForm(Form form, boolean computeAll, boolean validateOnly) throws NotesException {
         ensureItemsLoaded();
         var ft = new com.domcouch.formula.translate.FormulaTranslator();
@@ -325,6 +340,10 @@ public class CouchbaseDocument implements Document {
             try {
                 Object result = ft.evaluate(formula, ctx);
                 if (result != null && !result.equals(com.domcouch.formula.Evaluator.ERROR_VALUE)) {
+                    // Unwrap single-element lists (common for @DbLookup)
+                    if (result instanceof java.util.List<?> list && list.size() == 1) {
+                        result = list.get(0);
+                    }
                     replaceItemValue(fd.getName(), result);
                 }
             } catch (Exception e) {

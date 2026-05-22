@@ -180,7 +180,7 @@ Document person = db.createDocument();
 person.replaceItemValue("givenName", "Alice");
 person.replaceItemValue("lastName", "Smith");
 person.replaceItemValue("birthdate", "1990-03-15");
-person.computeWithForm(personForm, true, false);
+person.computeWithForm(true, false); // auto-resolves Form=\"Person\"
 // person now has FullName="Alice Smith", Age=36
 
 // Retrieve a form
