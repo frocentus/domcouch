@@ -170,6 +170,58 @@ WHERE bucket_id = 'domcouch' AND scope_id = 'contacts' AND name = 'x'
 - For tests: prefer N1QL COUNT over `getDocumentByUNID()` after save
 - Use `Thread.sleep(500)` between write and N1QL read
 
+### `REQUEST_PLUS` scan consistency (eliminates drift)
+
+```java
+import com.couchbase.client.java.query.QueryScanConsistency;
+import com.couchbase.client.java.query.QueryOptions;
+
+QueryResult result = scope.query(stmt,
+    QueryOptions.queryOptions()
+        .scanConsistency(QueryScanConsistency.REQUEST_PLUS));
+```
+
+- **Cost**: 50-200ms extra per query (waits for all GSI indexes to catch up)
+- **Use**: every `scope.query()` call in library code, test cleanup queries
+- **Without it**: `doc.remove()` (KV) → N1QL still sees doc for 100ms-2s → ghosts
+
+### N1QL `DELETE` (bulk cleanup — same index as SELECT)
+
+```java
+// Clean all domcouch documents from a collection
+session.getNativeCluster().query(
+    "DELETE FROM `bucket`.`scope`.`collection` AS d WHERE d._type = 'domcouch.document'",
+    QueryOptions.queryOptions().scanConsistency(QueryScanConsistency.REQUEST_PLUS)
+);
+```
+
+**Why N1QL DELETE beats KV remove for bulk ops**: N1QL DELETE and N1QL SELECT share the same GSI index. KV remove is invisible to N1QL until the index catches up. Use N1QL DELETE whenever you need the deletion to be reflected in subsequent N1QL queries.
+
+### `rowsAsObject()` — one-shot iterable
+
+```java
+// The iterable can only be consumed ONCE. Collect in ArrayList first:
+var rows = new ArrayList<JsonObject>();
+result.rowsAsObject().forEach(rows::add);
+long count = rows.size(); // correct — NOT result.rowsAsObject().size()
+```
+
+### Test cleanup pattern
+
+```java
+// @BeforeAll — bulk N1QL DELETE by _type
+String cp = collectonPath;
+session.getNativeCluster().query(
+    "DELETE FROM " + cp + " AS d WHERE d._type = 'domcouch.document'",
+    QueryOptions.queryOptions().scanConsistency(QueryScanConsistency.REQUEST_PLUS)
+);
+
+// @AfterAll — per-document cleanup (inner try/catch so one failure doesn't skip others)
+for (Document doc : db.getAllDocuments()) {
+    try { doc.remove(); } catch (Exception e) { log(e); }
+}
+```
+
 ---
 
 ## Couchbase SDK ClassCastException — The Universal Fix
@@ -252,11 +304,12 @@ Key operators:
 
 ## Known Bugs / Pitfalls
 
-1. **`search()` throws `JsonArray cannot be cast to JsonObject`** — when results have array fields like `folders`. Caused by `rowsAsObject()` on documents with top-level arrays.
-2. **Collection names can't start with `_`** — error message is obscure.
-3. **DROP INDEX syntax**: must use `ON collection`, not collection-qualified path.
-4. **USE INDEX ignored**: even with hint, Couchbase may pick PrimaryScan if index doesn't match WHERE.
-5. **Community Edition**: no GSI ORDER BY limitations, but 4-core query cap, 5-node limit.
+1. **`search()` throws `JsonArray cannot be cast to JsonObject`** — when results have array fields like `folders`. Caused by `rowsAsObject()` on documents with top-level arrays. Fixed: `fetchDocumentsByN1qlIds` now uses `SELECT meta().id` + `getDocumentByUNID()` (RawJsonTranscoder) instead of `SELECT doc FROM ...`.
+2. **`removeDocument()` — don't swallow exceptions**: Silent `catch(Exception){}` hides KV deletion failures. Let exceptions propagate or log them. Test cleanup should catch per-document so one failure doesn't skip others.
+3. **Collection names can't start with `_`** — error message is obscure.
+4. **DROP INDEX syntax**: must use `ON collection`, not collection-qualified path.
+5. **USE INDEX ignored**: even with hint, Couchbase may pick PrimaryScan if index doesn't match WHERE.
+6. **Community Edition**: no GSI ORDER BY limitations, but 4-core query cap, 5-node limit.
 
 ---
 
