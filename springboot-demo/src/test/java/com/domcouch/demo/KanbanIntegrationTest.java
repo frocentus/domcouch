@@ -269,6 +269,9 @@ class KanbanIntegrationTest {
                         e.getColumnValues().isEmpty() ? "?" : e.getColumnValues().get(0),
                         e.getChildCount());
                 totalChildren += e.getChildCount();
+            } else {
+                // Log each document's UNID so we can spot the extra one
+                log("    %s | %s", e.getUniversalID(), e.getColumnValues());
             }
             e = nav.getNext();
         }
