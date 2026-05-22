@@ -186,4 +186,85 @@ class ComputeWithFormTest {
         System.out.println("  Missing lastName: '" + fullName.getValueString() + "' ✅");
         doc.remove();
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // @DbLookup in Form definitions
+    // ═══════════════════════════════════════════════════════════════
+
+    @Test @DisplayName("@DbLookup in form: resolve nickname to full name")
+    void dbLookupInForm() throws Exception {
+        // 1. Create lookup documents
+        String[][] nicknames = {
+            {"Bob", "Robert"},
+            {"Bill", "William"},
+            {"Liz", "Elizabeth"},
+            {"Mike", "Michael"},
+        };
+        for (String[] n : nicknames) {
+            Document d = db.createDocument();
+            d.replaceItemValue("Form", "Nickname");
+            d.replaceItemValue("givenName", n[0]);
+            d.replaceItemValue("fullName", n[1]);
+            d.save();
+        }
+
+        // 2. Create a lookup view keyed by givenName, column 2 = fullName
+        db.createView("Nicknames",
+                "Form = \"Nickname\"",
+                "givenName",
+                List.of(
+                    ViewColumn.field("givenName", "givenName"),
+                    ViewColumn.field("fullName", "fullName")));
+
+        System.out.println("  Lookup table + Nicknames view created");
+        Thread.sleep(1000); // Wait for N1QL indexing
+
+        // Quick test: evaluate @DbLookup directly
+        var ft = new com.domcouch.formula.translate.FormulaTranslator();
+        var testDoc = db.createDocument();
+        testDoc.replaceItemValue("givenName", "Bob");
+        var ctx = new com.domcouch.impl.DocumentFormulaContext(testDoc)
+                .withDatabase(db);
+        Object direct = ft.evaluate("@DbLookup(\"\"; \"\"; \"Nicknames\"; givenName; 2)", ctx);
+        System.out.println("  Direct @DbLookup: " + direct + " (type: " + direct.getClass().getSimpleName() + ")");
+        testDoc.remove();
+
+        // 3. Create a form with @DbLookup computed field
+        Form lookupForm = db.createForm("PersonWithNickname", List.of(
+            field("givenName", Item.TEXT).build(),
+            field("lastName",  Item.TEXT).build(),
+            field("displayName", Item.TEXT)
+                .computed(true)
+                .formula("@DbLookup(\"\"; \"\"; \"Nicknames\"; givenName; 2)")
+                .build()
+        ));
+
+        // 4. Test with a nickname
+        Document doc = db.createDocument();
+        doc.replaceItemValue("Form", "PersonWithNickname");
+        doc.replaceItemValue("givenName", "Bob");
+        doc.replaceItemValue("lastName", "Smith");
+
+        doc.computeWithForm(lookupForm, true, false);
+
+        Item display = doc.getFirstItem("displayName");
+        assertNotNull(display, "displayName should be computed");
+        System.out.println("  displayName: '" + display.getValueString() + "' (expected: Robert)");
+        assertEquals("Robert", display.getValueString().trim());
+
+        // 5. Test with unknown name (no match → returns givenName)
+        Document doc2 = db.createDocument();
+        doc2.replaceItemValue("Form", "PersonWithNickname");
+        doc2.replaceItemValue("givenName", "Alice");
+        doc2.replaceItemValue("lastName", "Jones");
+
+        doc2.computeWithForm(lookupForm, true, false);
+
+        Item display2 = doc2.getFirstItem("displayName");
+        assertNotNull(display2);
+        System.out.println("  displayName (no match): '" + display2.getValueString() + "' (expected: empty)");
+
+        doc.remove();
+        doc2.remove();
+    }
 }

@@ -290,7 +290,9 @@ public class CouchbaseDocument implements Document {
     public void computeWithForm(Form form, boolean computeAll, boolean validateOnly) throws NotesException {
         ensureItemsLoaded();
         var ft = new com.domcouch.formula.translate.FormulaTranslator();
-        DocumentFormulaContext ctx = new DocumentFormulaContext(this);
+        DocumentFormulaContext ctx = new DocumentFormulaContext(this)
+                .withDatabase(database);
+        System.out.println("computeWithForm: database=" + (database != null ? database.getTitle() : "NULL"));
         for (Form.FieldDefinition fd : form.getFields()) {
             // Skip display-only fields
             if (fd.isComputedForDisplay()) continue;
