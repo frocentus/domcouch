@@ -209,6 +209,26 @@ Full Domino ViewNavigator API for categorized views.
 | `setBufferMaxEntries(n)`   | ❌     | Implementation exists (N1QL LIMIT), not exposed      |
 | `setAutoUpdate(bool)`      | ❌     | Not implemented                                      |
 
+## RichTextItem
+
+Segment-based rich text with style support. Stored as JSON array in items.
+
+| Method | Status | Notes |
+|--------|--------|-------|
+| `appendText(text)` | ✅ | Plain text segment |
+| `appendDocLink(doc, comment)` | ✅ | Document link segment |
+| `addNewLine(count)` | ✅ | 1=single, 2=paragraph |
+| `beginSection(title)` / `endSection()` | ✅ | Collapsible sections |
+| `beginInsert()` / `endInsert()` | ✅ | Insert-position marker |
+| `getNotesFont(name, styleBits)` | ✅ | Named font style |
+| `appendStyle(style, text)` | ✅ | Styled text |
+| `getSegmentCount()` | ✅ | Segment count |
+| `getPlainText()` | ✅ | All text concatenated |
+| `isMimeType(mime)` / `getMimeType()` | ✅ | MIME type checks |
+| `compact()` | ✅ | Remove empty segments |
+| `getContentJSON()` | ✅ | JSON representation |
+| `RichTextStyle.create().with(...)` | ✅ | Builder: font-name, size, color, bold, italic, underline, strikethrough |
+
 ## Folders
 
 Database-level folder CRUD. Folders are virtual views with N1QL `'name' IN doc.folders`.
@@ -259,12 +279,10 @@ Pluggable N1QL index lifecycle for categorized views.
 
 | Class                         | Priority | Notes                                   |
 | ----------------------------- | -------- | --------------------------------------- |
-| **RichTextItem**              | High     | For rich text fields, MIME, attachments |
 | **Name**                      | High     | Canonical/abbreviated name parsing      |
 | **ACL / ACLEntry**            | High     | Per-database access control             |
-| **EmbeddedObject**            | Medium   | Attachments                             |
+| **EmbeddedObject**            | Medium   | Attachments (partial — getAttachment ✅) |
 | **Agent / AgentContext**      | Medium   | Scheduled agents                        |
-| **RichTextStyle**             | Low      | Text formatting                         |
 | **Stream**                    | Low      | Binary I/O                              |
 | **Log**                       | Low      | Logging                                 |
 | **DxlExporter / DxlImporter** | Low      | DXL format                              |
@@ -282,7 +300,7 @@ Pluggable N1QL index lifecycle for categorized views.
 | ------------------------------- | --- | --- | --- |
 | Core Data Layer (interfaces)    | 57  | 1   | ~53 |
 | Formula Translator (@Functions) | 18  | 0   | ~15 |
-| Missing Classes                 | 0   | 0   | 13  |
+| Missing Classes                 | 0   | 0   | 12  |
 | Domcouch Extensions             | 6   | —   | —   |
 
 ---
