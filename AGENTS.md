@@ -115,13 +115,16 @@ in `com.domcouch.formula`. It supports two modes:
 many documents, achieving ~16× speedup by skipping Lexer+Parser stages.
 See `CouchbaseDatabase.compileFormula()` / `evaluateCached()`.
 
-**@Functions supported** (Phase 1): 35 functions — all verified against
+**@Functions supported** (Phase 1): 150+ functions — all verified against
 official Domino specifications. Includes string ops, type conversion,
 type checking, list ops, control flow, date extraction, boolean constants,
 and side-effects. `@Command` / `@PostedCommand` are no-ops.
 
-Phase 2 (16 functions remaining): `@Explode`, `@Implode`, `@Prompt`,
-`@DbLookup`, `@DbColumn`, `@MailSend`, `@Adjust`, `@SetDocField`, and others.
+Phase 2 complete (5 functions): `@Explode`, `@Implode`, `@Adjust`,
+`@SetField`, `@TextToNumber`. 6 stub/partial implementations:
+`@TimeToTextInZone`, `@TimeZoneToText`, `@Text`, `@DocLength`,
+`@DocLock`, `@DeleteDocument`. 2 not implemented: `@DbManager`,
+`@ViewTitle`. `@Prompt`/`@MailSend` low priority (UI/mail features).
 
 Full language specification: `docs/formula-language-architecture.md`.
 
@@ -423,6 +426,7 @@ documents and regenerates.
 | 2026-05-20 | `computeWithForm` — Domino-standard API                       | Added `computeWithForm(boolean, boolean)` (resolves Form from document's Form item). @DbLookup single-element list unwrap in computed fields. Explicit `computeWithForm(Form, ...)` kept as extension                                                   |
 | 2026-05-22 | N1QL scan consistency: `REQUEST_PLUS` everywhere              | All `scope.query()` calls in CouchbaseView and CouchbaseDatabase now use `scanConsistency(REQUEST_PLUS)`. KV deletions become immediately visible to N1QL. Eliminates eventual-consistency drift between KV and N1QL layers                               |
 | 2026-05-22 | Bulk N1QL `DELETE` for test cleanup                           | N1QL DELETE by `_type = 'domcouch.document'` is reliable for cleanup (shares index with N1QL SELECT). Per-field DELETE (`d.items.Form[0].\`values\`[0]`) failed due to GSI path resolution quirks. Use "prefer N1QL DELETE to KV remove for bulk ops" rule |
+| 2026-05-22 | Formula engine Phase 2 complete                              | @Explode, @Implode, @Adjust, @SetField, @TextToNumber all ✅. 6 stubs. @DbLookup/@DbColumn fixed with literal N1QL concat + numeric key detection. Only @DbManager/@ViewTitle remain ❌ (ACL-dependent)                                              |
 
 ---
 

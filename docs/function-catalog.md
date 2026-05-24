@@ -1,6 +1,6 @@
 # @Function Catalog — domcouch
 
-> **Last updated**: 2026-05-14
+> **Last updated**: 2026-05-22
 > **Status**: ✅ Implemented | 🟡 Partial | ❌ Not yet
 > **Spec verified**: 📋 Yes | ⚠ Needs verification
 
@@ -213,6 +213,8 @@
 | Function | Status | Spec | Description |
 |----------|--------|------|-------------|
 | `@DbName` | ✅ | 📋 | Delegates to `getServerName()` + `getDatabaseName()` |
+| `@DbLookup` | ✅ | 📋 | Cross-database lookup via view key (literal N1QL concat + numeric key detection) |
+| `@DbColumn` | ✅ | 📋 | Cross-database column lookup via view |
 | `@DbTitle` | ✅ | ⚠ | Delegates to `getDatabaseTitle()` |
 | `@ReplicaID` | ✅ | ⚠ | Delegates to `getReplicaID()` |
 | `@ServerName` | ✅ | ⚠ | Delegates to `getServerName()` |
@@ -261,12 +263,10 @@
 
 ## Not Yet Implemented
 
-These are deferred to future phases:
+Reclassified — `@DbLookup`/@DbColumn moved to Database/View Functions above.
 
 | Function | Priority | Reason |
 |----------|----------|--------|
-| `@DbLookup` | High | Cross-database lookup |
-| `@DbColumn` | High | Cross-database column lookup |
 | `@DbCommand` | Medium | Database command execution |
 | `@Name` | Medium | Name format manipulation |
 | `@NameLookup` | Medium | Directory name lookup |
