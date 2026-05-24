@@ -688,5 +688,15 @@ public final class MiscHandlers {
         FunctionHandler noop = (ev, args, ctx) -> "";
         functions.put("COMMAND", noop);
         functions.put("POSTEDCOMMAND", noop);
+
+        // @Name([action]; name) — manipulate hierarchical names
+        functions.put("NAME", (ev, args, ctx) -> {
+            if (args.isEmpty()) return "";
+            String action = Evaluator.convertToString(ev.eval(args.get(0), ctx));
+            String nameStr = args.size() > 1
+                    ? Evaluator.convertToString(ev.eval(args.get(1), ctx))
+                    : "";
+            return NameActions.apply(action, nameStr);
+        });
     }
 }
