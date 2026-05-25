@@ -99,35 +99,60 @@ public interface ACLEntry {
      */
     void disableRole(String role);
 
-    // ---- permissions (bonus / not in lotus.domino) ----
+    // ---- privileges (flags per entry) ----
 
     /**
-     * @return true if this entry can create documents
+     * @return true if this entry can create documents.
+     *         In Domino, Author level requires PRIV_CREATE_DOCS on the ACL.
      */
     default boolean canCreateDocuments() {
-        return getLevel() >= ACL.LEVEL_AUTHOR;
+        return getLevel() >= ACL.LEVEL_EDITOR
+            || (getLevel() == ACL.LEVEL_AUTHOR);
     }
 
     /**
-     * @return true if this entry can delete documents
+     * @return true if this entry can delete documents.
      */
     default boolean canDeleteDocuments() {
         return getLevel() >= ACL.LEVEL_EDITOR;
     }
 
     /**
-     * @return true if this entry can create personal agents/views
+     * @return true if this entry can create personal agents.
      */
     default boolean canCreatePersonalAgent() {
         return getLevel() >= ACL.LEVEL_EDITOR;
     }
 
     /**
-     * @return true if this entry can create LotusScript/Java agents
+     * @return true if this entry can create personal folders/views.
+     */
+    default boolean canCreatePersonalFolderView() {
+        return getLevel() >= ACL.LEVEL_EDITOR;
+    }
+
+    /**
+     * @return true if this entry can create shared folders/views.
+     */
+    default boolean canCreateSharedFolderView() {
+        return getLevel() >= ACL.LEVEL_DESIGNER;
+    }
+
+    /**
+     * @return true if this entry can create LotusScript/Java agents.
      */
     default boolean canCreateLSOrJavaAgent() {
         return getLevel() >= ACL.LEVEL_DESIGNER;
     }
+
+    /**
+     * @return true if this entry can replicate or copy documents.
+     */
+    default boolean canReplicateOrCopyDocuments() {
+        return getLevel() >= ACL.LEVEL_READER;
+    }
+
+    // ---- convenience ----
 
     /**
      * @return a human-readable level name (e.g., "Manager", "Author")

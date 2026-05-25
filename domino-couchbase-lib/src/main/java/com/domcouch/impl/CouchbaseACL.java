@@ -25,6 +25,10 @@ public class CouchbaseACL implements ACL {
     private final List<String> roles;
     private int defaultLevel;
     private boolean uniformAccess;
+    private boolean consistentACL;
+    private int privileges;
+    private int internetLevel;
+    private boolean adminReaderAuthor;
 
     /**
      * Load or create the ACL document.
@@ -35,6 +39,10 @@ public class CouchbaseACL implements ACL {
         this.roles = new ArrayList<>();
         this.defaultLevel = LEVEL_READER;
         this.uniformAccess = false;
+        this.consistentACL = false;
+        this.privileges = PRIV_CREATE_DOCS;
+        this.internetLevel = LEVEL_MANAGER;
+        this.adminReaderAuthor = false;
         load();
     }
 
@@ -112,9 +120,34 @@ public class CouchbaseACL implements ACL {
 
     @Override
     public boolean isAdminNames() {
-        // Always true in Couchbase — the connection user has full control
         return true;
     }
+
+    @Override
+    public boolean isConsistentACL() { return consistentACL; }
+
+    @Override
+    public void setConsistentACL(boolean flag) { this.consistentACL = flag; }
+
+    @Override
+    public int getInternetLevel() { return internetLevel; }
+
+    @Override
+    public void setInternetLevel(int level) {
+        this.internetLevel = Math.min(level, LEVEL_MANAGER);
+    }
+
+    @Override
+    public int getPrivileges() { return privileges; }
+
+    @Override
+    public void setPrivileges(int privs) { this.privileges = privs; }
+
+    @Override
+    public boolean isAdminReaderAuthor() { return adminReaderAuthor; }
+
+    @Override
+    public void setAdminReaderAuthor(boolean flag) { this.adminReaderAuthor = flag; }
 
     // ---- persistence ----
 
@@ -123,7 +156,11 @@ public class CouchbaseACL implements ACL {
         JsonObject doc = JsonObject.create()
                 .put("_type", ACL_TYPE)
                 .put("defaultLevel", defaultLevel)
-                .put("uniformAccess", uniformAccess);
+                .put("uniformAccess", uniformAccess)
+                .put("consistentACL", consistentACL)
+                .put("privileges", (long) privileges)
+                .put("internetLevel", (long) internetLevel)
+                .put("adminReaderAuthor", adminReaderAuthor);
 
         JsonObject rolesArr = JsonObject.create();
         for (String r : roles) rolesArr.put(r, true);
@@ -164,9 +201,17 @@ public class CouchbaseACL implements ACL {
             if (!ACL_TYPE.equals(doc.getString("_type"))) return;
 
             Long dl = doc.getLong("defaultLevel");
-            defaultLevel = clampLevel(dl != null ? dl.intValue() : defaultLevel);
+            defaultLevel = dl != null ? clampLevel(dl.intValue()) : defaultLevel;
             Boolean ua = doc.getBoolean("uniformAccess");
             uniformAccess = ua != null && ua;
+            Boolean ca = doc.getBoolean("consistentACL");
+            consistentACL = ca != null && ca;
+            Long pv = doc.getLong("privileges");
+            if (pv != null) privileges = pv.intValue();
+            Long il = doc.getLong("internetLevel");
+            if (il != null) internetLevel = il.intValue();
+            Boolean ara = doc.getBoolean("adminReaderAuthor");
+            adminReaderAuthor = ara != null && ara;
 
             JsonObject rolesObj = doc.getObject("roles");
             if (rolesObj != null) {

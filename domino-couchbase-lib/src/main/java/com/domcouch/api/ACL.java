@@ -9,20 +9,43 @@ import java.util.List;
  */
 public interface ACL {
 
+    // ---- access levels ----
+
     /** No access — user cannot see or open the database */
     int LEVEL_NOACCESS  = 0;
-    /** Can create documents but not read */
+    /** Can create documents but not read (needs PRIV_CREATE_DOCS) */
     int LEVEL_DEPOSITOR = 1;
     /** Can read documents */
     int LEVEL_READER    = 2;
-    /** Can create and edit own documents */
+    /** Can create and edit own documents (needs PRIV_CREATE_DOCS to create) */
     int LEVEL_AUTHOR    = 3;
     /** Can edit all documents */
     int LEVEL_EDITOR    = 4;
-    /** Can modify design elements */
+    /** Can modify design elements and create full-text index */
     int LEVEL_DESIGNER  = 5;
-    /** Full control */
+    /** Full control — modify ACL, encrypt, delete database, replication settings */
     int LEVEL_MANAGER   = 6;
+
+    // ---- access level privileges (flags) ----
+
+    /** Create documents (required for Author + Depositor level) */
+    int PRIV_CREATE_DOCS              = 1;
+    /** Delete documents */
+    int PRIV_DELETE_DOCS              = 2;
+    /** Create personal agents */
+    int PRIV_CREATE_PERSONAL_AGENT    = 4;
+    /** Create personal folders and views */
+    int PRIV_CREATE_PERSONAL_FOLDER   = 8;
+    /** Create shared folders and views */
+    int PRIV_CREATE_SHARED_FOLDER     = 16;
+    /** Create LotusScript / Java agents */
+    int PRIV_CREATE_LS_JAVA_AGENT     = 32;
+    /** Read public documents (even at No Access level) */
+    int PRIV_READ_PUBLIC_DOCS         = 64;
+    /** Write public documents (even at No Access level) */
+    int PRIV_WRITE_PUBLIC_DOCS        = 128;
+    /** Replicate or copy documents */
+    int PRIV_REPLICATE_COPY           = 256;
 
     // ---- entries ----
 
@@ -103,6 +126,70 @@ public interface ACL {
      * @return true if the current user has administrator access to edit the ACL
      */
     boolean isAdminNames();
+
+    /**
+     * @return true if consistent (uniform) access is enforced across all replicas.
+     *         Mirrors lotus.domino.ACL.isConsistentACL().
+     */
+    boolean isConsistentACL();
+
+    /**
+     * Enable or disable consistent ACL enforcement.
+     */
+    void setConsistentACL(boolean flag);
+
+    /**
+     * @return the maximum internet access level (LEVEL_* constant).
+     *         For Couchbase, this is always LEVEL_MANAGER.
+     */
+    int getInternetLevel();
+
+    /**
+     * Set the maximum internet access level.
+     */
+    void setInternetLevel(int level);
+
+    /**
+     * @return the privilege flags for the current database (bitmask of PRIV_*).
+     */
+    int getPrivileges();
+
+    /**
+     * Set privilege flags (bitmask of PRIV_*).
+     */
+    void setPrivileges(int privs);
+
+    /**
+     * Check if a specific privilege is enabled.
+     */
+    default boolean isPrivilegeEnabled(int privilege) {
+        return (getPrivileges() & privilege) != 0;
+    }
+
+    /**
+     * Enable a specific privilege.
+     */
+    default void enablePrivilege(int privilege) {
+        setPrivileges(getPrivileges() | privilege);
+    }
+
+    /**
+     * Disable a specific privilege.
+     */
+    default void disablePrivilege(int privilege) {
+        setPrivileges(getPrivileges() & ~privilege);
+    }
+
+    /**
+     * @return true if administrators can read/edit all documents
+     *         regardless of Reader/Author fields.
+     */
+    boolean isAdminReaderAuthor();
+
+    /**
+     * Enable or disable admin reader-author override.
+     */
+    void setAdminReaderAuthor(boolean flag);
 
     /**
      * Persist the ACL to Couchbase.

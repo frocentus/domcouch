@@ -325,4 +325,43 @@ class ACLTest {
         assertEquals(ACL.LEVEL_MANAGER, e.getLevel());
         assertEquals("Manager", e.getLevelName());
     }
+
+    @Test @Order(24) @DisplayName("Privilege flags: enable/disable/isEnabled")
+    void privilegeFlags() {
+        ACL acl = db.getACL();
+        assertTrue(acl.isPrivilegeEnabled(ACL.PRIV_CREATE_DOCS));
+        acl.disablePrivilege(ACL.PRIV_CREATE_DOCS);
+        assertFalse(acl.isPrivilegeEnabled(ACL.PRIV_CREATE_DOCS));
+        acl.enablePrivilege(ACL.PRIV_DELETE_DOCS);
+        assertTrue(acl.isPrivilegeEnabled(ACL.PRIV_DELETE_DOCS));
+    }
+
+    @Test @Order(25) @DisplayName("ACL settings: consistentACL, internetLevel, adminReaderAuthor")
+    void aclSettings() {
+        ACL acl = db.getACL();
+        assertFalse(acl.isConsistentACL());
+        acl.setConsistentACL(true);
+        assertTrue(acl.isConsistentACL());
+
+        assertEquals(ACL.LEVEL_MANAGER, acl.getInternetLevel());
+        acl.setInternetLevel(ACL.LEVEL_READER);
+        assertEquals(ACL.LEVEL_READER, acl.getInternetLevel());
+
+        assertFalse(acl.isAdminReaderAuthor());
+        acl.setAdminReaderAuthor(true);
+        assertTrue(acl.isAdminReaderAuthor());
+    }
+
+    @Test @Order(26) @DisplayName("ACLEntry convenience: canCreatePersonalFolderView, canCreateSharedFolderView")
+    void entryConvenience() {
+        ACL acl = db.getACL();
+        ACLEntry editor = acl.createACLEntry("Editor", ACL.LEVEL_EDITOR);
+        ACLEntry designer = acl.createACLEntry("Designer", ACL.LEVEL_DESIGNER);
+
+        assertTrue(editor.canCreatePersonalFolderView());
+        assertFalse(editor.canCreateSharedFolderView());
+        assertTrue(designer.canCreateSharedFolderView());
+        assertTrue(designer.canCreateLSOrJavaAgent());
+        assertFalse(editor.canCreateLSOrJavaAgent());
+    }
 }
