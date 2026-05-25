@@ -1,7 +1,7 @@
 # DomCouch — Architecture Review vs. Target Vision
 
 > **Date**: 2026-05-22  
-> **Version**: domcouch 0.2.0-SNAPSHOT  
+> **Version**: domcouch 0.3.0-SNAPSHOT  
 > **Purpose**: Compare current implementation against the ideal Domino 14.5 API facade architecture.
 
 ---

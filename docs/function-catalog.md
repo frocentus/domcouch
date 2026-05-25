@@ -315,10 +315,10 @@ Reclassified — `@DbLookup`/@DbColumn moved to Database/View Functions above.
 | Control Flow | 14 | 0 | 0 | 0 |
 | Boolean/Constants | 8 | 0 | 0 | 0 |
 | Document | 11 | 7 | 0 | 0 |
-| Database/View | 5 | 0 | 0 | 2 |
+| Database/View | 7 | 0 | 0 | 2 |
 | Security/User | 11 | 0 | 0 | 0 |
 | Operators | 11 | 0 | 0 | 0 |
 | **Total** | **132** | **19** | **0** | **2** |
 
-📋 **120** verified against official Domino spec (includes all ✅ + 🟡)
-🔜 **33** deferred to future phases
+📋 **122** verified against official Domino spec (includes all ✅ + 🟡)
+🔜 **31** deferred to future phases

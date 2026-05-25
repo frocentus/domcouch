@@ -192,6 +192,39 @@ List<String> formNames = db.getFormNames();
 // Forms persist in Couchbase as _type="domcouch.form" documents
 ```
 
+### ACL — Database Access Control
+
+Full Domino ACL implementation with levels, privileges, roles, and wildcards:
+
+```java
+ACL acl = db.getACL();
+acl.createACLEntry("Alice", ACL.LEVEL_MANAGER);
+acl.createACLEntry("*/West/Acme", ACL.LEVEL_READER); // wildcard
+
+acl.addRole("Sales");
+acl.getEntry("Alice").enableRole("Sales");
+acl.getEntry("Alice").enablePrivilege(ACL.PRIV_DELETE_DOCS);
+
+// Role enforcement: Readers/Authors fields with [Role]
+acl.getRolesForUser("Alice/West/Acme");  // → ["Sales"] via wildcard
+
+// Access check
+boolean canEdit = acl.getEntry("Alice").canDeleteDocuments();
+```
+
+### Named / Hierarchical Name Parsing
+
+Parse canonical and abbreviated Domino hierarchical names:
+
+```java
+Name n = CouchbaseName.parse("CN=John Smith/OU=Dev/O=Acme/C=US");
+n.getCommon();       // "John Smith"
+n.getOrganization(); // "Acme"
+n.getOrgUnit1();     // "Dev"
+n.getCanonical();    // "CN=John Smith/OU=Dev/O=Acme/C=US"
+n.getAbbreviated();  // "John Smith/Dev/Acme/US"
+```
+
 FieldDefinition attributes: computed, computedWhenComposed, computedForDisplay,
 default/value/validation formulas, multi-value flag, RichText flag, number/date formats.
 - Centralized `canRead()` check shared by Document and View implementations

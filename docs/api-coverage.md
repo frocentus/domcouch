@@ -51,7 +51,7 @@
 |                         | `recycle()`                                       | ✅     |                                                                         |
 |                         | `open(server, dbFile)`                            | ❌     | Static factory                                                          |
 |                         | `openByReplicaID()`                               | ❌     |                                                                         |
-|                         | `getACL() / grantAccess() / revokeAccess()`       | 🟡     | DB-level ACL deferred (Reader/Author fields implement per-doc security) |
+|                         | `getACL() / grantAccess() / revokeAccess()`       | ✅     | Full ACL API: 7 levels, 9 privileges, roles, wildcards |
 |                         | `queryAccessRoles()`                              | ❌     |                                                                         |
 |                         | `isFTIndexed() / createFTIndex()`                 | ❌     |                                                                         |
 |                         | `getSize() / getCreated() / getLastModified()`    | ❌     |                                                                         |
@@ -138,6 +138,30 @@
 |                         | `isDateOnly()`                                    | ✅     |                                                                         |
 | **NotesException**      | `id` field                                        | ✅     |                                                                         |
 |                         | `getMessage()`                                    | ✅     |                                                                         |
+
+| **Name**                | `parse(name)`                                     | ✅     | Canonical + abbreviated format parsing                                  |
+|                         | `getCanonical()`                                  | ✅     | "CN=.../OU=.../O=.../C=..."                                           |
+|                         | `getAbbreviated()`                                | ✅     | "name/unit/org/country"                                                |
+|                         | `getCommon()`                                     | ✅     | Common Name component                                                   |
+|                         | `getOrganization()`                               | ✅     | Organization component                                                  |
+|                         | `getOrgUnit1-4()`                                 | ✅     | Organizational unit components (1-4)                                   |
+|                         | `getCountry() / getGiven() / getSurname()`        | ✅     | Extended components                                                     |
+|                         | `isHierarchical()`                                | ✅     | Has OU/O/C components                                                   |
+|                         | `getAddr821() / getAddr822()`                     | ✅     | RFC 821/822 internet addresses                                          |
+|                         | `getLanguage()`                                   | ✅     | Language code suffix                                                    |
+
+| **ACL**                 | `getEntry(name) / createACLEntry / removeACLEntry`| ✅     | Per-user ACL management                                                 |
+|                         | `getRoles() / addRole / removeRole / renameRole`  | ✅     | Role definitions                                                        |
+|                         | `LEVEL_* constants (7 levels)`                    | ✅     | NoAccess → Manager                                                      |
+|                         | `PRIV_* constants (9 privileges)`                 | ✅     | Per-entry, level-appropriate defaults                                   |
+|                         | `getRolesForUser(name)`                           | ✅     | Role resolution with wildcard support                                   |
+|                         | `isConsistentACL / getInternetLevel`              | ✅     | Extended settings                                                       |
+
+| **ACLEntry**            | `getLevel() / setLevel()`                         | ✅     | Access level (resets privileges on change)                              |
+|                         | `isRoleEnabled / enableRole / disableRole`        | ✅     | Per-entry role assignment                                               |
+|                         | `isWildcard() / matchesWildcard()`                | ✅     | */West/Acme pattern matching                                            |
+|                         | `isPerson() / isServer() / isGroup()`             | ✅     | User type classification                                                |
+|                         | `canCreateDocuments / canDeleteDocuments`         | ✅     | Privilege-based convenience                                             |
 
 ---
 
@@ -279,8 +303,6 @@ Pluggable N1QL index lifecycle for categorized views.
 
 | Class                         | Priority | Notes                                   |
 | ----------------------------- | -------- | --------------------------------------- |
-| **Name**                      | High     | Canonical/abbreviated name parsing      |
-| **ACL / ACLEntry**            | High     | Per-database access control             |
 | **EmbeddedObject**            | Medium   | Attachments (partial — getAttachment ✅) |
 | **Agent / AgentContext**      | Medium   | Scheduled agents                        |
 | **Stream**                    | Low      | Binary I/O                              |
@@ -298,10 +320,10 @@ Pluggable N1QL index lifecycle for categorized views.
 
 | Area                            | ✅  | 🟡  | ❌  |
 | ------------------------------- | --- | --- | --- |
-| Core Data Layer (interfaces)    | 57  | 1   | ~53 |
-| Formula Translator (@Functions) | 18  | 0   | ~15 |
-| Missing Classes                 | 0   | 0   | 12  |
-| Domcouch Extensions             | 6   | —   | —   |
+| Core Data Layer (interfaces)    | 75  | 1   | ~40 |
+| Formula Translator (@Functions) | 19  | 0   | ~15 |
+| Missing Classes                 | 0   | 0   | 10  |
+| Domcouch Extensions             | 8   | —   | —   |
 
 ---
 

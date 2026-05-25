@@ -2,7 +2,7 @@
 
 > **Project**: HCL Domino 14.5 Java API emulation on Couchbase  
 > **Version**: 0.3.0-SNAPSHOT  
-> **Last updated**: 2026-05-19
+> **Last updated**: 2026-05-25
 
 ---
 
@@ -382,7 +382,9 @@ mvn test -pl domino-couchbase-lib
 | `PatternMatchingTest`       | 27      | @Matches (24) + @Like (6) — all pattern operators                                                                     |
 | `DataConversionTest`        | 24      | @Text @TextToNumber @IsNumber @IsTime @TextToTime @ToNumber @ToTime                                                   |
 | `ValidationTest`            | 25      | @Success @Failure @IsNull @IsValid @IfError + placeholders + constants                                                |
-| **Total**                   | **654** |                                                                                                                       |
+| `NameTest`                  | 22      | Canonical + abbreviated parsing, internet addresses, round-trip                                                       |
+| `ACLTest`                   | 31      | 7 levels, 9 privileges, roles, wildcards, enforcement, settings                                                       |
+| **Total**                   | **~730** |                                                                                                                       |
 
 ### 6.4 Data Generation
 
@@ -427,6 +429,8 @@ documents and regenerates.
 | 2026-05-22 | N1QL scan consistency: `REQUEST_PLUS` everywhere              | All `scope.query()` calls in CouchbaseView and CouchbaseDatabase now use `scanConsistency(REQUEST_PLUS)`. KV deletions become immediately visible to N1QL. Eliminates eventual-consistency drift between KV and N1QL layers                               |
 | 2026-05-22 | Bulk N1QL `DELETE` for test cleanup                           | N1QL DELETE by `_type = 'domcouch.document'` is reliable for cleanup (shares index with N1QL SELECT). Per-field DELETE (`d.items.Form[0].\`values\`[0]`) failed due to GSI path resolution quirks. Use "prefer N1QL DELETE to KV remove for bulk ops" rule |
 | 2026-05-22 | Formula engine Phase 2 complete                              | @Explode, @Implode, @Adjust, @SetField, @TextToNumber all ✅. 6 stubs. @DbLookup/@DbColumn fixed with literal N1QL concat + numeric key detection. Only @DbManager/@ViewTitle remain ❌ (ACL-dependent)                                              |
+| 2026-05-24 | Name API — hierarchical name parsing                         | CouchbaseName parses canonical (CN=.../OU=.../O=.../C=...) and abbreviated format. 22 tests. @Name formula handler added to formula-engine with inline NameActions parser.                                                                       |
+| 2026-05-25 | ACL API — full database access control                       | 7 levels, 9 per-entry privileges, roles, wildcard entries. Role integration with Reader/Author enforcement. 28 ACL + 3 wildcard tests. getRolesForUser resolves roles for wildcard patterns.                                                     |
 
 ---
 
@@ -439,9 +443,7 @@ documents and regenerates.
    Formulas must be developer-controlled (not end-user input). User search
    should use `FTSearch()` which is parameterized.
 
-3. **No database-level ACL**: The `Database` interface lacks `getACL()`,
-   `grantAccess()`, `revokeAccess()`. All access control is per-document via
-   Readers/Authors items.
+3. **Database-level ACL implemented**: `getACL()`, `grantAccess()`, `revokeAccess()` are now functional with full Domino-compatible ACL (7 levels, 9 privileges, roles, wildcards). Role integration with Reader/Author enforcement via `getRolesForUser`.
 
 4. **No RichText/MIME support**: `RichTextItem` is the only major item type
    not yet implemented. Simple file attachments (document-level and item-level)
@@ -462,7 +464,7 @@ documents and regenerates.
 
 - [ ] Push reader filtering to N1QL for better performance on large datasets
 - [ ] Implement `RichTextItem` with Couchbase binary attachments
-- [ ] Add database-level ACL (`getACL()` / `grantAccess()` / `revokeAccess()`)
+- ✅ Database-level ACL (`getACL()` / `grantAccess()` / `revokeAccess()`) — 28 tests
 - [ ] Multi-locale date parsing in time-date constants
 - [ ] Permuted operators (`*+`, `*=`, etc.) and full list broadcasting semantics
 - [ ] `@DbLookup` / `@DbColumn` date-range and multi-column key support
