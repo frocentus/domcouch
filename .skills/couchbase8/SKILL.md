@@ -313,7 +313,18 @@ Key operators:
 
 ---
 
-## JSON Schema (our format)
+## JSON Schema (all document types)
+
+All documents live in a single Couchbase collection. The `_type` field discriminates:
+
+| `_type` | Purpose | Key |
+|---------|---------|-----|
+| `domcouch.document` | Domain data | 32-char hex UNID |
+| `domcouch.form` | Form definition | `form:{name}` |
+| `domcouch.acl` | Database ACL | `acl` |
+| `domcouch.view` | View definition | `view_def:{name}` |
+
+### domcouch.document
 
 ```json
 {
@@ -335,3 +346,36 @@ Key operators:
 
 Items are ALWAYS arrays. Single-value names are single-element arrays.
 N1QL: `items.FIRSTNAME[0].values[0]`.
+
+### domcouch.form
+
+```json
+{
+  "_type": "domcouch.form",
+  "name": "Person",
+  "fields": [
+    {"name": "FirstName", "type": 0},
+    {"name": "FullName", "type": 0, "computed": true,
+     "formula": "FirstName + \" \" + LastName"}
+  ]
+}
+```
+
+### domcouch.acl
+
+```json
+{
+  "_type": "domcouch.acl",
+  "defaultLevel": 2,
+  "consistentACL": false,
+  "internetLevel": 6,
+  "adminReaderAuthor": false,
+  "roles": ["Sales"],
+  "entries": {
+    "Alice": {"level": 6, "userType": 0, "privileges": 127,
+               "roles": ["Admin"]},
+    "*/West/Acme": {"level": 2, "userType": -1, "privileges": 64,
+                      "roles": ["Sales"]}
+  }
+}
+```

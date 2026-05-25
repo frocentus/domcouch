@@ -89,7 +89,75 @@ item's first value.
 | `DATETIMES` | 2     | Date/time values                    |
 | `AUTHORS`   | 3     | Domino Authors field (edit control) |
 | `READERS`   | 4     | Domino Readers field (read control) |
-| `RICHTEXT`  | 5     | Rich text / MIME (not yet impl.)    |
+| `RICHTEXT`  | 5     | Rich text / MIME (segment-based JSON) |
+
+### 2.3 Collection / Document Types
+
+All data lives in a single Couchbase collection (`bucket.scope.documents`).
+Every document has a `_type` field that acts as a discriminator.
+
+| `_type` | Key pattern | Purpose | Persisted by |
+|---------|-------------|---------|-------------|
+| `domcouch.document` | 32-char hex UNID | Domain data (person, task, etc.) | `CouchbaseDocument.save()` |
+| `domcouch.form` | `form:{name}` | Form definition (fields, formulas) | `CouchbaseDatabase.createForm()` |
+| `domcouch.acl` | `acl` | Database ACL (entries, roles) | `CouchbaseACL.save()` |
+| `domcouch.view` | `view_def:{name}` | View definition (formula, columns) | `TTLViewIndexService` |
+| *(custom)* | `view_index_meta:{hash}` | Index metadata (name, TTL) | `TTLViewIndexService` |
+
+```
+`bucket`.`scope`.`documents`
+  ├── A1B2C3D4...          _type="domcouch.document"   (a Person document)
+  ├── E5F6G7H8...          _type="domcouch.document"   (a KanbanTask)
+  ├── form:Person          _type="domcouch.form"        (Person form definition)
+  ├── acl                  _type="domcouch.acl"         (database access control)
+  ├── view_def:TasksByLane _type="domcouch.view"        (view definition)
+  └── view_index_meta:a1b2 _type="..."                  (index metadata)
+```
+
+#### Form definition JSON
+
+```json
+{
+  "_type": "domcouch.form",
+  "name": "Person",
+  "fields": [
+    {
+      "name": "FullName",
+      "type": 0,
+      "computed": true,
+      "formula": "givenName + \" \" + lastName"
+    }
+  ]
+}
+```
+
+#### ACL document JSON
+
+```json
+{
+  "_type": "domcouch.acl",
+  "defaultLevel": 2,
+  "uniformAccess": false,
+  "consistentACL": false,
+  "internetLevel": 6,
+  "adminReaderAuthor": false,
+  "roles": ["Sales", "Admin"],
+  "entries": {
+    "Alice": {
+      "level": 6,
+      "userType": 0,
+      "privileges": 127,
+      "roles": ["Admin"]
+    },
+    "*/West/Acme": {
+      "level": 2,
+      "userType": -1,
+      "privileges": 64,
+      "roles": ["Sales"]
+    }
+  }
+}
+```
 
 ### 2.4 Formula Engine
 
