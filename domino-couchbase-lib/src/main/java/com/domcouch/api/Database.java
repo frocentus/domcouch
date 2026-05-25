@@ -181,6 +181,24 @@ public interface Database {
     /** @return all form names in this database */
     java.util.List<String> getFormNames() throws NotesException;
 
+    // ---- ACL ----
+
+    /**
+     * @return the database Access Control List, or null if no ACL is defined.
+     */
+    ACL getACL();
+
+    /**
+     * Grant a user or group access at the specified level.
+     * Creates an ACL if one doesn't exist.
+     */
+    void grantAccess(String name, int level) throws NotesException;
+
+    /**
+     * Revoke a user or group's access.
+     */
+    void revokeAccess(String name) throws NotesException;
+
     // ---- Not applicable in Couchbase ----
 
     /**

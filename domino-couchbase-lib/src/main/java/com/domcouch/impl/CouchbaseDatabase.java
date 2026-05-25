@@ -410,6 +410,7 @@ public class CouchbaseDatabase implements Database {
 
     @Override
     public void recycle() {
+        aclCache = null;
         if (viewIndexService instanceof TTLViewIndexService ttl) {
             ttl.cleanupStale();
         }
@@ -695,6 +696,34 @@ public class CouchbaseDatabase implements Database {
         @Override public FieldDefinition getField(String name) {
             return fields.stream().filter(f -> f.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
         }
+    }
+
+    // ---- ACL ----
+
+    private CouchbaseACL aclCache;
+
+    @Override
+    public ACL getACL() {
+        if (aclCache == null) {
+            aclCache = new CouchbaseACL(collection);
+        }
+        return aclCache;
+    }
+
+    @Override
+    public void grantAccess(String name, int level) throws NotesException {
+        ACL acl = getACL();
+        if (acl == null) throw new NotesException(4000, "Failed to load ACL");
+        acl.createACLEntry(name, level);
+        acl.save();
+    }
+
+    @Override
+    public void revokeAccess(String name) throws NotesException {
+        ACL acl = getACL();
+        if (acl == null) throw new NotesException(4000, "Failed to load ACL");
+        acl.removeACLEntry(name);
+        acl.save();
     }
 
     private record StoredFieldDef(String name, int type, boolean computed,
