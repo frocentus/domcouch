@@ -294,20 +294,30 @@ class ACLTest {
     // Permission helpers (canCreateDocuments, etc.)
     // ═══════════════════════════════════════════════════════════════
 
-    @Test @Order(20) @DisplayName("canCreateDocuments")
+    @Test @Order(20) @DisplayName("canCreateDocuments (Author needs PRIV_CREATE_DOCS)")
     void canCreateDocuments() {
         ACL acl = db.getACL();
-        assertFalse(acl.createACLEntry("R", ACL.LEVEL_READER).canCreateDocuments());
-        assertTrue(acl.createACLEntry("A", ACL.LEVEL_AUTHOR).canCreateDocuments());
-        assertTrue(acl.createACLEntry("E", ACL.LEVEL_EDITOR).canCreateDocuments());
-        assertTrue(acl.createACLEntry("M", ACL.LEVEL_MANAGER).canCreateDocuments());
+        // Author without CREATE_DOCS privilege => cannot create
+        ACLEntry auth = acl.createACLEntry("Author", ACL.LEVEL_AUTHOR);
+        assertFalse(auth.canCreateDocuments(),
+                "Author without PRIV_CREATE_DOCS cannot create");
+        auth.enablePrivilege(ACL.PRIV_CREATE_DOCS);
+        assertTrue(auth.canCreateDocuments(),
+                "Author with PRIV_CREATE_DOCS can create");
+        // Editor+ have CREATE_DOCS by default
+        assertTrue(acl.createACLEntry("Editor", ACL.LEVEL_EDITOR).canCreateDocuments());
+        assertTrue(acl.createACLEntry("Manager", ACL.LEVEL_MANAGER).canCreateDocuments());
     }
 
-    @Test @Order(21) @DisplayName("canDeleteDocuments")
+    @Test @Order(21) @DisplayName("canDeleteDocuments (optional privilege)")
     void canDeleteDocuments() {
         ACL acl = db.getACL();
-        assertFalse(acl.createACLEntry("A", ACL.LEVEL_AUTHOR).canDeleteDocuments());
-        assertTrue(acl.createACLEntry("E", ACL.LEVEL_EDITOR).canDeleteDocuments());
+        ACLEntry manager = acl.createACLEntry("Manager", ACL.LEVEL_MANAGER);
+        // DELETE_DOCS is optional even for Manager
+        assertFalse(manager.canDeleteDocuments(),
+                "DELETE_DOCS is optional, off by default");
+        manager.enablePrivilege(ACL.PRIV_DELETE_DOCS);
+        assertTrue(manager.canDeleteDocuments());
     }
 
     @Test @Order(22) @DisplayName("getEntries returns immutable list")
@@ -326,14 +336,25 @@ class ACLTest {
         assertEquals("Manager", e.getLevelName());
     }
 
-    @Test @Order(24) @DisplayName("Privilege flags: enable/disable/isEnabled")
+    @Test @Order(24) @DisplayName("Per-entry privilege flags: enable/disable/isEnabled")
     void privilegeFlags() {
         ACL acl = db.getACL();
-        assertTrue(acl.isPrivilegeEnabled(ACL.PRIV_CREATE_DOCS));
-        acl.disablePrivilege(ACL.PRIV_CREATE_DOCS);
-        assertFalse(acl.isPrivilegeEnabled(ACL.PRIV_CREATE_DOCS));
-        acl.enablePrivilege(ACL.PRIV_DELETE_DOCS);
-        assertTrue(acl.isPrivilegeEnabled(ACL.PRIV_DELETE_DOCS));
+        ACLEntry e = acl.createACLEntry("Alice", ACL.LEVEL_AUTHOR);
+
+        // Author defaults: only READ_PUBLIC_DOCS
+        assertTrue(e.isPrivilegeEnabled(ACL.PRIV_READ_PUBLIC_DOCS),
+                "Author should have READ_PUBLIC_DOCS by default");
+        assertFalse(e.isPrivilegeEnabled(ACL.PRIV_CREATE_DOCS),
+                "Author should NOT have CREATE_DOCS by default");
+
+        // Enable CREATE_DOCS for this author
+        e.enablePrivilege(ACL.PRIV_CREATE_DOCS);
+        assertTrue(e.isPrivilegeEnabled(ACL.PRIV_CREATE_DOCS));
+        assertTrue(e.isPrivilegeEnabled(ACL.PRIV_READ_PUBLIC_DOCS),
+                "Enabling CREATE_DOCS should keep READ_PUBLIC_DOCS");
+
+        e.disablePrivilege(ACL.PRIV_READ_PUBLIC_DOCS);
+        assertFalse(e.isPrivilegeEnabled(ACL.PRIV_READ_PUBLIC_DOCS));
     }
 
     @Test @Order(25) @DisplayName("ACL settings: consistentACL, internetLevel, adminReaderAuthor")
@@ -352,16 +373,45 @@ class ACLTest {
         assertTrue(acl.isAdminReaderAuthor());
     }
 
-    @Test @Order(26) @DisplayName("ACLEntry convenience: canCreatePersonalFolderView, canCreateSharedFolderView")
+    @Test @Order(26) @DisplayName("ACLEntry convenience: canCreate* based on privileges")
     void entryConvenience() {
         ACL acl = db.getACL();
+        // Editor: default CREATE_DOCS + READ_PUBLIC_DOCS + WRITE_PUBLIC_DOCS
         ACLEntry editor = acl.createACLEntry("Editor", ACL.LEVEL_EDITOR);
-        ACLEntry designer = acl.createACLEntry("Designer", ACL.LEVEL_DESIGNER);
+        assertTrue(editor.isPrivilegeEnabled(ACL.PRIV_CREATE_DOCS));
+        assertTrue(editor.isPrivilegeEnabled(ACL.PRIV_READ_PUBLIC_DOCS));
+        assertTrue(editor.isPrivilegeEnabled(ACL.PRIV_WRITE_PUBLIC_DOCS));
+        // Editor does NOT default to PERSONAL_FOLDER or LS_JAVA_AGENT
+        assertFalse(editor.isPrivilegeEnabled(ACL.PRIV_CREATE_PERSONAL_FOLDER));
+        assertFalse(editor.isPrivilegeEnabled(ACL.PRIV_CREATE_LS_JAVA_AGENT));
 
-        assertTrue(editor.canCreatePersonalFolderView());
-        assertFalse(editor.canCreateSharedFolderView());
-        assertTrue(designer.canCreateSharedFolderView());
-        assertTrue(designer.canCreateLSOrJavaAgent());
-        assertFalse(editor.canCreateLSOrJavaAgent());
+        // Designer: PERSONAL_FOLDER + SHARED_FOLDER are default, LS_JAVA_AGENT is optional
+        ACLEntry designer = acl.createACLEntry("Designer", ACL.LEVEL_DESIGNER);
+        assertTrue(designer.isPrivilegeEnabled(ACL.PRIV_CREATE_PERSONAL_FOLDER));
+        assertTrue(designer.isPrivilegeEnabled(ACL.PRIV_CREATE_SHARED_FOLDER));
+        assertFalse(designer.isPrivilegeEnabled(ACL.PRIV_CREATE_LS_JAVA_AGENT),
+                "LS_JAVA_AGENT is optional for Designer");
+        designer.enablePrivilege(ACL.PRIV_CREATE_LS_JAVA_AGENT);
+        assertTrue(designer.isPrivilegeEnabled(ACL.PRIV_CREATE_LS_JAVA_AGENT),
+                "Can be enabled");
+
+        // Manager: all default privileges
+        ACLEntry manager = acl.createACLEntry("Manager", ACL.LEVEL_MANAGER);
+        assertTrue(manager.isPrivilegeEnabled(ACL.PRIV_CREATE_DOCS));
+        assertTrue(manager.isPrivilegeEnabled(ACL.PRIV_CREATE_PERSONAL_AGENT));
+        assertTrue(manager.isPrivilegeEnabled(ACL.PRIV_CREATE_SHARED_FOLDER));
+
+        // Manager optional: DELETE_DOCS is NOT default
+        assertFalse(manager.isPrivilegeEnabled(ACL.PRIV_DELETE_DOCS));
+        manager.enablePrivilege(ACL.PRIV_DELETE_DOCS);
+        assertTrue(manager.isPrivilegeEnabled(ACL.PRIV_DELETE_DOCS));
+
+        // Level change resets privileges
+        manager.setLevel(ACL.LEVEL_READER);
+        assertEquals(ACL.LEVEL_READER, manager.getLevel());
+        assertTrue(manager.isPrivilegeEnabled(ACL.PRIV_READ_PUBLIC_DOCS),
+                "Reader should have READ_PUBLIC_DOCS by default");
+        assertFalse(manager.isPrivilegeEnabled(ACL.PRIV_DELETE_DOCS),
+                "Reader should NOT have DELETE_DOCS");
     }
 }

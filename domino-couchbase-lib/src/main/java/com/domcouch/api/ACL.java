@@ -150,37 +150,6 @@ public interface ACL {
     void setInternetLevel(int level);
 
     /**
-     * @return the privilege flags for the current database (bitmask of PRIV_*).
-     */
-    int getPrivileges();
-
-    /**
-     * Set privilege flags (bitmask of PRIV_*).
-     */
-    void setPrivileges(int privs);
-
-    /**
-     * Check if a specific privilege is enabled.
-     */
-    default boolean isPrivilegeEnabled(int privilege) {
-        return (getPrivileges() & privilege) != 0;
-    }
-
-    /**
-     * Enable a specific privilege.
-     */
-    default void enablePrivilege(int privilege) {
-        setPrivileges(getPrivileges() | privilege);
-    }
-
-    /**
-     * Disable a specific privilege.
-     */
-    default void disablePrivilege(int privilege) {
-        setPrivileges(getPrivileges() & ~privilege);
-    }
-
-    /**
      * @return true if administrators can read/edit all documents
      *         regardless of Reader/Author fields.
      */

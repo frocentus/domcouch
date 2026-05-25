@@ -14,12 +14,14 @@ public class CouchbaseACLEntry implements ACLEntry {
     private String name;
     private int level;
     private int userType;
+    private int privileges;
     private final List<String> roles;
 
     public CouchbaseACLEntry(String name, int level, int userType) {
         this.name = name;
         this.level = clampLevel(level);
         this.userType = userType;
+        this.privileges = ACLEntry.defaultPrivilegesForLevel(this.level);
         this.roles = new ArrayList<>();
     }
 
@@ -33,7 +35,19 @@ public class CouchbaseACLEntry implements ACLEntry {
     public int getLevel() { return level; }
 
     @Override
-    public void setLevel(int level) { this.level = clampLevel(level); }
+    public void setLevel(int level) {
+        int newLevel = clampLevel(level);
+        if (this.level != newLevel) {
+            this.level = newLevel;
+            this.privileges = ACLEntry.defaultPrivilegesForLevel(this.level);
+        }
+    }
+
+    @Override
+    public int getPrivileges() { return privileges; }
+
+    @Override
+    public void setPrivileges(int privileges) { this.privileges = privileges; }
 
     @Override
     public int getUserType() { return userType; }

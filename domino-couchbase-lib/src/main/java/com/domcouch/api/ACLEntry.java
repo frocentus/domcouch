@@ -99,60 +99,112 @@ public interface ACLEntry {
      */
     void disableRole(String role);
 
-    // ---- privileges (flags per entry) ----
+    // ---- privileges (per-entry, with defaults by level) ----
 
     /**
-     * @return true if this entry can create documents.
-     *         In Domino, Author level requires PRIV_CREATE_DOCS on the ACL.
+     * @return the privilege bitmask for this entry (PRIV_* flags from ACL).
+     *         Defaults are set when the level is assigned.
      */
-    default boolean canCreateDocuments() {
-        return getLevel() >= ACL.LEVEL_EDITOR
-            || (getLevel() == ACL.LEVEL_AUTHOR);
+    int getPrivileges();
+
+    /**
+     * Set the full privilege bitmask.
+     */
+    void setPrivileges(int privileges);
+
+    /**
+     * @return true if this entry has the specified privilege.
+     */
+    default boolean isPrivilegeEnabled(int privilege) {
+        return (getPrivileges() & privilege) != 0;
     }
 
     /**
-     * @return true if this entry can delete documents.
+     * Enable a privilege for this entry.
+     */
+    default void enablePrivilege(int privilege) {
+        setPrivileges(getPrivileges() | privilege);
+    }
+
+    /**
+     * Disable a privilege for this entry.
+     */
+    default void disablePrivilege(int privilege) {
+        setPrivileges(getPrivileges() & ~privilege);
+    }
+
+    /**
+     * @return the default privilege bitmask for a given access level.
+     */
+    static int defaultPrivilegesForLevel(int level) {
+        return switch (level) {
+            case ACL.LEVEL_MANAGER  -> ACL.PRIV_CREATE_DOCS | ACL.PRIV_CREATE_PERSONAL_AGENT
+                    | ACL.PRIV_CREATE_PERSONAL_FOLDER | ACL.PRIV_CREATE_SHARED_FOLDER
+                    | ACL.PRIV_CREATE_LS_JAVA_AGENT | ACL.PRIV_READ_PUBLIC_DOCS
+                    | ACL.PRIV_WRITE_PUBLIC_DOCS;
+            case ACL.LEVEL_DESIGNER -> ACL.PRIV_CREATE_DOCS | ACL.PRIV_CREATE_PERSONAL_AGENT
+                    | ACL.PRIV_CREATE_PERSONAL_FOLDER | ACL.PRIV_CREATE_SHARED_FOLDER
+                    | ACL.PRIV_READ_PUBLIC_DOCS | ACL.PRIV_WRITE_PUBLIC_DOCS;
+            case ACL.LEVEL_EDITOR   -> ACL.PRIV_CREATE_DOCS | ACL.PRIV_READ_PUBLIC_DOCS
+                    | ACL.PRIV_WRITE_PUBLIC_DOCS;
+            case ACL.LEVEL_AUTHOR   -> ACL.PRIV_READ_PUBLIC_DOCS;
+            case ACL.LEVEL_READER   -> ACL.PRIV_READ_PUBLIC_DOCS;
+            case ACL.LEVEL_DEPOSITOR -> ACL.PRIV_CREATE_DOCS;
+            default -> 0; // No Access: no default privileges
+        };
+    }
+
+    // ---- convenience ----
+
+    /**
+     * @return true if this entry can create documents (level ≥ Author + CREATE_DOCS priv).
+     */
+    default boolean canCreateDocuments() {
+        return getLevel() >= ACL.LEVEL_EDITOR
+            || (getLevel() >= ACL.LEVEL_AUTHOR && isPrivilegeEnabled(ACL.PRIV_CREATE_DOCS));
+    }
+
+    /**
+     * @return true if this entry can delete documents (needs DELETE_DOCS priv).
      */
     default boolean canDeleteDocuments() {
-        return getLevel() >= ACL.LEVEL_EDITOR;
+        return isPrivilegeEnabled(ACL.PRIV_DELETE_DOCS);
     }
 
     /**
      * @return true if this entry can create personal agents.
      */
     default boolean canCreatePersonalAgent() {
-        return getLevel() >= ACL.LEVEL_EDITOR;
+        return isPrivilegeEnabled(ACL.PRIV_CREATE_PERSONAL_AGENT);
     }
 
     /**
      * @return true if this entry can create personal folders/views.
      */
     default boolean canCreatePersonalFolderView() {
-        return getLevel() >= ACL.LEVEL_EDITOR;
+        return isPrivilegeEnabled(ACL.PRIV_CREATE_PERSONAL_FOLDER);
     }
 
     /**
      * @return true if this entry can create shared folders/views.
      */
     default boolean canCreateSharedFolderView() {
-        return getLevel() >= ACL.LEVEL_DESIGNER;
+        return isPrivilegeEnabled(ACL.PRIV_CREATE_SHARED_FOLDER);
     }
 
     /**
      * @return true if this entry can create LotusScript/Java agents.
      */
     default boolean canCreateLSOrJavaAgent() {
-        return getLevel() >= ACL.LEVEL_DESIGNER;
+        return isPrivilegeEnabled(ACL.PRIV_CREATE_LS_JAVA_AGENT);
     }
 
     /**
      * @return true if this entry can replicate or copy documents.
      */
     default boolean canReplicateOrCopyDocuments() {
-        return getLevel() >= ACL.LEVEL_READER;
+        return isPrivilegeEnabled(ACL.PRIV_REPLICATE_COPY);
     }
-
-    // ---- convenience ----
 
     /**
      * @return a human-readable level name (e.g., "Manager", "Author")
