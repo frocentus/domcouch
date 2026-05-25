@@ -4,31 +4,81 @@
 
 ## Architecture
 
-```
-┌──────────────────────────────────┐
-│   Spring Boot Demo App           │
-│   springboot-demo                │
-│   (REST API + Data Gen)          │
-└────────────┬─────────────────────┘
-             │ depends on
-┌────────────▼─────────────────────┐
-│   domino-couchbase-lib           │
-│   com.domcouch.api.*             │
-│   (Session → DB → Doc → View)    │
-└──────┬──────────────┬────────────┘
-       │ depends on   │ depends on
-┌──────▼──────┐ ┌─────▼───────────┐
-│  formula-   │ │ Couchbase Java  │
-│  engine     │ │ SDK 3.7.4       │
-│  (Lexer →   │ │ + Jackson       │
-│   Parser →  │ │                 │
-│   Evaluator)│ │                 │
-└─────────────┘ └─────┬───────────┘
-                      │ connects to
-             ┌────────▼───────────┐
-             │ Couchbase 7.x      │
-             │ (Docker)           │
-             └────────────────────┘
+```mermaid
+graph TB
+    subgraph App["Spring Boot Demo"]
+        REST["REST API"]
+        Kanban["Kanban Board"]
+        Tests["~730 tests"]
+    end
+
+    subgraph Lib["domino-couchbase-lib"]
+        direction TB
+        subgraph API["API Interfaces (lotus.domino compat)"]
+            Session["Session"]
+            Database["Database"]
+            Document["Document"]
+            View["View"]
+            Item["Item"]
+            DateTime["DateTime"]
+            Name["Name"]
+            ACL["ACL / ACLEntry"]
+            Form["Form"]
+            VN["ViewNavigator"]
+            RT["RichTextItem"]
+        end
+
+        subgraph Impl["Couchbase Implementations"]
+            CS["CouchbaseSession"]
+            CD["CouchbaseDatabase"]
+            CDoc["CouchbaseDocument"]
+            CV["CouchbaseView"]
+            CI["CouchbaseItem"]
+            CN["CouchbaseName"]
+            CA["CouchbaseACL"]
+            CF["Form / FieldDefinition"]
+            CVN["CouchbaseViewNavigator\n+ LazyViewNavigator"]
+            CRT["CouchbaseRichTextItem"]
+        end
+
+        subgraph Security["Security Layer"]
+            CR["canRead()"]
+            RB["isReadableBy()"]
+            EB["isEditableBy()"]
+            RL["getRolesForUser()"]
+        end
+
+        subgraph Services["Services"]
+            VIS["ViewIndexService"]
+            TTL["TTLViewIndexService"]
+            SVS["SimpleViewIndexService"]
+            FT["FormulaTranslator"]
+            DFC["DocumentFormulaContext"]
+        end
+    end
+
+    subgraph Formula["formula-engine (zero deps)"]
+        Lexer["Lexer"]
+        Parser["Parser"]
+        Eval["Evaluator (150+ @Functions)"]
+        CF2["CompiledFormula"]
+    end
+
+    subgraph Ext["External"]
+        CB["Couchbase 7.x"]
+        SDK["Couchbase Java SDK 3.7.4"]
+    end
+
+    App --> Lib
+    Lib --> Formula
+    Lib --> SDK
+    SDK --> CB
+
+    style App fill:#e1f5fe
+    style Lib fill:#fff3e0
+    style Formula fill:#e8f5e9
+    style Ext fill:#f3e5f5
+    style Security fill:#ffebee
 ```
 
 ## Build & Install
