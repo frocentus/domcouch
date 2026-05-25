@@ -561,6 +561,18 @@ public class CouchbaseDatabase implements Database {
      * @param acl optional ACL for role resolution; null = roles not resolved
      */
     public static boolean canRead(JsonObject docJson, String userName, ACL acl) {
+        // Fast path: denormalized _readers array (populated on save)
+        Object readersObj = docJson.get("_readers");
+        if (readersObj instanceof com.couchbase.client.java.json.JsonArray readerArr) {
+            if (readerArr.isEmpty()) return true; // Reader fields exist but empty = public
+            for (Object v : readerArr.toList()) {
+                if (v != null && v.toString().equals(userName)) return true;
+                if (acl != null && isUserInRole(acl, userName, v.toString())) return true;
+            }
+            return false; // Has reader fields, user not listed
+        }
+
+        // Slow path: iterate items looking for type==READERS
         JsonObject items = docJson.getObject("items");
         if (items == null) return true;
 

@@ -676,6 +676,21 @@ public class CouchbaseDocument implements Document {
         }
         json.put("items", itemsJson);
 
+        // Denormalized _readers array for N1QL-level Reader filtering
+        java.util.List<String> readerValues = new java.util.ArrayList<>();
+        for (var entry : items.entrySet()) {
+            for (var item : entry.getValue()) {
+                if (item.getType() == Item.READERS) {
+                    for (Object v : item.getValues()) {
+                        if (v != null) readerValues.add(v.toString());
+                    }
+                }
+            }
+        }
+        if (!readerValues.isEmpty()) {
+            json.put("_readers", readerValues);
+        }
+
         if (parentUNID != null && !parentUNID.isEmpty()) {
             json.put("parentUNID", parentUNID);
         }

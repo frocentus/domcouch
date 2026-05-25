@@ -142,6 +142,7 @@ public class CouchbaseView implements View {
         if (selectionFormula != null && !selectionFormula.isEmpty()) {
             stmt += " AND (" + selectionFormula + ")";
         }
+        stmt += buildReaderFilterClause("");
         try {
             QueryResult result = scope.query(stmt,
                     QueryOptions.queryOptions()
@@ -303,6 +304,7 @@ public class CouchbaseView implements View {
         if (selectionFormula != null && !selectionFormula.isEmpty()) {
             stmt += " AND (" + selectionFormula + ")";
         }
+        stmt += buildReaderFilterClause("doc");
         return stmt;
     }
 
@@ -341,6 +343,7 @@ public class CouchbaseView implements View {
         if (selectionFormula != null && !selectionFormula.isEmpty()) {
             stmt += " AND (" + selectionFormula + ")";
         }
+        stmt += buildReaderFilterClause("doc");
         return stmt;
     }
 
@@ -487,5 +490,19 @@ public class CouchbaseView implements View {
      */
     boolean isReadableRow(JsonObject row) {
         return CouchbaseDatabase.canRead(row, database.getCurrentUserName());
+    }
+
+    /**
+     * Build an N1QL clause that filters by Reader fields using the denormalized _readers array.
+     * @param alias table alias ("doc" or empty for query without alias)
+     */
+    private String buildReaderFilterClause(String alias) {
+        String prefix = alias.isEmpty() ? "" : alias + ".";
+        String userName = database.getCurrentUserName();
+        // Escape single quotes in username for N1QL safety
+        String safeUser = userName.replace("'", "''");
+        return " AND (" + prefix + "_readers IS NULL OR " + prefix
+                + "_readers IS MISSING OR " + prefix
+                + "_readers = [] OR '" + safeUser + "' IN " + prefix + "_readers)";
     }
 }
