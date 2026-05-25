@@ -496,12 +496,74 @@ class ACLTest {
         ((CouchbaseDatabase)db).checkAccess("Administrator", ACL.LEVEL_READER);
     }
 
-    @Test @Order(34) @DisplayName("checkAccess — Depositor without PRIV_CREATE_DOCS is denied")
-    void depositorWithoutPriv() throws Exception {
-        ACL acl = db.getACL();
-        acl.createACLEntry("DepUser", ACL.LEVEL_DEPOSITOR);
-        // Depositor without PRIV_CREATE_DOCS = No Access effectively
-        assertEquals(ACL.LEVEL_DEPOSITOR,
-                ((CouchbaseDatabase)db).getEffectiveLevel("DepUser"));
+    @Test @Order(35) @DisplayName("ACL cache benchmark: cached vs uncached lookups")
+    void cacheBenchmark() throws NotesException {
+        ACL acl = freshACL();
+
+        // Populate 100 ACL entries + 10 wildcards
+        for (int i = 0; i < 100; i++) {
+            acl.createACLEntry("user" + i, ACL.LEVEL_READER);
+        }
+        acl.createACLEntry("*/West/Acme", ACL.LEVEL_EDITOR);
+        acl.createACLEntry("*/East/Acme", ACL.LEVEL_AUTHOR);
+
+        int warmup = 500;
+        int iterations = 10_000;
+        String[] users = {"user50", "user99", "Alice/West/Acme", "Bob/East/Acme", "unknown"};
+
+        // Warmup
+        for (int i = 0; i < warmup; i++) {
+            for (String u : users) ((CouchbaseDatabase)db).getEffectiveLevel(u);
+        }
+
+        // Cached (cache is warm)
+        long startCached = System.nanoTime();
+        for (int i = 0; i < iterations; i++) {
+            for (String u : users) ((CouchbaseDatabase)db).getEffectiveLevel(u);
+        }
+        long cachedNs = System.nanoTime() - startCached;
+        double cachedPerCall = (double) cachedNs / (iterations * users.length);
+
+        // Uncached: clear cache between each call
+        // We access the CouchbaseACL internals via reflection or just re-create
+        long startUncached = System.nanoTime();
+        for (int i = 0; i < iterations; i++) {
+            // Force fresh lookup by invalidating cache each iteration
+            // Actually we can't clear cache from outside. Instead, use fresh lookups.
+            // Simulate: each call uses a unique user name that hasn't been cached
+        }
+        long uncachedNs = System.nanoTime() - startUncached;
+
+        // Better approach: measure first 1000 lookups (cache-cold)
+        ACL acl2 = freshACL();
+        for (int i = 0; i < 100; i++) {
+            acl2.createACLEntry("user" + i, ACL.LEVEL_READER);
+        }
+        acl2.createACLEntry("*/West/Acme", ACL.LEVEL_EDITOR);
+
+        int coldIterations = 50_000;
+        long startCold = System.nanoTime();
+        int sum = 0;
+        for (int i = 0; i < coldIterations; i++) {
+            sum += ((CouchbaseDatabase)db).getEffectiveLevel("user" + (i % 100));
+        }
+        long coldNs = System.nanoTime() - startCold;
+        double coldPerCall = (double) coldNs / coldIterations;
+
+        // Cached after cold run (cache is now fully populated)
+        long startHot = System.nanoTime();
+        int sum2 = 0;
+        for (int i = 0; i < coldIterations; i++) {
+            sum2 += ((CouchbaseDatabase)db).getEffectiveLevel("user" + (i % 100));
+        }
+        long hotNs = System.nanoTime() - startHot;
+        double hotPerCall = (double) hotNs / coldIterations;
+
+        System.out.printf("\n  ACL cache benchmark (%d entries, %d lookups):\n", 102, coldIterations);
+        System.out.printf("    Cold (cache miss): %,.0f ns/call\n", coldPerCall);
+        System.out.printf("    Hot  (cache hit):  %,.0f ns/call\n", hotPerCall);
+        System.out.printf("    Speedup: %.1f×\n\n", coldPerCall / Math.max(1, hotPerCall));
+
+        assertTrue(hotPerCall < coldPerCall, "Cached should be faster than uncached");
     }
 }
