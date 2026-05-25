@@ -2,7 +2,7 @@
 
 > **Project**: HCL Domino 14.5 Java API emulation on Couchbase  
 > **Version**: 0.3.0-SNAPSHOT  
-> **Last updated**: 2026-05-25
+> **Last updated**: 2026-05-25  
 
 ---
 
@@ -49,6 +49,7 @@ The two-arg form requires a pre-existing bucket.
   "_type": "domcouch.document",
   "unid": "A1B2C3D4...",
   "form": "Person",
+  "_readers": ["Alice", "Bob", "[Sales]"],
   "items": {
     "FirstName": [{ "type": 0, "values": ["Alice"] }],
     "Salary": [{ "type": 1, "values": [95000] }],
@@ -217,21 +218,49 @@ Full language specification: `docs/formula-language-architecture.md`.
 - `save()` and `remove()` throw `NotesException(4010)` when the current user
   is not an author.
 
-### 3.2 Implementation
+### 3.2 Implementation (Updated: `_readers` array)
 
-Reader enforcement is centralized in `CouchbaseDatabase.canRead(JsonObject, String)` — a
-single static method that both `CouchbaseDocument.isReadableBy()` and
-`CouchbaseView.isReadableRow()` delegate to, preventing logic divergence.
+Reader enforcement is handled at two levels:
 
 | Layer               | Mechanism                                                         |
 | ------------------- | ----------------------------------------------------------------- |
-| `CouchbaseDatabase` | `canRead(json, user)` — static, works on raw JSON                 |
+| **N1QL (views)**    | `d._readers IS NULL OR d._readers IS MISSING OR d._readers = [] OR '$user' IN d._readers` |
+| **Java (single doc)** | `CouchbaseDatabase.canRead(json, user)` — fast-path checks `_readers` array first, falls back to item iteration |
 | `CouchbaseDocument` | `isReadableBy(user)` / `isEditableBy(user)` — on hydrated items   |
 | `CouchbaseView`     | `isReadableRow(row)` → delegates to `CouchbaseDatabase.canRead()` |
 | `getDocumentByUNID` | Checks `canRead()` **before** deserializing the document          |
-| Enforcement point   | **Application-side** (post-query filtering in Java)               |
+| Enforcement point   | **N1QL-level** (views) + **Application-side** (single doc reads)   |
 
-### 3.3 N1QL Injection Defenses
+### 3.3 `_readers` Denormalized Array
+
+On `save()`, `CouchbaseDocument.toJson()` collects all values from every
+Reader-type (type=4) item into a top-level `_readers` array. This eliminates
+the need to iterate items by type at query time.
+
+```json
+{
+  "_readers": ["Alice", "Bob", "[Sales]", "*/West/Acme"],
+  "items": {
+    "DocReaders": [{"type": 4, "values": ["Alice", "Bob"]}],
+    "SecretReaders": [{"type": 4, "values": ["[Sales]", "*/West/Acme"]}]
+  }
+}
+```
+
+**View queries** push Reader enforcement to N1QL:
+```sql
+AND (d._readers IS NULL OR d._readers IS MISSING 
+     OR d._readers = [] OR 'Alice' IN d._readers)
+```
+- `IS MISSING` — field doesn't exist (old docs, backward compat)
+- `IS NULL` / `= []` — public document
+- `IN _readers` — user is in at least one Reader field
+
+**Role references** (`[Sales]`, `*/West/Acme`) in `_readers` still require
+Java post-filtering via ACL resolution. Direct usernames are fully handled
+at N1QL level.
+
+### 3.4 N1QL Injection Defenses
 
 - **`FTSearch`**: Uses **parameterized queries** (`$q` + `$limit` via `QueryOptions`).
   No user input is concatenated into N1QL strings.
@@ -255,10 +284,10 @@ convention on field naming (`"Readers"`) combined with `IN` array membership.
 
 ### 3.4 Known Limitations
 
-1. **Counts are not reader-filtered**: `getDocumentCount()` and
-   `getEntryCount()` count **all** documents including those the current user
-   cannot read. This reveals document existence. Domino hides these documents
-   completely. Requires N1QL-level filtering.
+1. **Counts partially reader-filtered**: View queries now include `_readers`
+   filter in `buildReaderFilterClause()`. `getEntryCount()` uses the same filter,
+   so view entry counts are reader-filtered. However `getDocumentCount()` still
+   counts all documents — will be fixed in a future update.
 
 2. **Formula translator trusts input**: `search()` and `translateFormula()`
    embed string literals directly into N1QL. Selection formulas must be
@@ -499,13 +528,16 @@ documents and regenerates.
 | 2026-05-22 | Formula engine Phase 2 complete                              | @Explode, @Implode, @Adjust, @SetField, @TextToNumber all ✅. 6 stubs. @DbLookup/@DbColumn fixed with literal N1QL concat + numeric key detection. Only @DbManager/@ViewTitle remain ❌ (ACL-dependent)                                              |
 | 2026-05-24 | Name API — hierarchical name parsing                         | CouchbaseName parses canonical (CN=.../OU=.../O=.../C=...) and abbreviated format. 22 tests. @Name formula handler added to formula-engine with inline NameActions parser.                                                                       |
 | 2026-05-25 | ACL API — full database access control                       | 7 levels, 9 per-entry privileges, roles, wildcard entries. Role integration with Reader/Author enforcement. 28 ACL + 3 wildcard tests. getRolesForUser resolves roles for wildcard patterns.                                                     |
+| 2026-05-25 | N1QL-level Reader enforcement via `_readers` array             | Denormalized top-level `_readers` array auto-populated on save. View queries push Reader check to N1QL: `AND (_readers IS NULL OR _readers IS MISSING OR _readers = [] OR '$user' IN _readers)`. Eliminates Java post-filtering per document.  |
 
 ---
 
 ## 8. Known Limitations
 
-1. **Reader fields ignored in counts**: `getDocumentCount()` and
-   `getEntryCount()` return total counts including unreadable documents.
+1. **Reader fields partially resolved in N1QL**: View queries now filter by
+   `_readers` array at the N1QL level. Direct username matches are handled.
+   `[Role]` and wildcard references still require Java post-filtering.
+   `getDocumentCount()` is not yet reader-filtered.
 
 2. **Formula translator**: String literals are embedded directly in N1QL.
    Formulas must be developer-controlled (not end-user input). User search
@@ -539,4 +571,4 @@ documents and regenerates.
 - [ ] Password hashing / encryption for sensitive fields (SSN)
 - [ ] Expose `setCacheSize`/`setBufferMaxEntries`/`setAutoUpdate` on ViewNavigator API
 - [ ] `lotus.domino.*` package wrapper for true drop-in compatibility
-- [ ] Replace `View.getEntryCount()` with reader-filtered count (currently unfiltered)
+- 🟡 Replace `View.getEntryCount()` with reader-filtered count (views filtered, documents not yet)

@@ -127,23 +127,21 @@ N1QL references:
   "_type": "domcouch.document",
   "unid": "A1B2C3D4...",
   "form": "Person",
+  "_readers": ["Alice", "Bob", "[Sales]"],
   "items": {
     "FirstName": [{"type": 0, "values": ["Alice"]}],
-    "Salary": [{"type": 1, "values": [95000]}],
-    "Readers": [{"type": 4, "values": ["Alice", "Bob"]}],
-    "Authors": [{"type": 3, "values": ["Alice"]}],
-    "Body": [
-      {"type": 5, "values": ["Para 1"]},
-      {"type": 5, "values": ["Para 2"]}
-    ]
+    "Readers": [{"type": 4, "values": ["Alice", "Bob", "[Sales]"]}]
   },
-  "folders": ["Inbox"],
-  "_attachments": {},
-  "created": "2026-01-01T00:00:00Z",
-  "lastModified": "2026-01-01T00:00:00Z",
-  "parentUNID": "..."
+  "folders": ["Inbox"]
 }
 ```
+
+**`_readers`**: Denormalized array of ALL Reader-type item values, auto-populated on save. Enables N1QL-level Reader filtering:
+```sql
+AND (d._readers IS NULL OR d._readers IS MISSING 
+     OR d._readers = [] OR 'Alice' IN d._readers)
+```
+`IS MISSING` handles old documents without the field (backward compat).
 
 ### domcouch.form
 ```json

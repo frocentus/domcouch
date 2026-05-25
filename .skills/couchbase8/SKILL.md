@@ -331,21 +331,20 @@ All documents live in a single Couchbase collection. The `_type` field discrimin
   "_type": "domcouch.document",
   "unid": "...",
   "form": "Person",
+  "_readers": ["Alice", "[Sales]"],
   "items": {
-    "FirstName": [{"type": 0, "values": ["John"]}],
-    "Salary": [{"type": 1, "values": [95000]}],
-    "Body": [
-      {"type": 5, "values": ["Para 1"]},
-      {"type": 5, "values": ["Para 2"]}
-    ]
+    "FirstName": [{"type": 0, "values": ["John"]}]
   },
-  "folders": ["Inbox"],
-  "_attachments": {...}
+  "folders": ["Inbox"]
 }
 ```
 
+**`_readers`**: Denormalized array of all Reader-type item values (auto-populated on save).
+Enables N1QL-level Reader filtering. Missing on old documents (`IS MISSING` handles backward compat).
+
 Items are ALWAYS arrays. Single-value names are single-element arrays.
-N1QL: `items.FIRSTNAME[0].values[0]`.
+N1QL field access: `items.FIRSTNAME[0].values[0]`.
+Reader filtering: `d._readers IS NULL OR d._readers IS MISSING OR d._readers = [] OR 'user' IN d._readers`.
 
 ### domcouch.form
 
