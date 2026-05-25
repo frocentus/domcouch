@@ -435,6 +435,14 @@ public class CouchbaseDatabase implements Database {
         collection.remove(unid);
     }
 
+    private static boolean isUserInRole(ACL acl, String userName, String fieldValue) {
+        if (fieldValue.startsWith("[") && fieldValue.endsWith("]")) {
+            String role = fieldValue.substring(1, fieldValue.length() - 1);
+            return acl.getRolesForUser(userName).contains(role);
+        }
+        return false;
+    }
+
     // ---- private ----
 
     final FormulaTranslator formulaTranslator = new FormulaTranslator();
@@ -502,6 +510,16 @@ public class CouchbaseDatabase implements Database {
      * @return true if the user is allowed to read this document
      */
     public static boolean canRead(JsonObject docJson, String userName) {
+        return canRead(docJson, userName, null);
+    }
+
+    /**
+     * Check if a user can read a document, optionally resolving roles from an ACL.
+     * @param docJson the raw document JSON
+     * @param userName the user name to check
+     * @param acl optional ACL for role resolution; null = roles not resolved
+     */
+    public static boolean canRead(JsonObject docJson, String userName, ACL acl) {
         JsonObject items = docJson.getObject("items");
         if (items == null) return true;
 
@@ -517,8 +535,10 @@ public class CouchbaseDatabase implements Database {
                         var values = item.getArray("values");
                         if (values != null) {
                             for (Object v : values.toList()) {
-                                if (v != null && v.toString().equals(userName)) {
-                                    return true;
+                                if (v != null) {
+                                    String vs = v.toString();
+                                    if (vs.equals(userName)) return true;
+                                    if (acl != null && isUserInRole(acl, userName, vs)) return true;
                                 }
                             }
                         }
@@ -530,8 +550,10 @@ public class CouchbaseDatabase implements Database {
                     var values = item.getArray("values");
                     if (values != null) {
                         for (Object v : values.toList()) {
-                            if (v != null && v.toString().equals(userName)) {
-                                return true;
+                            if (v != null) {
+                                String vs = v.toString();
+                                if (vs.equals(userName)) return true;
+                                if (acl != null && isUserInRole(acl, userName, vs)) return true;
                             }
                         }
                     }

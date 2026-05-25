@@ -99,6 +99,14 @@ public interface ACL {
      */
     void renameRole(String oldName, String newName);
 
+    /**
+     * Get all roles assigned to a specific user (directly or via groups).
+     * Used by Reader/Author enforcement to resolve [Role] in fields.
+     * @param userName hierarchical or abbreviated user name
+     * @return list of role names assigned to this user
+     */
+    java.util.List<String> getRolesForUser(String userName);
+
     // ---- settings ----
 
     /**

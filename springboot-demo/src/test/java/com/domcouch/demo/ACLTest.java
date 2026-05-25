@@ -2,6 +2,8 @@ package com.domcouch.demo;
 
 import com.domcouch.api.*;
 import com.domcouch.impl.CouchbaseSession;
+import com.domcouch.impl.CouchbaseDocument;
+import java.util.List;
 import org.junit.jupiter.api.*;
 
 import java.util.List;
@@ -414,4 +416,26 @@ class ACLTest {
         assertFalse(manager.isPrivilegeEnabled(ACL.PRIV_DELETE_DOCS),
                 "Reader should NOT have DELETE_DOCS");
     }
+
+    @Test @Order(27) @DisplayName("getRolesForUser — direct name match")
+    void getRolesForUserDirect() {
+        ACL acl = db.getACL();
+        acl.addRole("Sales");
+        acl.createACLEntry("Alice", ACL.LEVEL_AUTHOR).enableRole("Sales");
+        assertTrue(acl.getRolesForUser("Alice").contains("Sales"));
+        assertTrue(acl.getRolesForUser("Bob").isEmpty());
+    }
+
+    @Test @Order(28) @DisplayName("getRolesForUser — hierarchical name matches flat entry")
+    void getRolesForUserHierarchical() {
+        ACL acl = db.getACL();
+        acl.addRole("Admin");
+        acl.createACLEntry("Alice", ACL.LEVEL_MANAGER).enableRole("Admin");
+        // CN=Alice/O=Acme should match entry named "Alice"
+        assertTrue(acl.getRolesForUser("CN=Alice/O=Acme").contains("Admin"));
+    }
+
+    // Note: Reader/Author field enforcement with [Role] is wired up in
+    // CouchbaseDocument.isReadableBy/isEditableBy and CouchbaseDatabase.canRead.
+    // Full integration tests require fixing Readers/Authors item type persistence.
 }

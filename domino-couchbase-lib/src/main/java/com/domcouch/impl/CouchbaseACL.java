@@ -100,6 +100,20 @@ public class CouchbaseACL implements ACL {
         }
     }
 
+    @Override
+    public java.util.List<String> getRolesForUser(String userName) {
+        if (userName == null) return java.util.List.of();
+        String key = userName.toLowerCase();
+        java.util.List<String> result = new java.util.ArrayList<>();
+        for (ACLEntry entry : entries.values()) {
+            String entryName = entry.getName().toLowerCase();
+            if (key.equals(entryName) || key.contains(entryName) || entryName.contains(key)) {
+                result.addAll(entry.getRoles());
+            }
+        }
+        return result;
+    }
+
     // ---- settings ----
 
     @Override

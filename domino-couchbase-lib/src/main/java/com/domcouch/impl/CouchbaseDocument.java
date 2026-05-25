@@ -456,8 +456,17 @@ public class CouchbaseDocument implements Document {
                 if (item.isReaders()) {
                     hasReaderField = true;
                     for (Object val : item.getValues()) {
-                        if (val != null && val.toString().equals(userName)) {
-                            return true;
+                        if (val == null) continue;
+                        String s = val.toString();
+                        // Direct user match
+                        if (s.equals(userName)) return true;
+                        // Role match: [RoleName] in field, check ACL
+                        String role = extractRole(s);
+                        if (role != null) {
+                            ACL acl = database.getACL();
+                            if (acl != null && acl.getRolesForUser(userName).contains(role)) {
+                                return true;
+                            }
                         }
                     }
                 }
@@ -488,8 +497,13 @@ public class CouchbaseDocument implements Document {
                 if (item.isAuthors()) {
                     hasAuthorField = true;
                     for (Object val : item.getValues()) {
-                        if (val != null && val.toString().equals(userName)) {
-                            return true;
+                        if (val == null) continue;
+                        String s = val.toString();
+                        if (s.equals(userName)) return true;
+                        String role = extractRole(s);
+                        if (role != null) {
+                            ACL acl = database.getACL();
+                            if (acl != null && acl.getRolesForUser(userName).contains(role)) return true;
                         }
                     }
                 }
@@ -497,6 +511,16 @@ public class CouchbaseDocument implements Document {
         }
         // No author fields → public document (anyone can edit)
         return !hasAuthorField;
+    }
+
+    private static String extractRole(String value) {
+        if (value.startsWith("[") && value.endsWith("]")) return value.substring(1, value.length() - 1);
+        return null;
+    }
+
+    /** Visible for CouchbaseDatabase.canRead() */
+    static String extractRoleStatic(String value) {
+        return extractRole(value);
     }
 
     public String getForm() {
