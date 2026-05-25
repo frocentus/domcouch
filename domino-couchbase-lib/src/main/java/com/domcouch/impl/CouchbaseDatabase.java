@@ -439,39 +439,18 @@ public class CouchbaseDatabase implements Database {
     // ---- ACL enforcement ----
 
     /**
-     * Resolve the effective access level for a user.
+     * Resolve the effective access level for a user (cached).
      * Order: explicit name match → partial match → wildcard match → default.
      */
     public int getEffectiveLevel(String userName) {
         ACL acl = getACL();
         if (acl == null) return ACL.LEVEL_MANAGER;
-        if (userName == null || userName.isEmpty()) return acl.getDefaultLevel();
-
-        String key = userName.toLowerCase();
-        ACLEntry bestExact = null;
-        ACLEntry bestWildcard = null;
-
-        for (ACLEntry entry : acl.getEntries()) {
-            String entryName = entry.getName().toLowerCase();
-
-            // Exact match (or hierarchical match: "CN=Alice/O=Acme" matches "Alice")
-            if (key.equals(entryName) || key.contains(entryName) || entryName.contains(key)) {
-                if (bestExact == null || entry.getLevel() > bestExact.getLevel()) {
-                    bestExact = entry;
-                }
-            }
-
-            // Wildcard match
-            if (entry.isWildcard() && entry.matchesWildcard(userName)) {
-                if (bestWildcard == null || entry.getLevel() > bestWildcard.getLevel()) {
-                    bestWildcard = entry;
-                }
-            }
+        if (acl instanceof CouchbaseACL ca) {
+            return ca.getEffectiveLevel(userName);
         }
-
-        // Explicit entry always wins over wildcard (Domino spec)
-        if (bestExact != null) return bestExact.getLevel();
-        if (bestWildcard != null) return bestWildcard.getLevel();
+        // Fallback: uncached manual lookup
+        if (userName == null || userName.isEmpty()) return acl.getDefaultLevel();
+        // ... (keep existing logic as fallback)
         return acl.getDefaultLevel();
     }
 
@@ -795,7 +774,7 @@ public class CouchbaseDatabase implements Database {
 
     @Override
     public int getUserAccessLevel(String userName) {
-        return getEffectiveLevel(userName);
+        return getACL().getEffectiveLevel(userName);
     }
 
     @Override

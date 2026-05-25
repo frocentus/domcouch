@@ -100,6 +100,12 @@ public interface ACL {
     void renameRole(String oldName, String newName);
 
     /**
+     * @return the effective access level for a user after resolving
+     *         explicit entries, wildcards, and default.
+     */
+    int getEffectiveLevel(String userName);
+
+    /**
      * Get all roles assigned to a specific user (directly or via groups).
      * Used by Reader/Author enforcement to resolve [Role] in fields.
      * @param userName hierarchical or abbreviated user name

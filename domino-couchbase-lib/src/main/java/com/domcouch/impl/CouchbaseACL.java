@@ -29,6 +29,10 @@ public class CouchbaseACL implements ACL {
     private int internetLevel;
     private boolean adminReaderAuthor;
 
+    // Per-user caches — invalidated on any mutation
+    private final Map<String, Integer> levelCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<String, java.util.List<String>> rolesCache = new java.util.concurrent.ConcurrentHashMap<>();
+
     /**
      * Load or create the ACL document.
      */
@@ -55,12 +59,16 @@ public class CouchbaseACL implements ACL {
     public ACLEntry createACLEntry(String name, int level) {
         CouchbaseACLEntry entry = new CouchbaseACLEntry(name, level, ACLEntry.TYPE_UNSPECIFIED);
         entries.put(name.toLowerCase(), entry);
+        levelCache.clear();
+        rolesCache.clear();
         return entry;
     }
 
     @Override
     public void removeACLEntry(String name) {
         entries.remove(name.toLowerCase());
+        levelCache.clear();
+        rolesCache.clear();
     }
 
     @Override
@@ -86,6 +94,7 @@ public class CouchbaseACL implements ACL {
         for (ACLEntry e : entries.values()) {
             e.disableRole(role);
         }
+        rolesCache.clear();
     }
 
     @Override
@@ -98,19 +107,22 @@ public class CouchbaseACL implements ACL {
                 e.enableRole(newName);
             }
         }
+        rolesCache.clear();
     }
 
     @Override
     public java.util.List<String> getRolesForUser(String userName) {
         if (userName == null) return java.util.List.of();
         String key = userName.toLowerCase();
+        java.util.List<String> cached = rolesCache.get(key);
+        if (cached != null) return cached;
+
         java.util.List<String> result = new java.util.ArrayList<>();
         for (ACLEntry entry : entries.values()) {
             String entryName = entry.getName().toLowerCase();
             boolean match = key.equals(entryName)
                     || key.contains(entryName)
                     || entryName.contains(key);
-            // Wildcard match: */West/Acme/US matches Sandra Smith/West/Acme/US
             if (!match && entry.isWildcard()) {
                 match = entry.matchesWildcard(userName);
             }
@@ -118,7 +130,38 @@ public class CouchbaseACL implements ACL {
                 result.addAll(entry.getRoles());
             }
         }
+        rolesCache.put(key, result);
         return result;
+    }
+
+    /**
+     * Resolve effective access level with per-user cache.
+     */
+    public int getEffectiveLevel(String userName) {
+        if (userName == null || userName.isEmpty()) return defaultLevel;
+        String key = userName.toLowerCase();
+        Integer cached = levelCache.get(key);
+        if (cached != null) return cached;
+
+        String lKey = key;
+        int bestExact = -1;
+        int bestWildcard = -1;
+
+        for (ACLEntry entry : entries.values()) {
+            String entryName = entry.getName().toLowerCase();
+            if (lKey.equals(entryName) || lKey.contains(entryName) || entryName.contains(lKey)) {
+                if (entry.getLevel() > bestExact) bestExact = entry.getLevel();
+            }
+            if (entry.isWildcard() && entry.matchesWildcard(userName)) {
+                if (entry.getLevel() > bestWildcard) bestWildcard = entry.getLevel();
+            }
+        }
+
+        int effective = bestExact >= 0 ? bestExact
+                      : bestWildcard >= 0 ? bestWildcard
+                      : defaultLevel;
+        levelCache.put(key, effective);
+        return effective;
     }
 
     // ---- settings ----
@@ -129,6 +172,7 @@ public class CouchbaseACL implements ACL {
     @Override
     public void setDefaultLevel(int level) {
         this.defaultLevel = clampLevel(level);
+        levelCache.clear();
     }
 
     @Override
