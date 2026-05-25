@@ -65,7 +65,7 @@ graph TB
     end
 
     subgraph Ext["External"]
-        CB["Couchbase 7.x"]
+        CB["Couchbase 8.x"]
         SDK["Couchbase Java SDK 3.7.4"]
     end
 
@@ -368,7 +368,7 @@ domcouch/
 ├── AGENTS.md                              (Architecture decisions + conventions)
 ├── README.md
 ├── pom.xml                                (parent Maven POM, Spring Boot 3.4.3)
-├── docker-compose.yml                     (Couchbase 7.x)
+├── docker-compose.yml                     (Couchbase 8.x)
 ├── docs/
 │   ├── api-coverage.md                    (Domino API compatibility matrix)
 │   ├── formula-language-architecture.md   (Complete formula language spec)

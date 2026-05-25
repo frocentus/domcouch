@@ -12,7 +12,7 @@
 
 Provide a Java library (`domino-couchbase-lib`) that mirrors the `lotus.domino`
 data-layer API (`Session` → `Database` → `Document` → `View` → `Item`) backed by
-Couchbase 7.x. The goal is API-level compatibility: existing Domino Java code can
+Couchbase 8.x. The goal is API-level compatibility: existing Domino Java code can
 switch the backend with minimal changes.
 
 ---
@@ -326,7 +326,7 @@ domcouch/
 ├── AGENTS.md
 ├── README.md
 ├── pom.xml                            (parent Maven POM, Spring Boot 3.4.3)
-├── docker-compose.yml                 (Couchbase 7.x)
+├── docker-compose.yml                 (Couchbase 8.x)
 ├── docs/
 │   ├── api-coverage.md
 │   ├── formula-language-architecture.md
