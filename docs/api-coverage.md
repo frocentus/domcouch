@@ -140,8 +140,8 @@
 |                         | `getMessage()`                                    | ✅     |                                                                         |
 
 | **Name**                | `parse(name)`                                     | ✅     | Canonical + abbreviated format parsing                                  |
-|                         | `getCanonical()`                                  | ✅     | "CN=.../OU=.../O=.../C=..."                                           |
-|                         | `getAbbreviated()`                                | ✅     | "name/unit/org/country"                                                |
+|                         | `getCanonical()`                                  | ✅     | CN=.../OU=.../O=.../C=...                                             |
+|                         | `getAbbreviated()`                                | ✅     | name/unit/org/country                                                  |
 |                         | `getCommon()`                                     | ✅     | Common Name component                                                   |
 |                         | `getOrganization()`                               | ✅     | Organization component                                                  |
 |                         | `getOrgUnit1-4()`                                 | ✅     | Organizational unit components (1-4)                                   |
