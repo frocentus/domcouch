@@ -138,7 +138,6 @@
 |                         | `isDateOnly()`                                    | ✅     |                                                                         |
 | **NotesException**      | `id` field                                        | ✅     |                                                                         |
 |                         | `getMessage()`                                    | ✅     |                                                                         |
-
 | **Name**                | `parse(name)`                                     | ✅     | Canonical + abbreviated format parsing                                  |
 |                         | `getCanonical()`                                  | ✅     | CN=.../OU=.../O=.../C=...                                             |
 |                         | `getAbbreviated()`                                | ✅     | name/unit/org/country                                                  |
@@ -149,14 +148,12 @@
 |                         | `isHierarchical()`                                | ✅     | Has OU/O/C components                                                   |
 |                         | `getAddr821() / getAddr822()`                     | ✅     | RFC 821/822 internet addresses                                          |
 |                         | `getLanguage()`                                   | ✅     | Language code suffix                                                    |
-
 | **ACL**                 | `getEntry(name) / createACLEntry / removeACLEntry`| ✅     | Per-user ACL management                                                 |
 |                         | `getRoles() / addRole / removeRole / renameRole`  | ✅     | Role definitions                                                        |
 |                         | `LEVEL_* constants (7 levels)`                    | ✅     | NoAccess → Manager                                                      |
 |                         | `PRIV_* constants (9 privileges)`                 | ✅     | Per-entry, level-appropriate defaults                                   |
 |                         | `getRolesForUser(name)`                           | ✅     | Role resolution with wildcard support                                   |
 |                         | `isConsistentACL / getInternetLevel`              | ✅     | Extended settings                                                       |
-
 | **ACLEntry**            | `getLevel() / setLevel()`                         | ✅     | Access level (resets privileges on change)                              |
 |                         | `isRoleEnabled / enableRole / disableRole`        | ✅     | Per-entry role assignment                                               |
 |                         | `isWildcard() / matchesWildcard()`                | ✅     | */West/Acme pattern matching                                            |
