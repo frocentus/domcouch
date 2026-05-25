@@ -198,8 +198,27 @@ public class CouchbaseDocument implements Document {
     public boolean save() throws NotesException {
         if (!dirty) return true;
 
-        // Author-field enforcement: if author items exist, current user must be in at least one
+        // DB-level ACL: user must have Author or higher to save
         String currentUser = database.getCurrentUserName();
+        try {
+            database.checkAccess(currentUser, ACL.LEVEL_AUTHOR);
+        } catch (NotesException e) {
+            // Depositor with PRIV_CREATE_DOCS can create new documents only
+            ACL acl = database.getACL();
+            if (acl != null && database.getEffectiveLevel(currentUser) == ACL.LEVEL_DEPOSITOR) {
+                ACLEntry entry = acl.getEntry(currentUser);
+                if (entry != null && entry.isPrivilegeEnabled(ACL.PRIV_CREATE_DOCS) && isNew) {
+                    // Allowed: Depositor creating a new document
+                } else {
+                    throw new NotesException(4012,
+                            "User '" + currentUser + "' cannot create/edit documents here");
+                }
+            } else {
+                throw e;
+            }
+        }
+
+        // Author-field enforcement: if author items exist, current user must be in at least one
         if (!isEditableBy(currentUser)) {
             throw new NotesException(4010,
                     "User '" + currentUser + "' is not an author of document " + unid);

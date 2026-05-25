@@ -3,6 +3,7 @@ package com.domcouch.demo;
 import com.domcouch.api.*;
 import com.domcouch.impl.CouchbaseSession;
 import com.domcouch.impl.CouchbaseDocument;
+import com.domcouch.impl.CouchbaseDatabase;
 import java.util.List;
 import org.junit.jupiter.api.*;
 
@@ -473,5 +474,34 @@ class ACLTest {
         ACLEntry normal = acl.createACLEntry("Alice", ACL.LEVEL_AUTHOR);
         assertFalse(normal.isWildcard());
         assertFalse(normal.matchesWildcard("Alice"));
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ACL enforcement (database-level access gating)
+    // ═══════════════════════════════════════════════════════════════
+
+    @Test @Order(32) @DisplayName("getEffectiveLevel — falls back to default")
+    void effectiveLevelDefault() {
+        ACL acl = db.getACL();
+        // With current user "Administrator" having no explicit entry, returns default
+        int level = ((CouchbaseDatabase)db).getEffectiveLevel("Administrator");
+        assertEquals(acl.getDefaultLevel(), level);
+    }
+
+    @Test @Order(33) @DisplayName("checkAccess — passes for current user at READER")
+    void checkAccessOk() throws Exception {
+        // Set default to READER so current user (Administrator, no explicit entry) passes
+        ACL acl = db.getACL();
+        acl.setDefaultLevel(ACL.LEVEL_READER);
+        ((CouchbaseDatabase)db).checkAccess("Administrator", ACL.LEVEL_READER);
+    }
+
+    @Test @Order(34) @DisplayName("checkAccess — Depositor without PRIV_CREATE_DOCS is denied")
+    void depositorWithoutPriv() throws Exception {
+        ACL acl = db.getACL();
+        acl.createACLEntry("DepUser", ACL.LEVEL_DEPOSITOR);
+        // Depositor without PRIV_CREATE_DOCS = No Access effectively
+        assertEquals(ACL.LEVEL_DEPOSITOR,
+                ((CouchbaseDatabase)db).getEffectiveLevel("DepUser"));
     }
 }

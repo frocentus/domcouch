@@ -108,6 +108,7 @@ public class CouchbaseDatabase implements Database {
     @Override
     public Document getDocumentByUNID(String unid) {
         try {
+            checkAccess(getCurrentUserName(), ACL.LEVEL_READER);
             var result = collection.get(unid,
                     GetOptions.getOptions().transcoder(RawJsonTranscoder.INSTANCE));
             if (result == null) return null;
@@ -433,6 +434,67 @@ public class CouchbaseDatabase implements Database {
 
     void removeDocument(String unid) {
         collection.remove(unid);
+    }
+
+    // ---- ACL enforcement ----
+
+    /**
+     * Resolve the effective access level for a user.
+     * Order: explicit name match → partial match → wildcard match → default.
+     */
+    public int getEffectiveLevel(String userName) {
+        ACL acl = getACL();
+        if (acl == null) return ACL.LEVEL_MANAGER;
+        if (userName == null || userName.isEmpty()) return acl.getDefaultLevel();
+
+        String key = userName.toLowerCase();
+        ACLEntry bestExact = null;
+        ACLEntry bestWildcard = null;
+
+        for (ACLEntry entry : acl.getEntries()) {
+            String entryName = entry.getName().toLowerCase();
+
+            // Exact match (or hierarchical match: "CN=Alice/O=Acme" matches "Alice")
+            if (key.equals(entryName) || key.contains(entryName) || entryName.contains(key)) {
+                if (bestExact == null || entry.getLevel() > bestExact.getLevel()) {
+                    bestExact = entry;
+                }
+            }
+
+            // Wildcard match
+            if (entry.isWildcard() && entry.matchesWildcard(userName)) {
+                if (bestWildcard == null || entry.getLevel() > bestWildcard.getLevel()) {
+                    bestWildcard = entry;
+                }
+            }
+        }
+
+        // Explicit entry always wins over wildcard (Domino spec)
+        if (bestExact != null) return bestExact.getLevel();
+        if (bestWildcard != null) return bestWildcard.getLevel();
+        return acl.getDefaultLevel();
+    }
+
+    /**
+     * Ensure the user has at least the specified access level.
+     * If no ACL document exists in Couchbase, access is unrestricted (Manager for all).
+     * @throws NotesException(4012) if access is denied
+     */
+    public void checkAccess(String userName, int minLevel) throws NotesException {
+        ACL acl = getACL();
+        if (acl == null || acl.getEntries().isEmpty()) {
+            return; // No ACL = unrestricted
+        }
+        // Manager override: adminReaderAuthor flag lets admins bypass
+        if (acl.isAdminReaderAuthor() && getEffectiveLevel(userName) >= ACL.LEVEL_DESIGNER) {
+            return;
+        }
+        int effective = getEffectiveLevel(userName);
+        if (effective < minLevel) {
+            throw new NotesException(4012,
+                    "User '" + userName + "' has insufficient access (level "
+                    + effective + ", required " + minLevel + ")");
+        }
     }
 
     private static boolean isUserInRole(ACL acl, String userName, String fieldValue) {
