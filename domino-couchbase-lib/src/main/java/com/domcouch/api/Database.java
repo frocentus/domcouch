@@ -187,6 +187,18 @@ public interface Database {
      */
     String getCurrentUserName();
 
+    /**
+     * @return the ACL roles assigned to a specific user.
+     *         Resolves wildcard entries (e.g. *&#47;West&#47;Acme).
+     */
+    java.util.List<String> getUserRoles(String userName);
+
+    /**
+     * @return the effective access level for a user (0=NoAccess..6=Manager).
+     *         Resolves explicit, wildcard, default.
+     */
+    int getUserAccessLevel(String userName);
+
     // ---- ACL ----
 
     /**

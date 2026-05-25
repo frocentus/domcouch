@@ -787,6 +787,18 @@ public class CouchbaseDatabase implements Database {
     private CouchbaseACL aclCache;
 
     @Override
+    public java.util.List<String> getUserRoles(String userName) {
+        ACL acl = getACL();
+        if (acl == null) return java.util.List.of();
+        return acl.getRolesForUser(userName);
+    }
+
+    @Override
+    public int getUserAccessLevel(String userName) {
+        return getEffectiveLevel(userName);
+    }
+
+    @Override
     public ACL getACL() {
         if (aclCache == null) {
             aclCache = new CouchbaseACL(collection);

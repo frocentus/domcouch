@@ -225,30 +225,13 @@ public class DocumentFormulaContext implements FormulaContext {
     @Override
     public java.util.List<String> getUserRoles() {
         if (database == null) return java.util.List.of();
-        ACL acl = database.getACL();
-        if (acl == null) return java.util.List.of();
-        String userName = database.getCurrentUserName();
-        return acl.getRolesForUser(userName);
+        return database.getUserRoles(database.getCurrentUserName());
     }
 
     @Override
     public double getUserAccessLevel() {
         if (database == null) return 5.0;
-        ACL acl = database.getACL();
-        if (acl == null) return 5.0;
-        // Get effective level via ACL entries
-        String userName = database.getCurrentUserName();
-        for (ACLEntry entry : acl.getEntries()) {
-            String entryName = entry.getName().toLowerCase();
-            if (userName.equalsIgnoreCase(entryName)
-                    || userName.toLowerCase().contains(entryName)) {
-                return entry.getLevel();
-            }
-            if (entry.isWildcard() && entry.matchesWildcard(userName)) {
-                return entry.getLevel();
-            }
-        }
-        return acl.getDefaultLevel();
+        return database.getUserAccessLevel(database.getCurrentUserName());
     }
 
     @Override
