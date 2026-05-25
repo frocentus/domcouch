@@ -219,7 +219,7 @@
 | `@ReplicaID` | ✅ | ⚠ | Delegates to `getReplicaID()` |
 | `@ServerName` | ✅ | ⚠ | Delegates to `getServerName()` |
 | `@DbExists` | ✅ | ⚠ | True (always exists) |
-| `@DbManager` | ❌ | — | Not yet (ACL-based) |
+| `@DbManager` | ✅ | 📋 | Manager names from ACL |
 | `@ViewTitle` | ❌ | — | Not yet (view-specific) |
 
 ---
@@ -230,11 +230,11 @@
 |----------|--------|------|-------------|
 | `@UserName` | ✅ | 📋 | Current user name |
 | `@UserNamesList` | ✅ | ⚠ | List of user names/roles |
-| `@UserRoles` | ✅ | ⚠ | ACL roles (empty) |
+| `@UserRoles` | ✅ | 📋 | ACL roles assigned to current user |
 | `@Domain` | ✅ | ⚠ | Delegates to `getDomain()`; Couchbase: empty |
 | `@Version` | ✅ | 📋 | "Domino 14.5 / Couchbase" |
 | `@V3UserName` | ✅ | ⚠ | Legacy user name (delegates to @UserName) |
-| `@V4UserAccess` | ✅ | ⚠ | Legacy access (returns 1) |
+| `@V4UserAccess` | ✅ | 📋 | Legacy access level (from ACL) |
 | `@ClientType` | ✅ | ⚠ | "Notes" |
 | `@LanguagePreference` | ✅ | ⚠ | "EN" |
 | `@Locale` | ⚠ | ⚠ | Java default locale |
@@ -279,7 +279,7 @@ Reclassified — `@DbLookup`/@DbColumn moved to Database/View Functions above.
 | `@AttachmentNames` | Low | Needs binary attachment support |
 | `@AttachmentLengths` | Low | Needs binary attachment support |
 | `@AttachmentModifiedTimes` | Low | Needs binary attachment support |
-| `@UserAccess` | Low | Needs ACL system |
+| `@UserAccess` | ✅ | 📋 | Current user's ACL access level (0-6) |
 | `@UserPrivileges` | Low | Needs ACL system |
 | `@Platform` | Low | UI-only |
 | `@StatusBar` | Low | UI-only |
@@ -315,10 +315,10 @@ Reclassified — `@DbLookup`/@DbColumn moved to Database/View Functions above.
 | Control Flow | 14 | 0 | 0 | 0 |
 | Boolean/Constants | 8 | 0 | 0 | 0 |
 | Document | 11 | 7 | 0 | 0 |
-| Database/View | 7 | 0 | 0 | 2 |
+| Database/View | 7 | 0 | 0 | 1 |
 | Security/User | 11 | 0 | 0 | 0 |
 | Operators | 11 | 0 | 0 | 0 |
-| **Total** | **132** | **19** | **0** | **2** |
+| **Total** | **133** | **19** | **0** | **1** |
 
-📋 **122** verified against official Domino spec (includes all ✅ + 🟡)
-🔜 **31** deferred to future phases
+📋 **124** verified against official Domino spec (includes all ✅ + 🟡)
+🔜 **29** deferred to future phases

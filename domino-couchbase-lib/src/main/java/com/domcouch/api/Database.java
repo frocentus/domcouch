@@ -181,6 +181,12 @@ public interface Database {
     /** @return all form names in this database */
     java.util.List<String> getFormNames() throws NotesException;
 
+    /**
+     * @return the current user name for security enforcement.
+     *         domcouch extension — not in lotus.domino.
+     */
+    String getCurrentUserName();
+
     // ---- ACL ----
 
     /**

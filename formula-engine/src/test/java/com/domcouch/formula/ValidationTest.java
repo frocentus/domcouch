@@ -36,7 +36,7 @@ class ValidationTest extends BaseFormulaTest {
         @Test @DisplayName("@ThisName/@ThisValue") void thisX() { assertEquals("", eval("@ThisName")); assertEquals("", eval("@ThisValue")); }
         @Test @DisplayName("@UrlQueryString") void url() { assertEquals("", eval("@UrlQueryString")); }
         @Test @DisplayName("@V3UserName") void v3() { assertEquals("Alice", eval("@V3UserName")); }
-        @Test @DisplayName("@V4UserAccess") void v4() { assertEquals(1.0, eval("@V4UserAccess")); }
+        @Test @DisplayName("@V4UserAccess") void v4() { assertEquals(5.0, eval("@V4UserAccess")); }
         @Test @DisplayName("@Unavailable") void unavail() { assertEquals(1.0, eval("@Unavailable(\"NoSuchField\")")); }
         @Test @DisplayName("@Environment") void env() { assertEquals("", eval("@Environment(\"FOO\")")); }
     }

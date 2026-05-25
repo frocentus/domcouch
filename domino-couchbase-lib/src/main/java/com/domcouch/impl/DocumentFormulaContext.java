@@ -2,6 +2,8 @@ package com.domcouch.impl;
 
 import com.domcouch.api.Document;
 import com.domcouch.api.Item;
+import com.domcouch.api.ACL;
+import com.domcouch.api.ACLEntry;
 import com.domcouch.formula.FormulaContext;
 
 /**
@@ -216,5 +218,50 @@ public class DocumentFormulaContext implements FormulaContext {
             }
             return result;
         } catch (Exception e) { return java.util.List.of(); }
+    }
+
+    // ---- ACL / security context methods ----
+
+    @Override
+    public java.util.List<String> getUserRoles() {
+        if (database == null) return java.util.List.of();
+        ACL acl = database.getACL();
+        if (acl == null) return java.util.List.of();
+        String userName = database.getCurrentUserName();
+        return acl.getRolesForUser(userName);
+    }
+
+    @Override
+    public double getUserAccessLevel() {
+        if (database == null) return 5.0;
+        ACL acl = database.getACL();
+        if (acl == null) return 5.0;
+        // Get effective level via ACL entries
+        String userName = database.getCurrentUserName();
+        for (ACLEntry entry : acl.getEntries()) {
+            String entryName = entry.getName().toLowerCase();
+            if (userName.equalsIgnoreCase(entryName)
+                    || userName.toLowerCase().contains(entryName)) {
+                return entry.getLevel();
+            }
+            if (entry.isWildcard() && entry.matchesWildcard(userName)) {
+                return entry.getLevel();
+            }
+        }
+        return acl.getDefaultLevel();
+    }
+
+    @Override
+    public java.util.List<String> getManagerNames() {
+        if (database == null) return java.util.List.of();
+        ACL acl = database.getACL();
+        if (acl == null) return java.util.List.of();
+        java.util.List<String> managers = new java.util.ArrayList<>();
+        for (ACLEntry entry : acl.getEntries()) {
+            if (entry.getLevel() == ACL.LEVEL_MANAGER) {
+                managers.add(entry.getName());
+            }
+        }
+        return managers;
     }
 }

@@ -227,4 +227,30 @@ public interface FormulaContext {
     default String timeZoneToText(String timeZone, String format) {
         throw new ContextNotSupportedException("timeZoneToText");
     }
+
+    // ---- ACL / security ----
+
+    /**
+     * Return the ACL roles assigned to the current user.
+     * Used by {@code @UserRoles}. Default: empty list.
+     */
+    default java.util.List<String> getUserRoles() {
+        return java.util.List.of();
+    }
+
+    /**
+     * Return the current user's access level as a number (0=NoAccess..6=Manager).
+     * Used by {@code @UserAccess}. Default: 5 (Designer).
+     */
+    default double getUserAccessLevel() {
+        return 5.0;
+    }
+
+    /**
+     * Return the list of manager names from the ACL.
+     * Used by {@code @DbManager}. Default: empty list.
+     */
+    default java.util.List<String> getManagerNames() {
+        return java.util.List.of();
+    }
 }

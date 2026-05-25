@@ -324,7 +324,8 @@ public final class MiscHandlers {
         functions.put("THISVALUE", (ev, args, ctx) -> "");
         functions.put("URLQUERYSTRING", (ev, args, ctx) -> "");
         functions.put("V3USERNAME", (ev, args, ctx) -> ev.getCurrentUserName());
-        functions.put("V4USERACCESS", (ev, args, ctx) -> 1.0);
+        functions.put("V4USERACCESS", (ev, args, ctx) -> ctx.getUserAccessLevel());
+        functions.put("USERACCESS", (ev, args, ctx) -> ctx.getUserAccessLevel());
         functions.put("UNAVAILABLE", (ev, args, ctx) -> Evaluator.boolToNum(ctx.resolve(Evaluator.convertToString(ev.eval(args.getFirst(), ctx))) == null));
         functions.put("ENVIRONMENT", (ev, args, ctx) -> {
             try {
@@ -337,7 +338,10 @@ public final class MiscHandlers {
         functions.put("GETIMCONTACTLISTGROUPNAMES", (ev, args, ctx) -> List.of());
         functions.put("USERNAMELANGUAGE", (ev, args, ctx) -> "EN");
         functions.put("USERNAME", (ev, args, ctx) -> ev.getCurrentUserName());
-        functions.put("USERROLES", (ev, args, ctx) -> List.of());
+        functions.put("USERROLES", (ev, args, ctx) -> {
+            var roles = ctx.getUserRoles();
+            return roles.isEmpty() ? List.of() : new ArrayList<>(roles);
+        });
         functions.put("USERNAMESLIST", (ev, args, ctx) -> List.of(ev.getCurrentUserName()));
         functions.put("DOMAIN", (ev, args, ctx) -> {
             try {
@@ -698,5 +702,8 @@ public final class MiscHandlers {
                     : "";
             return NameActions.apply(action, nameStr);
         });
+
+        // @DbManager — returns list of Manager-level names from ACL
+        functions.put("DBMANAGER", (ev, args, ctx) -> ctx.getManagerNames());
     }
 }
