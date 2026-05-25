@@ -99,6 +99,31 @@ public interface ACLEntry {
      */
     void disableRole(String role);
 
+    // ---- wildcard ----
+
+    /**
+     * Return true if this entry is a wildcard pattern.
+     * Example: entry name "*&#47;West/Acme" matches any user in West/Acme.
+     */
+    default boolean isWildcard() {
+        return getName().contains("*");
+    }
+
+    /**
+     * Test whether a hierarchical name matches this entry's wildcard.
+     */
+    default boolean matchesWildcard(String userName) {
+        if (!isWildcard() || userName == null) return false;
+        String[] pp = getName().split("/");
+        String[] up = userName.split("/");
+        if (pp.length != up.length) return false;
+        for (int i = 0; i < pp.length; i++) {
+            if (pp[i].equals("*")) continue;
+            if (!pp[i].equalsIgnoreCase(up[i])) return false;
+        }
+        return true;
+    }
+
     // ---- privileges (per-entry, with defaults by level) ----
 
     /**

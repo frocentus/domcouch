@@ -107,7 +107,14 @@ public class CouchbaseACL implements ACL {
         java.util.List<String> result = new java.util.ArrayList<>();
         for (ACLEntry entry : entries.values()) {
             String entryName = entry.getName().toLowerCase();
-            if (key.equals(entryName) || key.contains(entryName) || entryName.contains(key)) {
+            boolean match = key.equals(entryName)
+                    || key.contains(entryName)
+                    || entryName.contains(key);
+            // Wildcard match: */West/Acme/US matches Sandra Smith/West/Acme/US
+            if (!match && entry.isWildcard()) {
+                match = entry.matchesWildcard(userName);
+            }
+            if (match) {
                 result.addAll(entry.getRoles());
             }
         }

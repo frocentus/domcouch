@@ -438,4 +438,40 @@ class ACLTest {
     // Note: Reader/Author field enforcement with [Role] is wired up in
     // CouchbaseDocument.isReadableBy/isEditableBy and CouchbaseDatabase.canRead.
     // Full integration tests require fixing Readers/Authors item type persistence.
+
+    @Test @Order(29) @DisplayName("Wildcard: */West/Acme matches Sandra Smith/West/Acme")
+    void wildcardMatch() {
+        ACL acl = db.getACL();
+        acl.addRole("Western");
+        ACLEntry wild = acl.createACLEntry("*/West/Acme", ACL.LEVEL_READER);
+        wild.enableRole("Western");
+        assertTrue(wild.isWildcard());
+        assertTrue(wild.matchesWildcard("Sandra Smith/West/Acme"));
+        assertTrue(wild.matchesWildcard("John Doe/West/Acme"));
+        assertFalse(wild.matchesWildcard("Jane/East/Acme"));
+        assertFalse(wild.matchesWildcard("Solo/West/Acme/Extra"));
+    }
+
+    @Test @Order(30) @DisplayName("Wildcard: getRolesForUser resolves via wildcard")
+    void wildcardGetRoles() {
+        ACL acl = db.getACL();
+        acl.addRole("Sales");
+        acl.createACLEntry("*/West/Acme", ACL.LEVEL_READER).enableRole("Sales");
+
+        var roles = acl.getRolesForUser("Alice/West/Acme");
+        assertTrue(roles.contains("Sales"),
+                "Alice/West/Acme should match wildcard */West/Acme");
+
+        var roles2 = acl.getRolesForUser("Bob/East/Acme");
+        assertTrue(roles2.isEmpty(),
+                "Bob/East/Acme should NOT match */West/Acme");
+    }
+
+    @Test @Order(31) @DisplayName("Wildcard: isWildcard returns false for normal entry")
+    void wildcardFalse() {
+        ACL acl = db.getACL();
+        ACLEntry normal = acl.createACLEntry("Alice", ACL.LEVEL_AUTHOR);
+        assertFalse(normal.isWildcard());
+        assertFalse(normal.matchesWildcard("Alice"));
+    }
 }
