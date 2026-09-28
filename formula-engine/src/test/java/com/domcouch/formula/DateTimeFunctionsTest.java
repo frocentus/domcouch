@@ -22,18 +22,18 @@ class DateTimeFunctionsTest extends BaseFormulaTest {
     @Nested @DisplayName("@Date")
     class DateTests {
         @Test @DisplayName("year month day") void ymd() {
-            String r = (String) eval("@Date(1995; 6; 23)");
+            String r = String.valueOf(eval("@Date(1995; 6; 23)"));
             assertTrue(r.contains("06/23/1995") || r.contains("6/23/1995"),
                     "Expected June 23 1995, got: " + r);
         }
         @Test @DisplayName("full constructor") void full() {
-            String r = (String) eval("@Date(1993; 1; 20; 8; 58; 12)");
+            String r = String.valueOf(eval("@Date(1993; 1; 20; 8; 58; 12)"));
             assertTrue(r.contains("01/20/1993") || r.contains("1/20/1993"),
                     "Expected Jan 20 1993, got: " + r);
             assertTrue(r.contains("08:58:12"), "Expected 08:58:12, got: " + r);
         }
         @Test @DisplayName("from string") void fromString() {
-            String r = (String) eval("@Date(\"11/20/95\")");
+            String r = String.valueOf(eval("@Date(\"11/20/95\")"));
             assertTrue(r.contains("11/20"), "Expected Nov 20, got: " + r);
         }
     }
@@ -41,32 +41,32 @@ class DateTimeFunctionsTest extends BaseFormulaTest {
     @Nested @DisplayName("@Adjust")
     class AdjustTests {
         @Test @DisplayName("adjust years months days") void basic() {
-            String result = (String) eval("@Adjust([06/30/95]; 2; 2; 2; 0; 0; 0)");
+            String result = String.valueOf(eval("@Adjust([06/30/95]; 2; 2; 2; 0; 0; 0)"));
             assertTrue(result.contains("09/02") || result.contains("9/2")); }
         @Test @DisplayName("negative adjustment") void negative() {
-            String result = (String) eval("@Adjust([03/30/96]; -2; 0; -10; 0; 0; 0)");
+            String result = String.valueOf(eval("@Adjust([03/30/96]; -2; 0; -10; 0; 0; 0)"));
             assertTrue(result.contains("03/20") || result.contains("3/20")); }
     }
 
     @Nested @DisplayName("@Tomorrow @Yesterday @Time @TimeMerge")
     class DateOpTests {
-        @Test @DisplayName("@Tomorrow returns date format") void tomorrow() {
-            String result = (String) eval("@Tomorrow");
+        @Test @DisplayName("@Tomorrow returns a date without time (Notes)") void tomorrow() {
+            String result = String.valueOf(eval("@Tomorrow"));
             assertNotNull(result);
-            assertTrue(result.matches("\\d{2}/\\d{2}/\\d{4} .*"), "Expected date, got: " + result);
+            assertTrue(result.matches("\\d{2}/\\d{2}/\\d{4}"), "Expected date, got: " + result);
         }
-        @Test @DisplayName("@Yesterday returns date format") void yesterday() {
-            String result = (String) eval("@Yesterday");
+        @Test @DisplayName("@Yesterday returns a date without time (Notes)") void yesterday() {
+            String result = String.valueOf(eval("@Yesterday"));
             assertNotNull(result);
-            assertTrue(result.matches("\\d{2}/\\d{2}/\\d{4} .*"), "Expected date, got: " + result);
+            assertTrue(result.matches("\\d{2}/\\d{2}/\\d{4}"), "Expected date, got: " + result);
         }
         @Test @DisplayName("@Time constructor returns time format") void timeCons() {
-            String result = (String) eval("@Time(23; 50; 30)");
+            String result = String.valueOf(eval("@Time(23; 50; 30)"));
             assertNotNull(result);
             assertTrue(result.contains("11:50:30 PM"), "Expected 11:50:30 PM, got: " + result);
         }
         @Test @DisplayName("@TimeMerge combines date and time") void timeMerge() {
-            String result = (String) eval("@TimeMerge(\"01/01/2008\"; \"5:14 AM\")");
+            String result = String.valueOf(eval("@TimeMerge(\"01/01/2008\"; \"5:14 AM\")"));
             assertNotNull(result);
             assertTrue(result.contains("01/01/2008"), "Expected 01/01/2008, got: " + result);
             assertTrue(result.contains("05:14"), "Expected 05:14, got: " + result);
@@ -87,20 +87,20 @@ class DateTimeFunctionsTest extends BaseFormulaTest {
 
     @Nested @DisplayName("@Today/@Now")
     class TodayNowTests {
-        @Test @DisplayName("@Today returns date format MM/dd/yyyy") void today() {
-            String result = (String) eval("@Today");
+        @Test @DisplayName("@Today returns a date without time: MM/dd/yyyy") void today() {
+            String result = String.valueOf(eval("@Today"));
             assertNotNull(result);
-            assertTrue(result.matches("\\d{2}/\\d{2}/\\d{4} .*"), "Expected date format, got: " + result);
+            assertTrue(result.matches("\\d{2}/\\d{2}/\\d{4}"), "Expected date format, got: " + result);
         }
         @Test @DisplayName("@Now returns datetime format") void now() {
-            String result = (String) eval("@Now");
+            String result = String.valueOf(eval("@Now"));
             assertNotNull(result);
             assertTrue(result.matches("\\d{2}/\\d{2}/\\d{4} \\d{2}:\\d{2}:\\d{2} [AP]M"),
                     "Expected datetime format, got: " + result);
         }
         @Test @DisplayName("@Now differs from @Today (has time)") void nowDiffersFromToday() {
-            String today = (String) eval("@Today");
-            String now = (String) eval("@Now");
+            String today = String.valueOf(eval("@Today"));
+            String now = String.valueOf(eval("@Now"));
             assertNotEquals(today, now);
         }
     }

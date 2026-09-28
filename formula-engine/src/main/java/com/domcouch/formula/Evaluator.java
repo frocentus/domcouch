@@ -18,6 +18,10 @@ public class Evaluator {
     private final ThreadLocal<String> currentUserName;
     public final ThreadLocal<Map<String, Object>> tempScope =
             ThreadLocal.withInitial(HashMap::new);
+    /**
+     * The engine's historic text format of time-dates. Time-date results are {@link DateTimeValue}s
+     * now, shown in {@link DateFormats#getDefault()}; this format is still parsed.
+     */
     public static final DateTimeFormatter DT_FMT = DateTimeFormatter
             .ofPattern("MM/dd/yyyy hh:mm:ss a").withZone(ZoneId.systemDefault());
 
@@ -292,10 +296,19 @@ public class Evaluator {
     private static Object add(Object left, Object right) {
         if (left instanceof String || right instanceof String)
             return convertToString(left) + convertToString(right);
+        // time-date + number: seconds
+        if (left instanceof DateTimeValue dt && !(right instanceof DateTimeValue)) return dt.plusSeconds(toNumber(right));
+        if (right instanceof DateTimeValue dt && !(left instanceof DateTimeValue)) return dt.plusSeconds(toNumber(left));
         return toNumber(left) + toNumber(right);
     }
 
     private static Object subtract(Object left, Object right) {
+        if (left instanceof DateTimeValue dt) {
+            // time-date - time-date: difference in seconds; time-date - number: earlier time-date
+            DateTimeValue other = DateTimeValue.from(right);
+            if (other != null) return dt.secondsSince(other);
+            return dt.plusSeconds(-toNumber(right));
+        }
         return toNumber(left) - toNumber(right);
     }
 
@@ -310,6 +323,11 @@ public class Evaluator {
     }
 
     private static int compare(Object left, Object right) {
+        if (left instanceof DateTimeValue || right instanceof DateTimeValue) {
+            // chronological; text on the other side is parsed as time-date
+            DateTimeValue a = DateTimeValue.from(left), b = DateTimeValue.from(right);
+            if (a != null && b != null) return a.compareTo(b);
+        }
         if (left instanceof Number && right instanceof Number)
             return Double.compare(((Number) left).doubleValue(), ((Number) right).doubleValue());
         if (left instanceof Comparable && right instanceof Comparable
@@ -362,24 +380,62 @@ public class Evaluator {
 
     /** Extract a date field (month, day, year) from a date string or object. */
     public static int extractDateField(Object val, java.time.temporal.ChronoField field) {
-        if (val == null) return 0;
-        String s = convertToString(val).trim();
-        if (s.isEmpty()) return 0;
+        DateTimeValue dt = DateTimeValue.from(val);
+        if (dt == null) return 0;
+        // a date-only value has no hour, a time-only value no day
+        boolean timeField = field == java.time.temporal.ChronoField.HOUR_OF_DAY
+                || field == java.time.temporal.ChronoField.MINUTE_OF_HOUR
+                || field == java.time.temporal.ChronoField.SECOND_OF_MINUTE;
+        if (timeField ? !dt.hasTime() : !dt.hasDate()) return 0;
+        return dt.get(field);
+    }
+
+    /**
+     * Parse text to a time-date: the {@link DateFormats#getDefault() default formats} first, then
+     * ISO-8601 and the US formats. Text without a time gives a date-only value, text without a
+     * date a time-only value. Returns {@code null} if the text is no time-date.
+     */
+    public static DateTimeValue parseDateTime(String s) {
+        if (s == null || s.isBlank()) return null;
+        String text = s.trim();
+        DateFormats formats = DateFormats.getDefault();
+        if (formats != DateFormats.US) {
+            try { return DateTimeValue.of(java.time.LocalDateTime.parse(text, formats.dateTime())); } catch (Exception e) { /* next */ }
+            try { return DateTimeValue.ofDate(java.time.LocalDate.parse(text, formats.date())); } catch (Exception e) { /* next */ }
+            try { return DateTimeValue.ofTime(java.time.LocalTime.parse(text, formats.time())); } catch (Exception e) { /* next */ }
+        }
         for (var fmt : DATE_PARSERS) {
             try {
-                var parsed = fmt.parseBest(s,
+                var parsed = fmt.parseBest(text,
                         java.time.ZonedDateTime::from,
                         java.time.LocalDateTime::from,
                         java.time.LocalDate::from,
                         java.time.LocalTime::from);
-                return ((java.time.temporal.TemporalAccessor) parsed).get(field);
-            } catch (Exception e) { /* try next format */ }
+                if (parsed instanceof java.time.ZonedDateTime zdt) return DateTimeValue.of(zdt);
+                if (parsed instanceof java.time.LocalDateTime ldt) return DateTimeValue.of(ldt);
+                if (parsed instanceof java.time.LocalDate ld) return DateTimeValue.ofDate(ld);
+                if (parsed instanceof java.time.LocalTime lt) return DateTimeValue.ofTime(lt);
+            } catch (Exception e) { /* try next */ }
         }
-        return 0;
+        return null;
+    }
+
+    /** A formula value (time-date or text) as ZonedDateTime, or {@code null}. */
+    public static java.time.ZonedDateTime toZoned(Object val) {
+        if (val instanceof DateTimeValue dt) {
+            // time-only values get today's date, as time text always did
+            return dt.hasDate() ? dt.toZonedDateTime()
+                    : dt.toLocalTime().atDate(java.time.LocalDate.now()).atZone(dt.toZonedDateTime().getZone());
+        }
+        return val == null ? null : parseDateToZoned(convertToString(val));
     }
 
     /** Parse a date string to ZonedDateTime, returning null on failure. */
     public static java.time.ZonedDateTime parseDateToZoned(String s) {
+        if (s != null && DateFormats.getDefault() != DateFormats.US) {
+            DateTimeValue dt = parseDateTime(s);
+            return dt == null ? null : toZoned(dt);
+        }
         for (var fmt : DATE_PARSERS) {
             try {
                 var parsed = fmt.parseBest(s,
@@ -615,8 +671,31 @@ public class Evaluator {
         return result;
     }
 
-    /** Format a date/time string according to a Domino date format code. */
+    /** Format a time-date (value or text) according to a Domino date format code. */
+    public static String formatDate(Object value, String format) {
+        DateFormats formats = DateFormats.getDefault();
+        if (formats == DateFormats.US) return formatDate(convertToString(value), format);
+        java.time.ZonedDateTime zdt = toZoned(value);
+        if (zdt == null) return convertToString(value);
+        java.time.LocalDate date = zdt.toLocalDate(), today = java.time.LocalDate.now();
+        return switch (format.toUpperCase().strip()) {
+            case "D0", "S0" -> formats.date().format(zdt);
+            case "D1" -> date.getYear() == today.getYear() ? formats.dateWithoutYear().format(zdt) : formats.date().format(zdt);
+            case "D2" -> formats.dateWithoutYear().format(zdt);
+            case "D3" -> formats.yearMonth().format(zdt);
+            case "T0", "S1" -> formats.time().format(zdt);
+            case "T1" -> formats.timeWithoutSeconds().format(zdt);
+            case "S2" -> formats.dateTime().format(zdt);
+            case "S3" -> date.equals(today) ? "Today " + formats.time().format(zdt)
+                    : date.equals(today.minusDays(1)) ? "Yesterday " + formats.time().format(zdt)
+                    : formats.dateTime().format(zdt);
+            default -> convertToString(value);
+        };
+    }
+
+    /** Format a date/time string according to a Domino date format code (US formats). */
     public static String formatDate(String dateStr, String format) {
+        if (DateFormats.getDefault() != DateFormats.US) return formatDate((Object) dateStr, format);
         java.time.ZonedDateTime zdt = parseDateToZoned(dateStr);
         if (zdt == null) return dateStr;
         java.time.LocalDate date = zdt.toLocalDate();

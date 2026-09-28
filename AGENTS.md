@@ -472,6 +472,7 @@ mvn test -pl domino-couchbase-lib
 | `StringFunctionsTest`       | 114     | @Contains @Matches @Repeat @ReplaceSubstring @Word @Trim @Case @Length @Left @Right @ProperCase @Explode @Ascii @Char |
 | `MathFunctionsTest`         | 33      | @Pi @Power @Sqrt @Exp @Log @Cos @Sin @Tan @Abs @Ln @FloatEq @Max @Min @Sum @Modulo @Sign @ATan @ATan2 @ASin @ACos     |
 | `DateTimeFunctionsTest`     | 33      | @Month @Day @Year @Date @Adjust @TimeMerge @Tomorrow @Yesterday @BusinessDays @Today @Now + doc timestamps            |
+| `DateTimeValueTest`         | 12      | Date-only / time-only values, chronological comparison, date arithmetic, ISO storage, `de-AT` formats and parsing     |
 | `ListFunctionsTest`         | 24      | @IsMember @Replace @Count @Compare @Subset @Unique @Member @Implode @Sort @Transform                                  |
 | `ControlFlowTest`           | 18      | @While @For @DoWhile @Set @SetField @Eval @Error @IsError @CheckFormulaSyntax                                         |
 | `DocumentFunctionsTest`     | 15      | @DocFields @DocLength @DocLock @DocumentUniqueID lifecycle folders @DeleteField                                       |
@@ -565,7 +566,8 @@ documents and regenerates.
 - [ ] Push reader filtering to N1QL for better performance on large datasets
 - [ ] Implement `RichTextItem` with Couchbase binary attachments
 - ✅ Database-level ACL (`getACL()` / `grantAccess()` / `revokeAccess()`) — 28 tests
-- [ ] Multi-locale date parsing in time-date constants
+- ✅ Time-date values (`DateTimeValue`) with regional formats (`DateFormats`): `@Text`, parsing, comparison, arithmetic
+- [ ] Multi-locale date parsing in time-date constants (`[15.03.2024]`; constants are still kept as text)
 - [ ] Permuted operators (`*+`, `*=`, etc.) and full list broadcasting semantics
 - [ ] `@DbLookup` / `@DbColumn` date-range and multi-column key support
 - [ ] Password hashing / encryption for sensitive fields (SSN)

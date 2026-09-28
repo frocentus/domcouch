@@ -245,7 +245,7 @@ class EvaluatorTest {
         }
 
         @Test @DisplayName("@Now returns DateTime")
-        void now() { assertTrue(eval("@Now") instanceof String); }
+        void now() { assertTrue(eval("@Now") instanceof DateTimeValue); }
 
         @Test @DisplayName("@UserName")
         void userName() {
