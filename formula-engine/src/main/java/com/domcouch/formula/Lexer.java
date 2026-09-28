@@ -210,8 +210,8 @@ public final class Lexer {
 
             if (c == '-') { tokens.add(new Token(TokenType.OPERATOR, "-", i)); i++; continue; }
 
-            // Identifier
-            if (c == '$' || Character.isLetter(c)) {
+            // Identifier (Domino allows a leading underscore, e.g. _view := ...)
+            if (c == '$' || c == '_' || Character.isLetter(c)) {
                 int start = i;
                 StringBuilder id = new StringBuilder();
                 while (i < len && (Character.isLetterOrDigit(input.charAt(i))

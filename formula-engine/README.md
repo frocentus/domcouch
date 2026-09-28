@@ -79,6 +79,11 @@ public interface FormulaContext {
 | `unmarkForDeletion()`      | `void`         | Unmark document for deletion                     | throws `ContextNotSupportedException` |
 | `hardDelete()`             | `void`         | Permanently delete the document                  | throws `ContextNotSupportedException` |
 | `addToFolder(name)`        | `void`         | Add document to a folder                         | throws `ContextNotSupportedException` |
+| `getThisName()`            | `String`       | Name of the field being translated/validated     | throws `ContextNotSupportedException` |
+| `getThisValue()`           | `Object`       | Current value of that field                      | throws `ContextNotSupportedException` |
+| `dbLookup(s,d,v,key,col)`  | `List<Object>` | View lookup by 1-based column number             | throws `ContextNotSupportedException` |
+| `dbLookup(s,d,v,key,field)`| `List<Object>` | View lookup reading an item by field name        | throws `ContextNotSupportedException` |
+| `dbColumn(s,d,v,col)`      | `List<Object>` | All values of a view column                      | throws `ContextNotSupportedException` |
 
 ### Evaluator Internal State (outside FormulaContext)
 
@@ -116,6 +121,10 @@ catches this in every @Function handler and returns a sensible default:
 | `unmarkForDeletion()`     | @UndeleteDocument                                | `1.0`                     |
 | `hardDelete()`            | @HardDeleteDocument                              | `1.0`                     |
 | `addToFolder(name)`       | @AddToFolder                                     | `1.0`                     |
+| `getThisName()`           | @ThisName                                        | `""`                      |
+| `getThisValue()`          | @ThisValue                                       | `""`                      |
+| `dbLookup(...)`           | @DbLookup                                        | `""`                      |
+| `dbColumn(...)`           | @DbColumn                                        | `""`                      |
 
 This means a **read-only context with only `resolve()`** works safely with
 any formula — @SetField becomes a no-op, @DocumentUniqueID returns `""`, etc.
@@ -304,14 +313,20 @@ built-in state. They work with any `FormulaContext`, including `null`.
 
 `@Error`, `@IsError`, `@IfError`
 
-### Placeholders & Stubs (21)
+### Placeholders & Stubs (14)
 
 `@ClientType`, `@DbExists`, `@GetCurrentTimeZone`, `@LanguagePreference`,
-`@Locale`, `@Keywords`, `@ThisName`, `@ThisValue`, `@URQueryString`,
+`@Locale`, `@Keywords`, `@URLQueryString`,
 `@V4UserAccess`, `@RegQueryValue`,
-`@GetIMContactListGroupNames`, `@UserNameLanguage`, `@UserNameList`,
-`@Narrow`, `@Wide`, `@Prompt`, `@Password`,
-`@PasswordQuality`, `@VerifyPassword`, `@PickList`
+`@GetIMContactListGroupNames`, `@UserNameLanguage`, `@UserNamesList`,
+`@Narrow`, `@Wide`
+
+### Not built in (register your own)
+
+UI and application functions have no sensible engine default. Register a
+handler for them via `registerFunction` (see [Embedding in a Form Runtime](#embedding-in-a-form-runtime)):
+`@Prompt`, `@PickList`, `@DialogBox`, `@Password`, `@PasswordQuality`,
+`@VerifyPassword`, `@GetProfileField`, `@SetProfileField`, `@IsDocBeingSaved`.
 
 ### No-ops (2)
 
@@ -534,6 +549,83 @@ for (Document doc : docs) {
     String name = (String) translator.evaluate(fullName, ctx);
 }
 ```
+
+---
+
+## Embedding in a Form Runtime
+
+Hooks for running form formulas (hide-when, input translation/validation,
+default values) outside the Notes client, e.g. in a Vaadin or web UI.
+
+### Current field: `@ThisName` / `@ThisValue`
+
+Implement `getThisName()` / `getThisValue()` on the context you pass when
+evaluating a field's input translation or validation formula:
+
+```java
+FormulaContext fieldCtx = new FormulaContext() {
+    public Object resolve(String n) { return form.valueOf(n); }
+    public String getThisName()     { return "Person_Nachname"; }
+    public Object getThisValue()    { return nachnameField.getValue(); }
+};
+translator.evaluate("@ProperCase(@Trim(@ThisValue))", fieldCtx);   // "Muster"
+```
+
+### Custom @Functions
+
+```java
+translator.registerFunction("@GetProfileField", (ev, args, ctx) ->
+        profiles.get(Evaluator.convertToString(ev.eval(args.get(0), ctx)),
+                     Evaluator.convertToString(ev.eval(args.get(1), ctx))));
+translator.isFunctionRegistered("@Prompt");   // false → handle before evaluating
+```
+
+Names are case-insensitive and the `@` is optional. Registering an existing
+name replaces the built-in. Register handlers at startup, before evaluating.
+
+An unknown @Function evaluates to `Evaluator.ERROR_VALUE`, which
+`Evaluator.isTruthy()` treats as **false**, so a broken hide-when never hides.
+
+### Interrupts: pausing a formula for UI input
+
+A handler can throw a subclass of `FormulaInterrupt` to unwind the whole evaluation.
+Unlike errors, interrupts are never caught by `@IfError` (`@Return` is one too). A web UI
+uses this for `@Prompt` or `@PickList`: pause at the first unanswered call, show a
+dialog, then evaluate the formula again, with answered calls returning the stored answer:
+
+```java
+class NeedsInput extends FormulaInterrupt {
+    NeedsInput() { super("waiting for @Prompt"); }
+}
+translator.registerFunction("@Prompt", (ev, args, ctx) -> {
+    if (nextAnswer < answers.size()) return answers.get(nextAnswer++);
+    throw new NeedsInput();          // caller shows the dialog, adds the answer, re-evaluates
+});
+```
+
+Side effects (`FIELD`, `@SetField`, `@Command`) should be buffered by the context until
+the evaluation completes, so that replaying the formula doesn't apply them twice.
+
+### Referenced fields
+
+`CompiledFormula` lists what a formula depends on, so a UI can re-evaluate a
+hide-when only when one of its fields changes:
+
+```java
+CompiledFormula hw = translator.compile("@IsNotMember(Ort_Typ; \"GEMEINDE\" : \"STATUAR\")");
+hw.referencedFields();      // [ORT_TYP]  (uppercase, temp variables excluded)
+hw.referencedFunctions();   // [ISNOTMEMBER]
+```
+
+### @DbLookup / @DbColumn arguments
+
+Arguments follow Notes syntax:
+`@DbLookup(class:cache; server:database; view; key; column|fieldName [; keywords])`.
+`class:cache` is ignored. `server:database` is split into the `server` and
+`database` parameters; a single value (path or replica ID) is passed as
+`database`, and `""` means the current database. A numeric fifth argument calls
+the column overload, and a text one calls the `fieldName` overload.
+`[FailSilent]` turns an empty result into `""`.
 
 ---
 

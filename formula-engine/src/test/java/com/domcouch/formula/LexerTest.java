@@ -29,6 +29,13 @@ class LexerTest {
     }
 
     @Test
+    @DisplayName("variable with leading underscore (temp variable)")
+    void variableWithLeadingUnderscore() {
+        List<Token> tokens = Lexer.tokenize("_view := 1");
+        assertToken(tokens.get(0), TokenType.VARIABLE, "_VIEW", 0);
+    }
+
+    @Test
     @DisplayName("variable with dollar sign (system field)")
     void variableWithDollar() {
         List<Token> tokens = Lexer.tokenize("$TITLE");

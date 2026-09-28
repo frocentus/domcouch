@@ -204,6 +204,24 @@ public class DocumentFormulaContext implements FormulaContext {
     }
 
     @Override
+    public java.util.List<Object> dbLookup(String server, String database, String view, Object key, String fieldName) {
+        if (this.database == null)
+            throw new com.domcouch.formula.ContextNotSupportedException("dbLookup");
+        try {
+            var v = this.database.getView(view);
+            if (v == null) return java.util.List.of();
+            var entries = v.getAllEntriesByKey(key);
+            var result = new java.util.ArrayList<>();
+            for (var entry : entries) {
+                Document doc = entry.getDocument();
+                Item item = doc != null ? doc.getFirstItem(fieldName) : null;
+                if (item != null && item.getValues() != null) result.addAll(item.getValues());
+            }
+            return result;
+        } catch (Exception e) { return java.util.List.of(); }
+    }
+
+    @Override
     public java.util.List<Object> dbColumn(String server, String database, String view, int column) {
         if (this.database == null)
             throw new com.domcouch.formula.ContextNotSupportedException("dbColumn");

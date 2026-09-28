@@ -165,12 +165,32 @@ public interface FormulaContext {
         throw new ContextNotSupportedException("addToFolder");
     }
 
+    // ---- Current field (input translation / validation) ----
+
+    /**
+     * Return the name of the field whose formula is being evaluated.
+     * Used by {@code @ThisName}. Default: throws {@link ContextNotSupportedException}.
+     */
+    default String getThisName() {
+        throw new ContextNotSupportedException("getThisName");
+    }
+
+    /**
+     * Return the current value of the field whose formula is being evaluated
+     * (input translation, input validation). Used by {@code @ThisValue}.
+     * Default: throws {@link ContextNotSupportedException}.
+     */
+    default Object getThisValue() {
+        throw new ContextNotSupportedException("getThisValue");
+    }
+
     // ---- Cross-database lookups ----
 
     /**
-     * Look up values from a view column. Used by {@code @DbLookup}.
+     * Look up values from a view column. Used by {@code @DbLookup} when the
+     * fifth argument is a column number.
      * @param server server name (empty for current)
-     * @param database database path (empty for current)
+     * @param database database path, or replica ID (empty for current)
      * @param view view name
      * @param key lookup key
      * @param column 1-based column number
@@ -182,9 +202,24 @@ public interface FormulaContext {
     }
 
     /**
+     * Look up a field value from the documents matching {@code key}. Used by
+     * {@code @DbLookup} when the fifth argument is a field name.
+     * @param server server name (empty for current)
+     * @param database database path, or replica ID (empty for current)
+     * @param view view name
+     * @param key lookup key
+     * @param fieldName name of the item to read from each matching document
+     * @return list of matching values, or empty list
+     */
+    default java.util.List<Object> dbLookup(String server, String database,
+            String view, Object key, String fieldName) {
+        throw new ContextNotSupportedException("dbLookup");
+    }
+
+    /**
      * Return all values from a view column. Used by {@code @DbColumn}.
      * @param server server name (empty for current)
-     * @param database database path (empty for current)
+     * @param database database path, or replica ID (empty for current)
      * @param view view name
      * @param column 1-based column number
      * @return list of all column values

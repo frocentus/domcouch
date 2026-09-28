@@ -52,7 +52,7 @@ public class FormulaTranslator {
 
     /** Create a translator with the default user ({@code "Anonymous"}). */
     public FormulaTranslator() {
-        this.evaluator = new Evaluator();
+        this.evaluator = new Evaluator(currentUserName);
     }
 
     /**
@@ -72,6 +72,26 @@ public class FormulaTranslator {
     /** @return the current user name used for {@code @UserName} resolution */
     public String getCurrentUserName() {
         return currentUserName.get();
+    }
+
+    /**
+     * Register (or replace) an @Function handler used in evaluation mode.
+     * @see Evaluator#registerFunction(String, FunctionHandler)
+     * @return this translator, for chaining
+     */
+    public FormulaTranslator registerFunction(String name, FunctionHandler handler) {
+        evaluator.registerFunction(name, handler);
+        return this;
+    }
+
+    /** @return true if an @Function with this name is registered for evaluation */
+    public boolean isFunctionRegistered(String name) {
+        return evaluator.isFunctionRegistered(name);
+    }
+
+    /** @return the names (uppercase, without {@code @}) of all @Functions registered for evaluation */
+    public java.util.Set<String> getFunctionNames() {
+        return evaluator.getFunctionNames();
     }
 
     // ---- Query mode (regex-based) ----

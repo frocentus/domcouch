@@ -39,7 +39,7 @@ public class Evaluator {
     /** Create an Evaluator with a shared ThreadLocal for user name. */
     public Evaluator(ThreadLocal<String> currentUserName) {
         this.currentUserName = currentUserName;
-        this.functions = new HashMap<>();
+        this.functions = new java.util.concurrent.ConcurrentHashMap<>();
         registerBuiltins();
     }
 
@@ -330,8 +330,12 @@ public class Evaluator {
         return 0.0;
     }
 
+    /**
+     * Domino truthiness. {@link #ERROR_VALUE} (e.g. from an unknown @Function) is
+     * false, so a failing hide-when or selection formula never hides or selects.
+     */
     public static boolean isTruthy(Object val) {
-        if (val == null) return false;
+        if (val == null || val == ERROR_VALUE) return false;
         if (val instanceof Number n) return n.doubleValue() != 0.0;
         if (val instanceof String s) return !s.isEmpty();
         if (val instanceof Boolean b) return b;
@@ -646,7 +650,34 @@ public class Evaluator {
         };
     }
 
-    // ---- Built-in function registration ----
+    // ---- Function registration ----
+
+    /**
+     * Register (or replace) an @Function handler, e.g. for application-specific
+     * functions like {@code @GetProfileField} or UI functions like {@code @Prompt}.
+     * The name is case-insensitive; a leading {@code @} is optional.
+     *
+     * @return this evaluator, for chaining
+     */
+    public Evaluator registerFunction(String name, FunctionHandler handler) {
+        functions.put(normalizeFunctionName(name), Objects.requireNonNull(handler, "handler"));
+        return this;
+    }
+
+    /** @return true if an @Function with this name (case-insensitive, optional {@code @}) is registered */
+    public boolean isFunctionRegistered(String name) {
+        return functions.containsKey(normalizeFunctionName(name));
+    }
+
+    /** @return the names (uppercase, without {@code @}) of all registered @Functions */
+    public Set<String> getFunctionNames() {
+        return Collections.unmodifiableSet(functions.keySet());
+    }
+
+    private static String normalizeFunctionName(String name) {
+        Objects.requireNonNull(name, "name");
+        return (name.startsWith("@") ? name.substring(1) : name).toUpperCase(Locale.ROOT);
+    }
 
     private void registerBuiltins() {
         MathHandlers.register(functions);
@@ -655,9 +686,12 @@ public class Evaluator {
         MiscHandlers.register(functions);
     }
 
-    /** Exception thrown by @Return to unwind evaluation. */
-    public static class ReturnValue extends RuntimeException {
+    /** Exception thrown by @Return to unwind evaluation (not caught by @IfError). */
+    public static class ReturnValue extends FormulaInterrupt {
         public final Object value;
-        public ReturnValue(Object value) { this.value = value; }
+        public ReturnValue(Object value) {
+            super("@Return");
+            this.value = value;
+        }
     }
 }
