@@ -320,8 +320,18 @@ public final class MiscHandlers {
         functions.put("LANGUAGEPREFERENCE", (ev, args, ctx) -> "EN");
         functions.put("LOCALE", (ev, args, ctx) -> java.util.Locale.getDefault().toString());
         functions.put("KEYWORDS", (ev, args, ctx) -> List.of());
-        functions.put("THISNAME", (ev, args, ctx) -> "");
-        functions.put("THISVALUE", (ev, args, ctx) -> "");
+        functions.put("THISNAME", (ev, args, ctx) -> {
+            try {
+                String name = ctx.getThisName();
+                return name != null ? name : "";
+            } catch (ContextNotSupportedException e) { return ""; }
+        });
+        functions.put("THISVALUE", (ev, args, ctx) -> {
+            try {
+                Object value = ctx.getThisValue();
+                return value != null ? value : "";
+            } catch (ContextNotSupportedException e) { return ""; }
+        });
         functions.put("URLQUERYSTRING", (ev, args, ctx) -> "");
         functions.put("V3USERNAME", (ev, args, ctx) -> ev.getCurrentUserName());
         functions.put("V4USERACCESS", (ev, args, ctx) -> ctx.getUserAccessLevel());
@@ -669,23 +679,28 @@ public final class MiscHandlers {
         });
 
         // ---- Cross-database lookups ----
+        // @DbLookup(class:cache; server:database; view; key; column|fieldName [; keywords])
         functions.put("DBLOOKUP", (ev, args, ctx) -> {
-            String server = args.size() > 0 ? Evaluator.convertToString(ev.eval(args.get(0), ctx)) : "";
-            String database = args.size() > 1 ? Evaluator.convertToString(ev.eval(args.get(1), ctx)) : "";
+            String[] serverDb = serverAndDatabase(ev, args, ctx);
             String view = args.size() > 2 ? Evaluator.convertToString(ev.eval(args.get(2), ctx)) : "";
             Object key = args.size() > 3 ? ev.eval(args.get(3), ctx) : "";
-            int column = args.size() > 4 ? (int) Evaluator.toNumber(ev.eval(args.get(4), ctx)) : 1;
+            Object column = args.size() > 4 ? ev.eval(args.get(4), ctx) : 1.0;
+            boolean failSilent = hasKeyword(ev, args, 5, ctx, "FAILSILENT");
             try {
-                return new java.util.ArrayList<>(ctx.dbLookup(server, database, view, key, column));
+                List<Object> result = isColumnNumber(column)
+                        ? ctx.dbLookup(serverDb[0], serverDb[1], view, key, (int) Evaluator.toNumber(column))
+                        : ctx.dbLookup(serverDb[0], serverDb[1], view, key, Evaluator.convertToString(column));
+                if (result.isEmpty() && failSilent) return "";
+                return new java.util.ArrayList<>(result);
             } catch (ContextNotSupportedException e) { return ""; }
         });
+        // @DbColumn(class:cache; server:database; view; column)
         functions.put("DBCOLUMN", (ev, args, ctx) -> {
-            String server = args.size() > 0 ? Evaluator.convertToString(ev.eval(args.get(0), ctx)) : "";
-            String database = args.size() > 1 ? Evaluator.convertToString(ev.eval(args.get(1), ctx)) : "";
+            String[] serverDb = serverAndDatabase(ev, args, ctx);
             String view = args.size() > 2 ? Evaluator.convertToString(ev.eval(args.get(2), ctx)) : "";
             int column = args.size() > 3 ? (int) Evaluator.toNumber(ev.eval(args.get(3), ctx)) : 1;
             try {
-                return new java.util.ArrayList<>(ctx.dbColumn(server, database, view, column));
+                return new java.util.ArrayList<>(ctx.dbColumn(serverDb[0], serverDb[1], view, column));
             } catch (ContextNotSupportedException e) { return ""; }
         });
 
@@ -705,5 +720,33 @@ public final class MiscHandlers {
 
         // @DbManager — returns list of Manager-level names from ACL
         functions.put("DBMANAGER", (ev, args, ctx) -> ctx.getManagerNames());
+    }
+
+    // ---- @DbLookup / @DbColumn argument helpers ----
+
+    /**
+     * Split the second argument ({@code server:database}) into {@code [server, database]}.
+     * A single value is a database path or replica ID on the current server;
+     * {@code ""} means the current database.
+     */
+    private static String[] serverAndDatabase(Evaluator ev, List<Expr> args, FormulaContext ctx) {
+        if (args.size() < 2) return new String[] {"", ""};
+        List<Object> parts = Evaluator.toList(ev.eval(args.get(1), ctx));
+        if (parts.size() >= 2)
+            return new String[] {Evaluator.convertToString(parts.get(0)), Evaluator.convertToString(parts.get(1))};
+        return new String[] {"", parts.isEmpty() ? "" : Evaluator.convertToString(parts.get(0))};
+    }
+
+    /** True if the optional keyword argument at {@code index} contains {@code keyword} (e.g. [FailSilent]). */
+    private static boolean hasKeyword(Evaluator ev, List<Expr> args, int index, FormulaContext ctx, String keyword) {
+        if (args.size() <= index) return false;
+        return Evaluator.toList(ev.eval(args.get(index), ctx)).stream()
+                .anyMatch(k -> keyword.equalsIgnoreCase(Evaluator.convertToString(k)));
+    }
+
+    /** A column argument is a number (or numeric text); anything else is a field name. */
+    private static boolean isColumnNumber(Object column) {
+        return column instanceof Number
+                || (column instanceof String s && Evaluator.isNumeric(s.trim()));
     }
 }

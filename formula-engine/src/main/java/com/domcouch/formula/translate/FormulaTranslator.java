@@ -74,6 +74,21 @@ public class FormulaTranslator {
         return currentUserName.get();
     }
 
+    /**
+     * Register (or replace) an @Function handler used in evaluation mode.
+     * @see Evaluator#registerFunction(String, FunctionHandler)
+     * @return this translator, for chaining
+     */
+    public FormulaTranslator registerFunction(String name, FunctionHandler handler) {
+        evaluator.registerFunction(name, handler);
+        return this;
+    }
+
+    /** @return true if an @Function with this name is registered for evaluation */
+    public boolean isFunctionRegistered(String name) {
+        return evaluator.isFunctionRegistered(name);
+    }
+
     // ---- Query mode (regex-based) ----
 
     /**
