@@ -105,18 +105,18 @@ public final class Lexer {
                 i++;
 
                 String ct = content.toString().trim();
+                boolean identifier = ct.matches("[A-Za-z][A-Za-z0-9]*");
                 if (BRACKET_KEYWORDS.contains(ct.toUpperCase())) {
                     tokens.add(new Token(TokenType.KEYWORD, ct.toUpperCase(), start));
                 }
-                else if (ct.matches("[A-Za-z]")) {
-                    // Single letter: emit [ VARIABLE ] for subscript support (e.g., items[n])
+                else if (identifier && endsValue(tokens)) {
+                    // After a value it is a subscript with a variable index: items[n], items[idx]
                     tokens.add(new Token(TokenType.OPERATOR, "[", start));
                     tokens.add(new Token(TokenType.VARIABLE, ct.toUpperCase(), start + 1));
                     tokens.add(new Token(TokenType.OPERATOR, "]", start + ct.length() + 1));
                 }
-                else if (ct.matches("[A-Za-z][A-Za-z]*")) {
-                    // Multi-letter: treat as keyword (known Domino keywords)
-                    // For subscript with multi-letter index, assign to temp: idx := n; items[idx]
+                else if (identifier) {
+                    // Otherwise a keyword argument: [FileSave], [Ok], @Name([O]; ...), @Name([OU1]; ...)
                     tokens.add(new Token(TokenType.KEYWORD, ct.toUpperCase(), start));
                 }
                 else if (ct.matches("[+-]?\\d+")) {
@@ -140,10 +140,7 @@ public final class Lexer {
 
             // Numbers (only sign-prefixed at start of term, not after a value)
             if (c == '+' || c == '-' || c == '.' || Character.isDigit(c)) {
-                boolean afterValue = !tokens.isEmpty() && switch (tokens.getLast().type()) {
-                    case VARIABLE, CONST_NUMBER, CONST_STRING, CONST_DATETIME, RPAREN -> true;
-                    default -> false;
-                };
+                boolean afterValue = endsValue(tokens);
                 // Sign after a value is an operator, not a number prefix
                 if ((c == '+' || c == '-') && afterValue) {
                     tokens.add(new Token(TokenType.OPERATOR, String.valueOf(c), i));
@@ -254,6 +251,20 @@ public final class Lexer {
             } else { sb.append(c); i++; }
         }
         throw new FormulaParseException(4501, "Unclosed string at " + start, start);
+    }
+
+    /**
+     * True if the last token ends a value, so a following {@code [} is a subscript
+     * ({@code items[n]}, {@code @Explode(x)[2]}) and a following sign is an operator.
+     */
+    private static boolean endsValue(List<Token> tokens) {
+        if (tokens.isEmpty()) return false;
+        Token last = tokens.getLast();
+        return switch (last.type()) {
+            case VARIABLE, CONST_NUMBER, CONST_STRING, CONST_DATETIME, RPAREN -> true;
+            case OPERATOR -> "]".equals(last.lexeme());
+            default -> false;
+        };
     }
 
     private static Token tryReadNumber(String input, int start) {

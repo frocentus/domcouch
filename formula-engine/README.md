@@ -297,6 +297,31 @@ built-in state. They work with any `FormulaContext`, including `null`.
 
 `@Adjust`, `@BusinessDays`, `@Zone`
 
+### Time-date values and regional formats
+
+Date functions return a `DateTimeValue`: date and time (`@Now`), date only (`@Today`,
+`@Tomorrow`, `@Yesterday`, `@Date(y; m; d)`) or time only (`@Time(h; m; s)`), as in Notes.
+
+- Comparison is chronological (`Datum < @Today`); text on the other side is parsed.
+- `date - date` is the difference in seconds; `date + n` / `date - n` shifts by `n` seconds.
+- `@Adjust` keeps the kind: a date-only value stays date only.
+- As text (`@Text`, `"..." + @Text(...)`, `Evaluator.convertToString`) it uses the formats
+  of `DateFormats.getDefault()`, without the part it doesn't have. The default `DateFormats.US`
+  is the historic `MM/dd/yyyy hh:mm:ss a`; `@Text(...; "D0")` etc. use the same patterns.
+
+```java
+DateFormats.setDefault(DateFormats.of(Locale.forLanguageTag("de-AT")));   // once, at startup
+translator.evaluate("@Text(@Date(2024; 3; 15))", ctx);                    // "15.03.2024"
+translator.evaluate("\"am \" + @Text(@Now)", ctx);                          // "am 28.09.2026 14:45:43"
+```
+
+Text is parsed in the default formats first, then ISO-8601 and the US formats, so stored
+values stay readable after a locale change. Hosts pass dates in as `DateTimeValue.ofDate(LocalDate)`,
+`DateTimeValue.of(LocalDateTime)` or `DateTimeValue.of(ZonedDateTime)`, and store them with
+`toIso()` (`2024-03-15`, `10:20:00`, `2024-03-15T10:20:00+01:00`), which `DateTimeValue.from`
+reads back as the same kind of value. The default formats are JVM-wide, like the regional
+settings of a Notes client or server.
+
 ### Type Conversion (5)
 
 `@Text`, `@TextToNumber`, `@ToNumber`, `@TextToTime`, `@ToTime`

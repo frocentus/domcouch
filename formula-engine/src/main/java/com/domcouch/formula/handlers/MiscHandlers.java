@@ -25,7 +25,7 @@ public final class MiscHandlers {
                 if (o instanceof Number n && fmt != null && !fmt.isEmpty())
                     r.add(Evaluator.formatNumber(n.doubleValue(), fmt));
                 else if (fmt != null && !fmt.isEmpty() && (fmt.startsWith("D") || fmt.startsWith("T") || fmt.startsWith("S")))
-                    r.add(Evaluator.formatDate(Evaluator.convertToString(o), fmt));
+                    r.add(Evaluator.formatDate(o, fmt));
                 else r.add(Evaluator.convertToString(o));
             }
             return r.size() == 1 ? r.getFirst() : r;
@@ -288,7 +288,7 @@ public final class MiscHandlers {
             List<Object> s = Evaluator.toList(ev.eval(args.getFirst(), ctx));
             for (Object o : s) {
                 if (o instanceof Number) return 0.0;
-                if (Evaluator.parseDateToZoned(Evaluator.convertToString(o)) == null) return 0.0;
+                if (DateTimeValue.from(o) == null) return 0.0;
             }
             return 1.0;
         });
@@ -296,8 +296,8 @@ public final class MiscHandlers {
             List<Object> s = Evaluator.toList(ev.eval(args.getFirst(), ctx));
             List<Object> r = new ArrayList<>();
             for (Object o : s) {
-                java.time.ZonedDateTime z = Evaluator.parseDateToZoned(Evaluator.convertToString(o));
-                r.add(z == null ? "" : Evaluator.DT_FMT.format(z));
+                DateTimeValue z = DateTimeValue.from(o);
+                r.add(z == null ? "" : z);
             }
             return r.size() == 1 ? r.getFirst() : r;
         });
@@ -312,8 +312,8 @@ public final class MiscHandlers {
             List<Object> s = Evaluator.toList(ev.eval(args.getFirst(), ctx));
             List<Object> r = new ArrayList<>();
             for (Object o : s) {
-                java.time.ZonedDateTime z = Evaluator.parseDateToZoned(Evaluator.convertToString(o));
-                r.add(z == null ? "" : Evaluator.DT_FMT.format(z));
+                DateTimeValue z = DateTimeValue.from(o);
+                r.add(z == null ? "" : z);
             }
             return r.size() == 1 ? r.getFirst() : r;
         });

@@ -169,9 +169,9 @@ public class CouchbaseDocument implements Document {
         String normalizedName = name.toUpperCase();
         CouchbaseItem item;
         if (value instanceof Vector<?> v) {
-            item = new CouchbaseItem(normalizedName, inferType(v), new ArrayList<>(v));
+            item = new CouchbaseItem(normalizedName, inferType(v), new ArrayList<>(v.stream().map(CouchbaseDocument::storable).toList()));
         } else {
-            item = new CouchbaseItem(normalizedName, inferType(value), value);
+            item = new CouchbaseItem(normalizedName, inferType(value), storable(value));
         }
         item.setParent(this);
         items.put(normalizedName, List.of(item));
@@ -727,7 +727,13 @@ public class CouchbaseDocument implements Document {
     private static int inferType(Object val) {
         if (val == null) return Item.TEXT;
         if (val instanceof Number) return Item.NUMBERS;
-        if (val instanceof Date || val instanceof DateTime || val instanceof Instant) return Item.DATETIMES;
+        if (val instanceof Date || val instanceof DateTime || val instanceof Instant
+                || val instanceof com.domcouch.formula.DateTimeValue) return Item.DATETIMES;
         return Item.TEXT;
+    }
+
+    /** Formula time-dates (e.g. computed fields) are stored as ISO-8601 text; formulas read them back as time-dates. */
+    private static Object storable(Object val) {
+        return val instanceof com.domcouch.formula.DateTimeValue dt ? dt.toIso() : val;
     }
 }
