@@ -68,6 +68,8 @@ class EmbeddingApiTest extends BaseFormulaTest {
         void translator() {
             var tr = new FormulaTranslator().registerFunction("Prompt", (ev, args, ctx) -> 1.0);
             assertTrue(tr.isFunctionRegistered("@Prompt"));
+            assertTrue(tr.getFunctionNames().contains("PROMPT"));
+            assertTrue(tr.getFunctionNames().contains("TRIM"));
             assertEquals(1.0, tr.evaluate("@Prompt([Ok]; \"T\"; \"M\")", ctx()));
         }
 

@@ -89,6 +89,11 @@ public class FormulaTranslator {
         return evaluator.isFunctionRegistered(name);
     }
 
+    /** @return the names (uppercase, without {@code @}) of all @Functions registered for evaluation */
+    public java.util.Set<String> getFunctionNames() {
+        return evaluator.getFunctionNames();
+    }
+
     // ---- Query mode (regex-based) ----
 
     /**

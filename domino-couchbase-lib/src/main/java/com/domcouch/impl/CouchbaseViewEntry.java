@@ -73,11 +73,17 @@ public class CouchbaseViewEntry implements ViewEntry {
         return columnValues.get(index);
     }
 
+    /**
+     * Like {@code lotus.domino.ViewEntry.getDocument()}, always returns the complete
+     * document. The cached query row is only reused when it contains the items
+     * ({@code SELECT doc.*}); views with explicit columns select just {@code unid} and
+     * the column aliases, so the document is loaded by UNID.
+     */
     @Override
     public Document getDocument() {
         if (isCategory()) return null;
         try {
-            if (rawDoc != null) {
+            if (rawDoc != null && rawDoc.containsKey("items")) {
                 return new CouchbaseDocument(parentView.getDatabase(), rawDoc);
             }
             return parentView.getDatabase().getDocumentByUNID(unid);
