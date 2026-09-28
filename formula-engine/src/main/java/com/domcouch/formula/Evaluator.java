@@ -686,9 +686,12 @@ public class Evaluator {
         MiscHandlers.register(functions);
     }
 
-    /** Exception thrown by @Return to unwind evaluation. */
-    public static class ReturnValue extends RuntimeException {
+    /** Exception thrown by @Return to unwind evaluation (not caught by @IfError). */
+    public static class ReturnValue extends FormulaInterrupt {
         public final Object value;
-        public ReturnValue(Object value) { this.value = value; }
+        public ReturnValue(Object value) {
+            super("@Return");
+            this.value = value;
+        }
     }
 }

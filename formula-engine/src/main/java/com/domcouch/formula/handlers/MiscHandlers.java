@@ -278,6 +278,8 @@ public final class MiscHandlers {
         functions.put("IFERROR", (ev, args, ctx) -> {
             try {
                 return ev.eval(args.getFirst(), ctx);
+            } catch (FormulaInterrupt interrupt) {
+                throw interrupt; // @Return / host interrupts are control flow, not errors
             } catch (Exception e) {
                 return args.size() > 1 ? ev.eval(args.get(1), ctx) : "";
             }
@@ -494,7 +496,16 @@ public final class MiscHandlers {
                 return List.of(e.getMessage(), "1", String.valueOf(e.position + 1), "1", String.valueOf(e.position + 1), "1", f);
             }
         });
-        functions.put("EVAL", (ev, args, ctx) -> ev.evalExpr(Evaluator.convertToString(ev.eval(args.getFirst(), ctx)), ctx));
+        functions.put("EVAL", (ev, args, ctx) -> {
+            String formula = Evaluator.convertToString(ev.eval(args.getFirst(), ctx));
+            // evalExpr starts a fresh temp scope and removes it afterwards; keep the caller's
+            var callerScope = ev.tempScope.get();
+            try {
+                return ev.evalExpr(formula, ctx);
+            } finally {
+                ev.tempScope.set(callerScope);
+            }
+        });
         functions.put("WHILE", (ev, args, ctx) -> {
             while (Evaluator.isTruthy(ev.eval(args.getFirst(), ctx)))
                 for (int i = 1; i < args.size(); i++) ev.eval(args.get(i), ctx);

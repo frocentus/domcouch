@@ -586,6 +586,26 @@ name replaces the built-in. Register handlers at startup, before evaluating.
 An unknown @Function evaluates to `Evaluator.ERROR_VALUE`, which
 `Evaluator.isTruthy()` treats as **false**, so a broken hide-when never hides.
 
+### Interrupts: pausing a formula for UI input
+
+A handler can throw a subclass of `FormulaInterrupt` to unwind the whole evaluation.
+Unlike errors, interrupts are never caught by `@IfError` (`@Return` is one too). A web UI
+uses this for `@Prompt` or `@PickList`: pause at the first unanswered call, show a
+dialog, then evaluate the formula again, with answered calls returning the stored answer:
+
+```java
+class NeedsInput extends FormulaInterrupt {
+    NeedsInput() { super("waiting for @Prompt"); }
+}
+translator.registerFunction("@Prompt", (ev, args, ctx) -> {
+    if (nextAnswer < answers.size()) return answers.get(nextAnswer++);
+    throw new NeedsInput();          // caller shows the dialog, adds the answer, re-evaluates
+});
+```
+
+Side effects (`FIELD`, `@SetField`, `@Command`) should be buffered by the context until
+the evaluation completes, so that replaying the formula doesn't apply them twice.
+
 ### Referenced fields
 
 `CompiledFormula` lists what a formula depends on, so a UI can re-evaluate a

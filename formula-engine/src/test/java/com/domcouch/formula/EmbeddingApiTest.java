@@ -86,6 +86,67 @@ class EmbeddingApiTest extends BaseFormulaTest {
         }
     }
 
+    @Nested @DisplayName("FormulaInterrupt")
+    class Interrupts {
+        /** Host signal, e.g. "wait for the user to answer @Prompt". */
+        static class NeedsInput extends FormulaInterrupt {
+            final String title;
+            NeedsInput(String title) { super("needs input"); this.title = title; }
+        }
+
+        private final FormulaTranslator tr = new FormulaTranslator();
+
+        @Test @DisplayName("@Return inside @IfError returns instead of being swallowed")
+        void returnInsideIfError() {
+            String f = "@IfError(@Return(\"returned\"); \"swallowed\"); \"continued\"";
+            assertEquals("returned", tr.evaluate(f, ctx()));
+            assertEquals("returned", tr.evaluate(tr.compile(f), ctx()));
+        }
+
+        @Test @DisplayName("host interrupt passes through @IfError, @If, @Do and @For")
+        void hostInterruptPropagates() {
+            tr.registerFunction("Prompt", (ev, args, c) -> {
+                throw new NeedsInput(Evaluator.convertToString(ev.eval(args.get(1), c)));
+            });
+            String f = "@IfError(@If(1; @Do(@For(i := 1; i < 2; i := i + 1; @Prompt([Ok]; \"Titel\"; \"Text\"))); 0); \"swallowed\")";
+            NeedsInput thrown = assertThrows(NeedsInput.class, () -> tr.evaluate(f, ctx()));
+            assertEquals("Titel", thrown.title);
+        }
+
+        @Test @DisplayName("replay: pause at @Prompt, answer, evaluate again")
+        void replay() {
+            java.util.List<Object> answers = new java.util.ArrayList<>();
+            int[] call = {0};
+            tr.registerFunction("Prompt", (ev, args, c) -> {
+                int n = call[0]++;
+                if (n < answers.size()) return answers.get(n);
+                throw new NeedsInput(Evaluator.convertToString(ev.eval(args.get(1), c)));
+            });
+            CompiledFormula f = tr.compile(
+                    "a := @Prompt([OkCancelEdit]; \"Erste\"; \"\"; \"\"); b := @Prompt([OkCancelEdit]; \"Zweite\"; \"\"; \"\"); a + \"/\" + b");
+
+            java.util.List<String> dialogs = new java.util.ArrayList<>();
+            Object result = null;
+            while (result == null) {
+                call[0] = 0;
+                try {
+                    result = tr.evaluate(f, ctx());
+                } catch (NeedsInput pause) {
+                    dialogs.add(pause.title);
+                    answers.add("Antwort " + answers.size());   // the user answers the dialog
+                }
+            }
+            assertEquals(java.util.List.of("Erste", "Zweite"), dialogs);
+            assertEquals("Antwort 0/Antwort 1", result);
+        }
+
+        @Test @DisplayName("@Eval keeps the caller's temporary variables")
+        void evalKeepsTempScope() {
+            assertEquals("keep", tr.evaluate("x := \"keep\"; @Eval(\"1 + 1\"); x", ctx()));
+            assertEquals("keep", tr.evaluate(tr.compile("x := \"keep\"; @Eval(\"1 + 1\"); x"), ctx()));
+        }
+    }
+
     @Nested @DisplayName("Error truthiness")
     class ErrorTruthiness {
         @Test @DisplayName("ERROR_VALUE is falsy (failing hide-when does not hide)")
