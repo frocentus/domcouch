@@ -147,6 +147,30 @@ class EmbeddingApiTest extends BaseFormulaTest {
         }
     }
 
+    @Nested @DisplayName("Bracket keywords vs. subscripts")
+    class BracketKeywords {
+        private static final String NAME = "\"CN=Anna Muster/OU=Abt5/OU=Land/O=Bgld/C=AT\"";
+
+        @Test @DisplayName("keyword with digits: @Name([OU1]; ...)")
+        void keywordWithDigits() {
+            assertEquals("Abt5", eval("@Name([OU1]; " + NAME + ")"));
+            assertEquals("Land", eval("@Name([OU2]; " + NAME + ")"));
+        }
+
+        @Test @DisplayName("single-letter keyword: @Name([O]; ...), @Name([C]; ...)")
+        void singleLetterKeyword() {
+            assertEquals("Bgld", eval("@Name([O]; " + NAME + ")"));
+            assertEquals("AT", eval("@Name([C]; " + NAME + ")"));
+        }
+
+        @Test @DisplayName("after a value it is still a subscript: x[i], x[idx], @Explode(s)[2]")
+        void subscripts() {
+            assertEquals("b", eval("x := \"a\":\"b\":\"c\"; i := 2; x[i]"));
+            assertEquals("c", eval("x := \"a\":\"b\":\"c\"; idx := 3; x[idx]"));
+            assertEquals("b", eval("@Explode(\"a b c\"; \" \")[2]"));
+        }
+    }
+
     @Nested @DisplayName("Error truthiness")
     class ErrorTruthiness {
         @Test @DisplayName("ERROR_VALUE is falsy (failing hide-when does not hide)")
