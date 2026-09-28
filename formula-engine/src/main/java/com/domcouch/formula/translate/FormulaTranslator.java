@@ -52,7 +52,7 @@ public class FormulaTranslator {
 
     /** Create a translator with the default user ({@code "Anonymous"}). */
     public FormulaTranslator() {
-        this.evaluator = new Evaluator();
+        this.evaluator = new Evaluator(currentUserName);
     }
 
     /**

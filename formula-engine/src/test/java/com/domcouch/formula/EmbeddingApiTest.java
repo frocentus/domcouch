@@ -71,6 +71,13 @@ class EmbeddingApiTest extends BaseFormulaTest {
             assertEquals(1.0, tr.evaluate("@Prompt([Ok]; \"T\"; \"M\")", ctx()));
         }
 
+        @Test @DisplayName("setCurrentUserName reaches @UserName (no-arg constructor)")
+        void userNameNoArgConstructor() {
+            var tr = new FormulaTranslator();
+            tr.setCurrentUserName("Bob");
+            assertEquals("Bob", tr.evaluate("@UserName", ctx()));
+        }
+
         @Test @DisplayName("unknown @Function is not registered")
         void unknown() {
             assertFalse(evaluator.isFunctionRegistered("@NoSuchFunction"));
@@ -101,6 +108,13 @@ class EmbeddingApiTest extends BaseFormulaTest {
         void fieldAssign() {
             CompiledFormula cf = tr.compile("FIELD Status := @UpperCase(Code)");
             assertEquals(Set.of("STATUS", "CODE"), cf.referencedFields());
+        }
+
+        @Test @DisplayName("unary ! and - operands are collected")
+        void unaryOperators() {
+            CompiledFormula cf = tr.compile("!(@UserRoles *= \"[Designer]\") & -Amount < 0");
+            assertEquals(Set.of("AMOUNT"), cf.referencedFields());
+            assertEquals(Set.of("USERROLES"), cf.referencedFunctions());
         }
 
         @Test @DisplayName("constant formula has no references")

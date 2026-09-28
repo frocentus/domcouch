@@ -51,6 +51,7 @@ public final class CompiledFormula {
     public Set<String> referencedFunctions() { return referencedFunctions; }
 
     private static void collect(Expr expr, Set<String> vars, Set<String> temps, Set<String> fns) {
+        if (expr == null) return; // unary operators are BinaryOp(null, op, operand)
         switch (expr) {
             case Expr.Variable v -> vars.add(v.name());
             case Expr.FunctionCall fc -> {
