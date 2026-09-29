@@ -35,6 +35,27 @@ class DateTimeValueTest extends BaseFormulaTest {
             assertEquals(1.0, eval("@Today > @Yesterday & @Today < @Tomorrow"));
         }
 
+        @Test @DisplayName("a time-date compared with an empty field: only != is true")
+        void comparedWithEmptyText() {
+            vars.put("GUELTIGBIS", "");
+            assertEquals(0.0, eval("GueltigBis < @Today"), "empty GültigBis is not 'expired' (view Nach Gesetz ALT)");
+            assertEquals(0.0, eval("GueltigBis >= @Today"));
+            assertEquals(0.0, eval("@Today = \"\""));
+            assertEquals(1.0, eval("@Today != \"\""), "field not empty");
+            assertEquals(1.0, eval("GueltigBis = \"\""), "text = text still works");
+            vars.put("GUELTIGBIS", DateTimeValue.ofDate(LocalDate.of(2020, 1, 1)));
+            assertEquals(1.0, eval("GueltigBis < @Today"));
+            assertEquals(0.0, eval("GueltigBis = \"\""));
+            assertEquals(1.0, eval("GueltigBis != \"\""));
+        }
+
+        @Test @DisplayName("@Created without a value in the context is \"\", not null")
+        void createdMissing() {
+            vars.remove("CREATED");
+            assertEquals("", eval("@Created"));
+            assertEquals(0.0, eval("@Created >= @Today"), "no NullPointerException in a view selection");
+        }
+
         @Test @DisplayName("date - date = seconds, date ± number adds seconds")
         void arithmetic() {
             assertEquals(86400.0, eval("@Date(2024; 3; 16) - @Date(2024; 3; 15)"));
