@@ -158,24 +158,24 @@ public class Evaluator {
             case "-" -> pairwise(left, right, Evaluator::subtract);
             case "*" -> pairwise(left, right, Evaluator::multiply);
             case "/" -> pairwise(left, right, Evaluator::divide);
-            case "=" -> boolToNum(anyPairwise(left, right, (a, b) -> compare(a, b) == 0));
-            case "<>", "!=", "><" -> boolToNum(anyPairwise(left, right, (a, b) -> compare(a, b) != 0));
-            case ">" -> boolToNum(anyPairwise(left, right, (a, b) -> compare(a, b) > 0));
-            case "<" -> boolToNum(anyPairwise(left, right, (a, b) -> compare(a, b) < 0));
-            case ">=" -> boolToNum(anyPairwise(left, right, (a, b) -> compare(a, b) >= 0));
-            case "<=" -> boolToNum(anyPairwise(left, right, (a, b) -> compare(a, b) <= 0));
+            case "=" -> boolToNum(anyPairwise(left, right, (a, b) -> compared(a, b, c -> c == 0, false)));
+            case "<>", "!=", "><" -> boolToNum(anyPairwise(left, right, (a, b) -> compared(a, b, c -> c != 0, true)));
+            case ">" -> boolToNum(anyPairwise(left, right, (a, b) -> compared(a, b, c -> c > 0, false)));
+            case "<" -> boolToNum(anyPairwise(left, right, (a, b) -> compared(a, b, c -> c < 0, false)));
+            case ">=" -> boolToNum(anyPairwise(left, right, (a, b) -> compared(a, b, c -> c >= 0, false)));
+            case "<=" -> boolToNum(anyPairwise(left, right, (a, b) -> compared(a, b, c -> c <= 0, false)));
 
             // Permuted operators
             case "*+" -> permuted(left, right, Evaluator::add);
             case "*-" -> permuted(left, right, Evaluator::subtract);
             case "**" -> permuted(left, right, Evaluator::multiply);
             case "*/" -> permuted(left, right, Evaluator::divide);
-            case "*>" -> boolToNum(anyPermuted(left, right, (a, b) -> compare(a, b) > 0));
-            case "*<" -> boolToNum(anyPermuted(left, right, (a, b) -> compare(a, b) < 0));
-            case "*>=" -> boolToNum(anyPermuted(left, right, (a, b) -> compare(a, b) >= 0));
-            case "*<=" -> boolToNum(anyPermuted(left, right, (a, b) -> compare(a, b) <= 0));
-            case "*=" -> boolToNum(anyPermuted(left, right, (a, b) -> compare(a, b) == 0));
-            case "*!=" -> boolToNum(anyPermuted(left, right, (a, b) -> compare(a, b) != 0));
+            case "*>" -> boolToNum(anyPermuted(left, right, (a, b) -> compared(a, b, c -> c > 0, false)));
+            case "*<" -> boolToNum(anyPermuted(left, right, (a, b) -> compared(a, b, c -> c < 0, false)));
+            case "*>=" -> boolToNum(anyPermuted(left, right, (a, b) -> compared(a, b, c -> c >= 0, false)));
+            case "*<=" -> boolToNum(anyPermuted(left, right, (a, b) -> compared(a, b, c -> c <= 0, false)));
+            case "*=" -> boolToNum(anyPermuted(left, right, (a, b) -> compared(a, b, c -> c == 0, false)));
+            case "*!=" -> boolToNum(anyPermuted(left, right, (a, b) -> compared(a, b, c -> c != 0, true)));
 
             case "&" -> boolToNum(isTruthy(left) && isTruthy(right));
             case "|" -> boolToNum(isTruthy(left) || isTruthy(right));
@@ -320,6 +320,20 @@ public class Evaluator {
         double r = toNumber(right);
         if (r == 0.0) return 0.0;
         return toNumber(left) / r;
+    }
+
+    /**
+     * A comparison operator: {@code test} on the result of {@link #compare}, or {@code mismatch} when
+     * a time-date is compared with something that is no time-date (e.g. an empty field {@code ""}).
+     * As in Notes, {@code GültigBis < @Today} is not true for an empty GültigBis, while
+     * {@code GültigBis = ""} / {@code GültigBis != ""} keep their meaning (false / true for a date).
+     */
+    private static boolean compared(Object left, Object right, java.util.function.IntPredicate test, boolean mismatch) {
+        if (left instanceof DateTimeValue || right instanceof DateTimeValue) {
+            DateTimeValue a = DateTimeValue.from(left), b = DateTimeValue.from(right);
+            if (a == null || b == null) return mismatch;
+        }
+        return test.test(compare(left, right));
     }
 
     private static int compare(Object left, Object right) {

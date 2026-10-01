@@ -15,6 +15,11 @@ import java.util.List;
 public final class DateTimeHandlers {
     private DateTimeHandlers() {}
 
+    /** A context without the value (e.g. a new document without @Created) gives "", not null. */
+    private static Object orEmpty(Object value) {
+        return value == null ? "" : value;
+    }
+
     public static void register(java.util.Map<String, FunctionHandler> functions) {
         functions.put("BUSINESSDAYS", (ev, args, ctx) -> {
             Object starts = ev.eval(args.get(0), ctx), ends = ev.eval(args.get(1), ctx);
@@ -49,10 +54,10 @@ public final class DateTimeHandlers {
             for (Object src : sources) { java.time.ZonedDateTime zdt = Evaluator.toZoned(src); result.add(zdt != null ? DateTimeValue.ofDate(zdt.toLocalDate()) : ""); }
             return result.size() == 1 ? result.getFirst() : result;
         });
-        functions.put("CREATED", (ev, args, ctx) -> ctx.resolve("CREATED"));
-        functions.put("MODIFIED", (ev, args, ctx) -> ctx.resolve("MODIFIED"));
-        functions.put("ACCESSED", (ev, args, ctx) -> ctx.resolve("ACCESSED"));
-        functions.put("ADDEDTOTHISFILE", (ev, args, ctx) -> ctx.resolve("ADDEDTOTHISFILE"));
+        functions.put("CREATED", (ev, args, ctx) -> orEmpty(ctx.resolve("CREATED")));
+        functions.put("MODIFIED", (ev, args, ctx) -> orEmpty(ctx.resolve("MODIFIED")));
+        functions.put("ACCESSED", (ev, args, ctx) -> orEmpty(ctx.resolve("ACCESSED")));
+        functions.put("ADDEDTOTHISFILE", (ev, args, ctx) -> orEmpty(ctx.resolve("ADDEDTOTHISFILE")));
         functions.put("NOW", (ev, args, ctx) -> DateTimeValue.now());
         functions.put("TODAY", (ev, args, ctx) -> DateTimeValue.ofDate(java.time.LocalDate.now()));
         functions.put("ADJUST", (ev, args, ctx) -> {
