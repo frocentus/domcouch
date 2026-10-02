@@ -30,4 +30,13 @@ class OperatorsTest extends BaseFormulaTest {
         @Test @DisplayName("eq A:B:C *= B:C:A") void eq1() { assertEquals(1.0, eval("\"A\":\"B\":\"C\" *= \"B\":\"C\":\"A\"")); }
         @Test @DisplayName("eq 1:2:3 *= 4:5") void eq0() { assertEquals(0.0, eval("1:2:3 *= 4:5")); }
     }
+    @Nested @DisplayName("Empty lists (e.g. @UserRoles without roles) count as \"\"")
+    class EmptyListTests {
+        @Test @DisplayName("@UserRoles != \"[x]\" without roles") void userRoles() { assertEquals(1.0, eval("@UserRoles != \"[MailSenden]\"")); assertEquals(0.0, eval("@UserRoles = \"[MailSenden]\"")); }
+        @Test @DisplayName("Roles != \"[x]\" with no roles") void notEqual() { vars.put("Roles", List.of()); assertEquals(1.0, eval("Roles != \"[Erfasser]\"")); }
+        @Test @DisplayName("Roles = \"[x]\" with no roles") void equal() { vars.put("Roles", List.of()); assertEquals(0.0, eval("Roles = \"[Erfasser]\"")); }
+        @Test @DisplayName("Roles = \"\" with no roles") void equalEmpty() { vars.put("Roles", List.of()); assertEquals(1.0, eval("Roles = \"\"")); }
+        @Test @DisplayName("Roles + \"!\" with no roles") void concat() { vars.put("Roles", List.of()); assertEquals("!", eval("Roles + \"!\"")); }
+        @Test @DisplayName("Roles *= \"[x]\" with no roles") void permuted() { vars.put("Roles", List.of()); assertEquals(0.0, eval("Roles *= \"[Erfasser]\"")); assertEquals(1.0, eval("Roles *!= \"[Erfasser]\"")); }
+    }
 }

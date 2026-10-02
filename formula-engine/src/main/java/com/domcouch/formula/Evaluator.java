@@ -189,10 +189,19 @@ public class Evaluator {
     @FunctionalInterface
     interface BinaryOp { Object apply(Object a, Object b); }
 
+    /**
+     * An operand's elements. Notes has no empty lists: a list without elements (e.g. {@code @UserRoles}
+     * of a user without roles) is the empty string, so {@code @UserRoles != "[x]"} is true.
+     */
+    static List<Object> operand(Object val) {
+        List<Object> list = toList(val);
+        return list.isEmpty() ? List.of("") : list;
+    }
+
     /** Pair-wise: element-by-element, repeat last of shorter list. */
     static Object pairwise(Object left, Object right, BinaryOp op) {
-        List<Object> l1 = toList(left);
-        List<Object> l2 = toList(right);
+        List<Object> l1 = operand(left);
+        List<Object> l2 = operand(right);
         int size = Math.max(l1.size(), l2.size());
         List<Object> result = new ArrayList<>();
         for (int i = 0; i < size; i++) {
@@ -205,8 +214,8 @@ public class Evaluator {
 
     /** Permuted: every combination of elements from left × right. */
     static Object permuted(Object left, Object right, BinaryOp op) {
-        List<Object> l1 = toList(left);
-        List<Object> l2 = toList(right);
+        List<Object> l1 = operand(left);
+        List<Object> l2 = operand(right);
         List<Object> result = new ArrayList<>();
         for (Object a : l1) for (Object b : l2) result.add(op.apply(a, b));
         return result.size() == 1 ? result.getFirst() : result;
@@ -214,8 +223,8 @@ public class Evaluator {
 
     /** Returns true if any pair-wise comparison yields truthy. */
     static boolean anyPairwise(Object left, Object right, BinaryOp op) {
-        List<Object> l1 = toList(left);
-        List<Object> l2 = toList(right);
+        List<Object> l1 = operand(left);
+        List<Object> l2 = operand(right);
         int size = Math.max(l1.size(), l2.size());
         for (int i = 0; i < size; i++) {
             Object a = l1.get(Math.min(i, l1.size() - 1));
@@ -227,8 +236,8 @@ public class Evaluator {
 
     /** Returns true if any permuted comparison yields truthy. */
     static boolean anyPermuted(Object left, Object right, BinaryOp op) {
-        List<Object> l1 = toList(left);
-        List<Object> l2 = toList(right);
+        List<Object> l1 = operand(left);
+        List<Object> l2 = operand(right);
         for (Object a : l1) for (Object b : l2) if (isTruthy(op.apply(a, b))) return true;
         return false;
     }
