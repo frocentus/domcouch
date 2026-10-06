@@ -19,6 +19,7 @@ class LexerTest {
         assertEquals(3, tokens.size());
         assertToken(tokens.get(2), TokenType.CONST_NUMBER, "0.5", 9);
         assertToken(Lexer.tokenize("fh*1,3").get(2), TokenType.CONST_NUMBER, "1.3", 3);
+        assertToken(Lexer.tokenize(",5").get(0), TokenType.CONST_NUMBER, ".5", 0);   // as ".5" (HCL: point before the digits)
     }
 
     @Test

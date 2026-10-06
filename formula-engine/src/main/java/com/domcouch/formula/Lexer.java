@@ -139,7 +139,8 @@ public final class Lexer {
             }
 
             // Numbers (only sign-prefixed at start of term, not after a value)
-            if (c == '+' || c == '-' || c == '.' || Character.isDigit(c)) {
+            boolean commaNumber = c == ',' && i + 1 < len && Character.isDigit(input.charAt(i + 1));   // ",5"
+            if (c == '+' || c == '-' || c == '.' || commaNumber || Character.isDigit(c)) {
                 boolean afterValue = endsValue(tokens);
                 // Sign after a value is an operator, not a number prefix
                 if ((c == '+' || c == '-') && afterValue) {
@@ -274,12 +275,13 @@ public final class Lexer {
         if (first == '+' || first == '-') { num.append(first); i++; }
         boolean hasDigits = false;
         while (i < len && Character.isDigit(input.charAt(i))) { num.append(input.charAt(i)); i++; hasDigits = true; }
-        // Decimal separator: '.', or ',' between digits — a Notes client with German (or other)
-        // regional settings stores number constants as written there ("Kinder * 0,5",
-        // "@Round(y; 0,01)"). A comma is no operator in the formula language (arguments are
-        // separated by ';'), so between digits it can only be a decimal comma. The lexeme gets
-        // '.', with the same length as the source text.
-        boolean decimalComma = hasDigits && i + 1 < len && input.charAt(i) == ',' && Character.isDigit(input.charAt(i + 1));
+        // Decimal separator: '.', or ',' followed by a digit. HCL documents the point only, but a
+        // Notes client with German (or other) regional settings stores number constants as written
+        // there ("Kinder * 0,5", "@Round(y; 0,01)", ",5"). A comma is no operator in the formula
+        // language (arguments are separated by ';', no thousands separators), so before a digit it
+        // can only be a decimal comma: both separators are read, whatever the server's or the
+        // author's locale. The lexeme gets '.', with the same length as the source text.
+        boolean decimalComma = i + 1 < len && input.charAt(i) == ',' && Character.isDigit(input.charAt(i + 1));
         if (i < len && (input.charAt(i) == '.' || decimalComma)) { num.append('.'); i++;
             while (i < len && Character.isDigit(input.charAt(i))) { num.append(input.charAt(i)); i++; hasDigits = true; } }
         if (!hasDigits) return null;
