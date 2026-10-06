@@ -6,6 +6,16 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("Math Functions")
 class MathFunctionsTest extends BaseFormulaTest {
 
+    @Nested @DisplayName("Decimal comma (German Notes client)")
+    class DecimalComma {
+        // formulas of familie.nsf (Land Burgenland), as Notes stores them
+        @Test void multiply() { assertEquals(6.5, eval("x := 5; x * 1,3")); }
+        @Test void round() { assertEquals(12.35, (Double) eval("@Round(12.3456; 0,01)"), 1e-9); }
+        @Test void inIf() { assertEquals(1.8, eval("@If(1 = 1; 1,8; 1,2)")); }
+        @Test void leadingComma() { assertEquals(0.5, eval(",5")); }
+        @Test void pointStillWorks() { assertEquals(6.5, eval("5 * 1.3")); }
+    }
+
     @Nested @DisplayName("Math functions")
     class MathTests {
         @Test @DisplayName("@Pi") void pi() { assertEquals(Math.PI, (Double) eval("@Pi"), 0.0001); }
