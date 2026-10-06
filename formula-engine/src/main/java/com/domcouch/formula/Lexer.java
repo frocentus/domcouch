@@ -274,7 +274,13 @@ public final class Lexer {
         if (first == '+' || first == '-') { num.append(first); i++; }
         boolean hasDigits = false;
         while (i < len && Character.isDigit(input.charAt(i))) { num.append(input.charAt(i)); i++; hasDigits = true; }
-        if (i < len && input.charAt(i) == '.') { num.append('.'); i++;
+        // Decimal separator: '.', or ',' between digits — a Notes client with German (or other)
+        // regional settings stores number constants as written there ("Kinder * 0,5",
+        // "@Round(y; 0,01)"). A comma is no operator in the formula language (arguments are
+        // separated by ';'), so between digits it can only be a decimal comma. The lexeme gets
+        // '.', with the same length as the source text.
+        boolean decimalComma = hasDigits && i + 1 < len && input.charAt(i) == ',' && Character.isDigit(input.charAt(i + 1));
+        if (i < len && (input.charAt(i) == '.' || decimalComma)) { num.append('.'); i++;
             while (i < len && Character.isDigit(input.charAt(i))) { num.append(input.charAt(i)); i++; hasDigits = true; } }
         if (!hasDigits) return null;
         if (i < len && (input.charAt(i) == 'e' || input.charAt(i) == 'E')) {

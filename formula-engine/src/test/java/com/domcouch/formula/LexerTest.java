@@ -13,6 +13,23 @@ class LexerTest {
     // ---- Variables ----
 
     @Test
+    @DisplayName("decimal comma of a German Notes client: 0,5 is 0.5")
+    void decimalComma() {
+        List<Token> tokens = Lexer.tokenize("Kinder * 0,5");
+        assertEquals(3, tokens.size());
+        assertToken(tokens.get(2), TokenType.CONST_NUMBER, "0.5", 9);
+        assertToken(Lexer.tokenize("fh*1,3").get(2), TokenType.CONST_NUMBER, "1.3", 3);
+    }
+
+    @Test
+    @DisplayName("a comma not between digits stays an error, a comma in a string stays text")
+    void commaOutsideNumbers() {
+        assertThrows(FormulaParseException.class, () -> new Parser(Lexer.tokenize("1, 2")).parse());
+        List<Token> tokens = Lexer.tokenize("\"1,5\"");
+        assertToken(tokens.get(0), TokenType.CONST_STRING, "1,5", 0);
+    }
+
+    @Test
     @DisplayName("simple variable")
     void simpleVariable() {
         List<Token> tokens = Lexer.tokenize("FirstName");
